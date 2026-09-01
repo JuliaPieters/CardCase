@@ -22,6 +22,11 @@ export interface Card {
 
 export interface PriceSnapshot {
   cardId: string;
+  // Uitgebreid t.o.v. de oorspronkelijke definitie in core-beliefs.md: cardId identificeert
+  // een printing, niet een specifieke variant (zie CardVariant op Card) — zonder dit veld
+  // is een lijst van prijzen voor dezelfde kaart niet naar variant te herleiden. Zie
+  // docs/exec-plans/active/02-full-v1-site.md "Beslissingen tijdens uitvoering".
+  variant: CardVariant;
   currency: 'EUR' | 'USD';
   price: number;
   asOf: string;

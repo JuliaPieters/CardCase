@@ -12,14 +12,14 @@ Expliciet **buiten** dit plan (ongewijzigd t.o.v. eerdere afspraken): kaartherke
 ## Stappen
 
 ### App-shell en navigatie
-- [ ] Een echte app-shell bouwen: header met de Cardcase-naam/logo-achtige wordmark (Baloo 2), navigatie tussen Zoeken / Collectie / Trade Analyzer, thema-toggle (licht/donker).
-- [ ] Layout-grid conform `DESIGN.md`: content niet los zwevend linksboven, consistente marges (`--space-lg`/`--space-xl`) rondom.
+- [x] Een echte app-shell bouwen: header met de Cardcase-naam/logo-achtige wordmark (Baloo 2), navigatie (nu: Zoeken — Collectie/Trade Analyzer volgen zodra die domeinen bestaan, zie beslissingen), thema-toggle (licht/donker, met persistente keuze via localStorage + systeemvoorkeur als startpunt).
+- [x] Layout-grid conform `DESIGN.md`: `app.scss` geeft de main-content consistente marges (`--space-xl`) en een max-breedte, niet meer los zwevend linksboven.
 
 ### Card-catalog afwerken (voortbouwend op wat er al staat)
-- [ ] Zoekformulier en TCG-dropdown herstijlen met de tokens (`--surface-panel`, `--radius-md`, juiste font-size/spacing) in plaats van browser-defaults.
-- [ ] Zoekresultaten tonen als kaart-tegels: echte 2.5:3.5-verhouding, randkleur per variant/zeldzaamheid (zie `DESIGN.md` "Layout").
-- [ ] Kaartdetailweergave: alle bekende varianten + prijs per variant.
-- [ ] Lege staat ("nog niet gezocht") en foutstaat (API niet bereikbaar) herschreven conform `DESIGN.md` "Lege staten & foutmeldingen" — sturend, niet kaal.
+- [x] Zoekformulier en TCG-dropdown herstijlen met de tokens (`--surface-panel`, `--radius-md` voor het paneel, `--radius-sm` voor de velden zelf — zie beslissingen) in plaats van browser-defaults.
+- [x] Zoekresultaten tonen als kaart-tegels: echte 2.5:3.5-verhouding, randkleur per zeldzaamheid (zie `DESIGN.md` "Layout" en beslissingen — variant zelf is nog steeds altijd 'normal').
+- [x] Kaartdetailweergave: bekende varianten + prijs per variant, nu écht (niet meer uitgesteld) — `CardProvider.getPrice()` afgemaakt bij beide providers, `PriceSnapshot` uitgebreid met `variant`.
+- [x] Lege staat herschreven: de zoekpagina toont bij binnenkomst automatisch voorbeeldkaarten i.p.v. "zoek een kaart om te beginnen" (zie beslissingen) — dit was de kern van de gebruikersfeedback ("kaal, een paar knoppen"). Foutstaat (provider niet bereikbaar) bestond al sinds 01-card-catalog.md en is ongewijzigd (zegt exact welke bron faalde).
 
 ### Collection bouwen
 - [ ] `CollectionEntry`-model + Firestore-repo conform `docs/product-specs/collection.md` en de laagstructuur.
@@ -48,7 +48,16 @@ Expliciet **buiten** dit plan (ongewijzigd t.o.v. eerdere afspraken): kaartherke
 
 ## Beslissingen tijdens uitvoering
 
-<in te vullen tijdens het bouwen>
+- **Theme-service en app-header horen niet bij een domein.** Thema-keuze en navigatie zijn app-brede UI-concerns, geen bedrijfsdomein (`ARCHITECTURE.md` gaat over `domains/*` en `providers/`, niet over app-chrome). Nieuwe map `src/app/shell/` ernaast, analoog aan hoe `app.routes.ts`/`app.config.ts` al buiten de domeinstructuur staan.
+- **Navigatie groeit mee met bestaande domeinen.** Nu alleen "Zoeken" — geen "Collectie"/"Trade Analyzer"-links naar routes die nog niet bestaan (dode links). Toegevoegd zodra die domeinen daadwerkelijk gebouwd zijn, verderop in dit exec-plan.
+- **Voorbeeldkaarten bij binnenkomst** (`CARD_SEARCH_EXAMPLE_QUERY = 'dragon'`, card-catalog/config): direct aanleiding voor dit hele exec-plan was de gebruikersfeedback dat de site "kaal" aanvoelde. `'dragon'` is getest tegen zowel de Pokémon TCG API als Scryfall en levert bij beide rijke, herkenbare resultaten op — geen willekeurige keuze. De UI onderscheidt expliciet "Voorbeeldkaarten" van "Resultaten voor '...'" zodat dit niet als een echte zoekopdracht overkomt.
+- **Prijs is niet langer uitgesteld.** 01-card-catalog.md stelde prijs bewust uit vanwege de open vragen over prijscache/wisselkoers in `core-beliefs.md`. Die vragen gaan over `valuation`'s *geaggregeerde, herhaalde* prijsweergave (portfoliowaarde); een kaartdetailweergave is een losse, door de gebruiker geïnitieerde actie — core-beliefs.md #3 is hierop bijgewerkt met een expliciete uitzondering.
+- **`PriceSnapshot` uitgebreid met `variant`** (ook in `core-beliefs.md`, het canonieke model): zonder dit veld is een lijst prijzen voor dezelfde kaart (zelfde `cardId`, dat een *printing* identificeert, geen variant) niet naar variant te herleiden. Bewuste, afgewogen uitbreiding van het gedeelde model, geen stilzwijgende wijziging.
+- **Kaartdetail probeert alle kandidaat-varianten** (`CARD_DETAIL_VARIANT_CANDIDATES = ['normal','foil','reverseFoil']`, card-catalog/config) via `CardProvider.getPrice()` en toont alleen wat een prijs opleverde — geen wijziging aan de `CardProvider`-interface zelf (die blijft exact zoals in `ARCHITECTURE.md` gepind: search/getById/getPrice, geen "geef alle varianten"-methode).
+- **Currency-voorkeur bij Scryfall (Magic): EUR boven USD** waar beide beschikbaar zijn — Nederlandse gebruiker, geen conversie nodig (Scryfall geeft beide direct). Pokémon TCG API geeft alleen USD (tcgplayer). Dit is een per-kaart weergavekeuze, los van `valuation`'s latere vraag hoe *meerdere* valuta's worden opgeteld tot één portfoliototaal (die vereist wél een wisselkoers-bron).
+- **Rarity-gebaseerde randkleur, geen volledige zeldzaamheidskleurschaal.** DESIGN.md reserveert `--accent-primary` voor precies twee dingen. In plaats van nieuwe kleurtokens te verzinnen zonder visuele review: een grove twee-staps-indeling (common/uncommon = neutraal, al het overige = `--accent-secondary`) met uitsluitend bestaande tokens. Een rijkere schaal is een bewuste vervolgstap die eerst nieuwe, benoemde tokens in DESIGN.md nodig heeft.
+- **`nl-NL` als app-locale** (`LOCALE_ID` in `app.config.ts`, `@angular/common/locales/nl` geregistreerd) voor correcte prijsnotatie (`€ 1,23` i.p.v. `$1.23`) — relevant voor zowel deze prijzen als straks `valuation`'s portfoliowaarde.
+- **`ThemeService` gebruikt `localStorage` + `prefers-color-scheme` als fallback**, geen server-side/SSR-overweging nodig (geen SSR geconfigureerd).
 
 ## Afronding
 

@@ -36,4 +36,20 @@ describe('CardTile', () => {
     expect(img?.getAttribute('src')).toBe(CARD.imageUrl);
     expect(img?.getAttribute('alt')).toBe(CARD.name);
   });
+
+  it('geeft een kaart met een bijzondere zeldzaamheid een opvallende rand', () => {
+    fixture.componentRef.setInput('card', { ...CARD, rarity: 'Rare Holo VMAX' });
+    fixture.detectChanges();
+
+    const img = (fixture.nativeElement as HTMLElement).querySelector('img');
+    expect(img?.classList.contains('card-tile__image--notable')).toBe(true);
+  });
+
+  it('geeft een gewone kaart (common/uncommon) geen opvallende rand', () => {
+    fixture.componentRef.setInput('card', { ...CARD, rarity: 'Common' });
+    fixture.detectChanges();
+
+    const img = (fixture.nativeElement as HTMLElement).querySelector('img');
+    expect(img?.classList.contains('card-tile__image--notable')).toBe(false);
+  });
 });

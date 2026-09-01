@@ -22,6 +22,10 @@ interface Card {
 
 interface PriceSnapshot {
   cardId: string;
+  variant: CardVariant;     // cardId identificeert een printing, niet een variant — zonder
+                             // dit veld is een lijst prijzen voor dezelfde kaart niet naar
+                             // variant te herleiden (toegevoegd bij het bouwen van de
+                             // kaartdetailweergave, zie 02-full-v1-site.md)
   currency: 'EUR' | 'USD';
   price: number;
   asOf: string;             // ISO-datum
@@ -40,6 +44,8 @@ Zie `docs/governance/ARCHITECTURE.md`. Als een domein een veld nodig heeft dat n
 ## 3. Prijsdata wordt gecachet, nooit live per render opgehaald
 
 Gratis API's (Pokémon TCG API, Scryfall) hebben rate limits. `valuation` leest prijzen uit Firestore-cache die periodiek (Cloud Function/cron) wordt bijgewerkt, niet rechtstreeks bij elke portfolio-weergave.
+
+**Uitzondering, bewust**: de kaartdetailweergave in `card-catalog` haalt prijzen wél live op via `CardProvider.getPrice()` — dat is één losse, door de gebruiker geïnitieerde actie (één kaart openen), geen herhaalde aanroep per render van een lijst/portfolio. Dit principe beschermt tegen het laatste, niet tegen het eerste.
 
 ## 4. Nog open vragen
 

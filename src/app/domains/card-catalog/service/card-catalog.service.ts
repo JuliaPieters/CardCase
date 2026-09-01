@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { CARD_PROVIDERS } from '../../../providers/card-providers.provider';
 import { CardProvider } from '../../../providers/card-provider';
+import { CARD_DETAIL_VARIANT_CANDIDATES } from '../config/card-detail.config';
 import { CARD_SEARCH_RESULT_LIMIT_PER_PROVIDER } from '../config/card-search.config';
-import { Card, TcgId } from '../types/card';
+import { Card, PriceSnapshot, TcgId } from '../types/card';
 import { CardSearchResult } from '../types/card-search-result';
 
 // Enige service die CardProvider aanroept (zie docs/governance/ARCHITECTURE.md). Hangt af
@@ -50,5 +51,22 @@ export class CardCatalogService {
     }
 
     return provider.getById(externalId);
+  }
+
+  // Probeert elke kandidaat-variant (config) los op te halen bij de bron van deze kaart en
+  // geeft alleen de varianten terug die daadwerkelijk een prijs hadden — een ontbrekende
+  // variant (bv. geen foil-editie) is verwacht gedrag, geen fout om te tonen.
+  async getVariantPrices(card: Card): Promise<PriceSnapshot[]> {
+    const provider = this.providers.find((candidate) => candidate.tcg === card.tcg);
+
+    if (!provider) {
+      return [];
+    }
+
+    const outcomes = await Promise.allSettled(
+      CARD_DETAIL_VARIANT_CANDIDATES.map((variant) => provider.getPrice({ ...card, variant })),
+    );
+
+    return outcomes.filter((outcome) => outcome.status === 'fulfilled').map((outcome) => outcome.value);
   }
 }

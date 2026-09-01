@@ -1,0 +1,18 @@
+<div class="app-header__brand">
+  <a class="app-header__wordmark" routerLink="/">Cardcase</a>
+</div>
+
+<nav class="app-header__nav" aria-label="Hoofdnavigatie">
+  @for (link of navLinks; track link.path) {
+    <a
+      class="app-header__nav-link"
+      [routerLink]="link.path"
+      routerLinkActive="app-header__nav-link--active"
+      [routerLinkActiveOptions]="{ exact: true }"
+    >
+      {{ link.label }}
+    </a>
+  }
+</nav>
+
+<app-theme-toggle />

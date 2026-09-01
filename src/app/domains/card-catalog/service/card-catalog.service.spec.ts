@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { CARD_PROVIDERS } from '../../../providers/card-providers.provider';
 import { CardProvider } from '../../../providers/card-provider';
-import { Card } from '../types/card';
+import { Card, PriceSnapshot } from '../types/card';
 import { CardCatalogService } from './card-catalog.service';
 
 function fakeCard(tcg: 'pokemon' | 'magic', name: string): Card {
@@ -105,6 +105,36 @@ describe('CardCatalogService', () => {
       const service = createService([fakeProvider('pokemon')]);
 
       await expect(service.getCardDetail('magic', 'external-id')).rejects.toThrow(/magic/);
+    });
+  });
+
+  describe('getVariantPrices', () => {
+    function fakeSnapshot(): PriceSnapshot {
+      return { cardId: 'pokemon:x', variant: 'normal', currency: 'USD', price: 1.23, asOf: '2026-01-01', source: 'pokemon' };
+    }
+
+    it('geeft alleen de varianten terug die daadwerkelijk een prijs opleverden', async () => {
+      const getPrice = vi.fn().mockImplementation((card: Card) => {
+        if (card.variant === 'foil') {
+          return Promise.reject(new Error('geen foil-editie'));
+        }
+        return Promise.resolve(fakeSnapshot());
+      });
+      const pokemon = fakeProvider('pokemon', { getPrice });
+      const service = createService([pokemon]);
+
+      const prices = await service.getVariantPrices(fakeCard('pokemon', 'Pikachu'));
+
+      expect(getPrice).toHaveBeenCalledTimes(3);
+      expect(prices).toHaveLength(2);
+    });
+
+    it('geeft een lege lijst terug als er geen provider is voor de tcg', async () => {
+      const service = createService([fakeProvider('pokemon')]);
+
+      const prices = await service.getVariantPrices(fakeCard('magic', 'Lightning Bolt'));
+
+      expect(prices).toEqual([]);
     });
   });
 });

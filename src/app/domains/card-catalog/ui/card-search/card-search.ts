@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CardCatalogService } from '../../service/card-catalog.service';
+import { CARD_SEARCH_EXAMPLE_QUERY } from '../../config/card-search.config';
 import { Card, TcgId } from '../../types/card';
 import { CardTile } from '../card-tile/card-tile';
 
@@ -20,10 +21,24 @@ export class CardSearch {
   readonly status = signal<SearchStatus>('idle');
   readonly cards = signal<Card[]>([]);
   readonly failedTcgs = signal<TcgId[]>([]);
+  // Bij binnenkomst tonen we voorbeeldkaarten i.p.v. een lege pagina — zie
+  // docs/exec-plans/active/02-full-v1-site.md "Beslissingen tijdens uitvoering". Dit
+  // onderscheidt "dit zijn voorbeelden" van "dit zijn jouw zoekresultaten" in de UI.
+  readonly isShowingExamples = signal(true);
+
+  constructor() {
+    void this.showExamples();
+  }
 
   onFormSubmit(event: Event): void {
     event.preventDefault();
+    this.isShowingExamples.set(false);
     void this.onSubmit();
+  }
+
+  private async showExamples(): Promise<void> {
+    this.query.set(CARD_SEARCH_EXAMPLE_QUERY);
+    await this.onSubmit();
   }
 
   async onSubmit(): Promise<void> {

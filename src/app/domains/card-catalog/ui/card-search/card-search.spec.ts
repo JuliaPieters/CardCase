@@ -19,7 +19,6 @@ const CARD: Card = {
 };
 
 describe('CardSearch', () => {
-  let fixture: ComponentFixture<CardSearch>;
   let cardCatalogService: { search: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
@@ -29,42 +28,61 @@ describe('CardSearch', () => {
       imports: [CardSearch],
       providers: [provideRouter([]), { provide: CardCatalogService, useValue: cardCatalogService }],
     }).compileComponents();
-
-    fixture = TestBed.createComponent(CardSearch);
-    await fixture.whenStable();
   });
 
-  function text(): string {
+  function createFixture(): ComponentFixture<CardSearch> {
+    return TestBed.createComponent(CardSearch);
+  }
+
+  function text(fixture: ComponentFixture<CardSearch>): string {
     return (fixture.nativeElement as HTMLElement).textContent ?? '';
   }
 
-  it('toont een uitnodigende hint voordat er gezocht is', () => {
-    expect(text()).toContain('Zoek een kaart op naam om te beginnen.');
+  it('toont automatisch voorbeeldkaarten bij binnenkomst, gelabeld als voorbeelden', async () => {
+    cardCatalogService.search.mockResolvedValue({ cards: [CARD], failedTcgs: [] });
+
+    const fixture = createFixture();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(cardCatalogService.search).toHaveBeenCalled();
+    expect(text(fixture)).toContain('Voorbeeldkaarten');
+    expect(text(fixture)).toContain('Pikachu');
   });
 
-  it('roept de service aan met de ingevoerde query en toont de resultaten', async () => {
+  it('roept de service aan met de ingevoerde query en toont de resultaten als "Resultaten voor"', async () => {
+    const fixture = createFixture();
+    await fixture.whenStable();
+
     cardCatalogService.search.mockResolvedValue({ cards: [CARD], failedTcgs: [] });
     const component = fixture.componentInstance;
     component.query.set('pikachu');
+    component.isShowingExamples.set(false);
 
     await component.onSubmit();
     fixture.detectChanges();
 
     expect(cardCatalogService.search).toHaveBeenCalledWith('pikachu', undefined);
-    expect(text()).toContain('Pikachu');
+    expect(text(fixture)).toContain('Resultaten voor "pikachu"');
+    expect(text(fixture)).toContain('Pikachu');
   });
 
   it('toont een duidelijke lege-staat als er geen resultaten zijn', async () => {
+    const fixture = createFixture();
+    await fixture.whenStable();
     const component = fixture.componentInstance;
     component.query.set('onvindbaarekaart');
 
     await component.onSubmit();
     fixture.detectChanges();
 
-    expect(text()).toContain('Geen kaarten gevonden');
+    expect(text(fixture)).toContain('Geen kaarten gevonden');
   });
 
   it('toont welke provider(s) faalden, zonder de geslaagde resultaten te verbergen', async () => {
+    const fixture = createFixture();
+    await fixture.whenStable();
+
     cardCatalogService.search.mockResolvedValue({ cards: [CARD], failedTcgs: ['pokemon'] });
     const component = fixture.componentInstance;
     component.query.set('pikachu');
@@ -72,7 +90,7 @@ describe('CardSearch', () => {
     await component.onSubmit();
     fixture.detectChanges();
 
-    expect(text()).toContain('pokemon');
-    expect(text()).toContain('Pikachu');
+    expect(text(fixture)).toContain('pokemon');
+    expect(text(fixture)).toContain('Pikachu');
   });
 });

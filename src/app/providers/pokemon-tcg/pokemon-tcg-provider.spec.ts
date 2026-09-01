@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import cardByIdFixture from '../../../../test/fixtures/pokemon-tcg-api/card-by-id.json';
+import cardWithPriceVariantsFixture from '../../../../test/fixtures/pokemon-tcg-api/card-with-price-variants.json';
 import normalCardFixture from '../../../../test/fixtures/pokemon-tcg-api/normal-card.json';
 import { PokemonTcgProvider } from './pokemon-tcg-provider';
 
@@ -50,5 +51,16 @@ describe('PokemonTcgProvider', () => {
     const card = await provider.getById('bestaat-niet');
 
     expect(card).toBeNull();
+  });
+
+  it('getPrice() haalt de kaart opnieuw op en normaliseert de prijs voor de gevraagde variant', async () => {
+    stubFetchOnce(cardWithPriceVariantsFixture);
+    const provider = new PokemonTcgProvider();
+    const card = await provider.getById('sm115-19');
+
+    const priceSnapshot = await provider.getPrice({ ...card!, variant: 'reverseFoil' });
+
+    expect(priceSnapshot).toMatchObject({ cardId: card!.id, currency: 'USD', source: 'pokemon' });
+    expect(priceSnapshot.price).toBeGreaterThan(0);
   });
 });

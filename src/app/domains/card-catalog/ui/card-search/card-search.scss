@@ -1,9 +1,15 @@
+.card-search__panel {
+  background: var(--surface-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
 .card-search__form {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
 }
 
 .card-search__field {
@@ -23,7 +29,7 @@
     font-family: var(--font-family-body);
     font-size: var(--font-size-md);
     color: var(--text-primary);
-    background: var(--surface-panel);
+    background: var(--surface-base);
     border: 1px solid var(--text-muted);
     border-radius: var(--radius-sm);
     padding: var(--space-sm);
@@ -53,6 +59,14 @@ button[type='submit'] {
   font-family: var(--font-family-body);
   font-size: var(--font-size-md);
   color: var(--text-muted);
+}
+
+.card-search__results-heading {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md);
 }
 
 .card-search__results {

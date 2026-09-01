@@ -1,11 +1,9 @@
 import { Card, PriceSnapshot, TcgId } from '../../domains/card-catalog/types/card';
 import { CardProvider } from '../card-provider';
-import { PokemonTcgApiCardListResponse, PokemonTcgApiCardResponse } from './pokemon-tcg-api.types';
-import { toCard } from './pokemon-tcg.mapper';
+import { PokemonTcgApiCard, PokemonTcgApiCardListResponse, PokemonTcgApiCardResponse } from './pokemon-tcg-api.types';
+import { toCard, toPriceSnapshot } from './pokemon-tcg.mapper';
 
-// Zie docs/references/pokemon-tcg-api.md. `getPrice` blijft een placeholder-error: prijs is
-// bewust buiten scope van 01-card-catalog.md (zie dat exec-plan) — dat raakt de nog open
-// vragen over prijscache/wisselkoers in core-beliefs.md en hoort bij `valuation`.
+// Zie docs/references/pokemon-tcg-api.md.
 export class PokemonTcgProvider implements CardProvider {
   readonly tcg: TcgId = 'pokemon';
 
@@ -23,6 +21,21 @@ export class PokemonTcgProvider implements CardProvider {
   }
 
   async getById(externalId: string): Promise<Card | null> {
+    const apiCard = await this.fetchRawById(externalId);
+    return apiCard ? toCard(apiCard) : null;
+  }
+
+  async getPrice(card: Card): Promise<PriceSnapshot> {
+    const apiCard = await this.fetchRawById(card.externalId);
+
+    if (!apiCard) {
+      throw new Error(`Pokémon TCG API: kaart "${card.externalId}" niet gevonden voor prijsopvraag.`);
+    }
+
+    return toPriceSnapshot(card, apiCard);
+  }
+
+  private async fetchRawById(externalId: string): Promise<PokemonTcgApiCard | null> {
     const response = await fetch(`${this.baseUrl}/cards/${encodeURIComponent(externalId)}`);
 
     if (response.status === 404) {
@@ -34,10 +47,6 @@ export class PokemonTcgProvider implements CardProvider {
     }
 
     const body = (await response.json()) as PokemonTcgApiCardResponse;
-    return toCard(body.data);
-  }
-
-  getPrice(_card: Card): Promise<PriceSnapshot> {
-    throw new Error('PokemonTcgProvider.getPrice is bewust nog niet geïmplementeerd (zie 01-card-catalog.md, "Doel").');
+    return body.data;
   }
 }

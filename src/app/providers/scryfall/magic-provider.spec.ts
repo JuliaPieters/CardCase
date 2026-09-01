@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import cardByIdFixture from '../../../../test/fixtures/scryfall-api/card-by-id.json';
+import cardWithPriceVariantsFixture from '../../../../test/fixtures/scryfall-api/card-with-price-variants.json';
 import noResultsFixture from '../../../../test/fixtures/scryfall-api/no-results.json';
 import normalCardFixture from '../../../../test/fixtures/scryfall-api/normal-card.json';
 import { MagicProvider } from './magic-provider';
@@ -59,5 +60,16 @@ describe('MagicProvider', () => {
     const card = await provider.getById('bestaat-niet');
 
     expect(card).toBeNull();
+  });
+
+  it('getPrice() haalt de kaart opnieuw op en normaliseert de prijs voor de gevraagde variant', async () => {
+    stubFetchOnce(cardWithPriceVariantsFixture);
+    const provider = new MagicProvider();
+    const card = await provider.getById('7673784e-db4b-43a1-8d55-1bb9fc1e284f');
+
+    const priceSnapshot = await provider.getPrice({ ...card!, variant: 'foil' });
+
+    expect(priceSnapshot).toMatchObject({ cardId: card!.id, currency: 'EUR', source: 'magic' });
+    expect(priceSnapshot.price).toBeGreaterThan(0);
   });
 });

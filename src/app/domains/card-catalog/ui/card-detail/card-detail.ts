@@ -1,14 +1,23 @@
+import { CurrencyPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CardCatalogService } from '../../service/card-catalog.service';
-import { Card, TcgId } from '../../types/card';
+import { Card, CardVariant, PriceSnapshot, TcgId } from '../../types/card';
 
 type DetailStatus = 'loading' | 'found' | 'not-found' | 'invalid-tcg';
 
 const KNOWN_TCG_IDS: TcgId[] = ['pokemon', 'magic'];
 
+// Presentatie-only, geen domeinconcept — vandaar hier i.p.v. in card-catalog/types.
+export const VARIANT_LABELS: Record<CardVariant, string> = {
+  normal: 'Normaal',
+  foil: 'Foil',
+  reverseFoil: 'Reverse foil',
+  other: 'Overig',
+};
+
 @Component({
-  imports: [],
+  imports: [CurrencyPipe],
   selector: 'app-card-detail',
   styleUrl: './card-detail.scss',
   templateUrl: './card-detail.html',
@@ -19,6 +28,9 @@ export class CardDetail {
 
   readonly status = signal<DetailStatus>('loading');
   readonly card = signal<Card | null>(null);
+  readonly variantPrices = signal<PriceSnapshot[]>([]);
+  readonly pricesLoading = signal(false);
+  protected readonly variantLabels = VARIANT_LABELS;
 
   constructor() {
     void this.loadCard();
@@ -42,5 +54,10 @@ export class CardDetail {
 
     this.card.set(card);
     this.status.set('found');
+
+    this.pricesLoading.set(true);
+    const prices = await this.cardCatalogService.getVariantPrices(card);
+    this.variantPrices.set(prices);
+    this.pricesLoading.set(false);
   }
 }

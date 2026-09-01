@@ -20,9 +20,23 @@
             <dd>{{ card.cardNumber }}</dd>
             <dt>Zeldzaamheid</dt>
             <dd>{{ card.rarity }}</dd>
-            <dt>Variant</dt>
-            <dd>{{ card.variant }}</dd>
           </dl>
+
+          <h2 class="card-detail__prices-heading">Varianten &amp; prijzen</h2>
+          @if (pricesLoading()) {
+            <p class="card-detail__hint">Prijzen laden…</p>
+          } @else if (variantPrices().length === 0) {
+            <p class="card-detail__hint">Geen prijzen bekend voor deze kaart.</p>
+          } @else {
+            <ul class="card-detail__price-list">
+              @for (price of variantPrices(); track price.variant) {
+                <li class="card-detail__price-row">
+                  <span>{{ variantLabels[price.variant] }}</span>
+                  <span class="card-detail__price-value">{{ price.price | currency: price.currency }}</span>
+                </li>
+              }
+            </ul>
+          }
         </div>
       </article>
     }

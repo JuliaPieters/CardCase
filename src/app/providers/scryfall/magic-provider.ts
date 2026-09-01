@@ -1,10 +1,9 @@
 import { Card, PriceSnapshot, TcgId } from '../../domains/card-catalog/types/card';
 import { CardProvider } from '../card-provider';
 import { ScryfallApiCard, ScryfallApiCardListResponse } from './scryfall-api.types';
-import { toCard } from './scryfall.mapper';
+import { toCard, toPriceSnapshot } from './scryfall.mapper';
 
-// Zie docs/references/scryfall-api.md. `getPrice` blijft een placeholder-error, net als bij
-// PokemonTcgProvider — prijs is bewust buiten scope van 01-card-catalog.md.
+// Zie docs/references/scryfall-api.md.
 //
 // User-Agent: Scryfall wijst een "generieke" User-Agent (het HTTP-library-default, bv.
 // Node's eigen fetch-UA) hard af met een 400 ("generic_user_agent"). In een échte browser
@@ -40,6 +39,21 @@ export class MagicProvider implements CardProvider {
   }
 
   async getById(externalId: string): Promise<Card | null> {
+    const apiCard = await this.fetchRawById(externalId);
+    return apiCard ? toCard(apiCard) : null;
+  }
+
+  async getPrice(card: Card): Promise<PriceSnapshot> {
+    const apiCard = await this.fetchRawById(card.externalId);
+
+    if (!apiCard) {
+      throw new Error(`Scryfall: kaart "${card.externalId}" niet gevonden voor prijsopvraag.`);
+    }
+
+    return toPriceSnapshot(card, apiCard);
+  }
+
+  private async fetchRawById(externalId: string): Promise<ScryfallApiCard | null> {
     const response = await fetch(`${this.baseUrl}/cards/${encodeURIComponent(externalId)}`, {
       headers: this.headers,
     });
@@ -52,11 +66,6 @@ export class MagicProvider implements CardProvider {
       throw new Error(`Scryfall getById mislukt: ${response.status} ${response.statusText}`);
     }
 
-    const body = (await response.json()) as ScryfallApiCard;
-    return toCard(body);
-  }
-
-  getPrice(_card: Card): Promise<PriceSnapshot> {
-    throw new Error('MagicProvider.getPrice is bewust nog niet geïmplementeerd (zie 01-card-catalog.md, "Doel").');
+    return (await response.json()) as ScryfallApiCard;
   }
 }

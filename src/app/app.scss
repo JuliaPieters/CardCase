@@ -3,24 +3,19 @@
   min-height: 100dvh;
 }
 
-.app-header {
+.app-shell__header {
+  display: flex;
   padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--surface-panel);
 }
 
-.app-header__title {
-  margin: 0;
-  font-family: var(--font-family-display);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  text-align: left;
+.app-shell__main {
+  padding: var(--space-xl);
+  max-width: 75rem;
+  margin: 0 auto;
 }
 
-.app-main {
-  padding: 0 var(--space-xl) var(--space-xl);
-}
-
-.app-footer {
+.app-shell__footer {
   padding: var(--space-lg) var(--space-xl);
   border-top: 1px solid var(--surface-panel);
 
