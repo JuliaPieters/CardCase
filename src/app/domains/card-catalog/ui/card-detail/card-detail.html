@@ -1,0 +1,30 @@
+@switch (status()) {
+  @case ('loading') {
+    <p class="card-detail__hint">Kaart laden…</p>
+  }
+  @case ('invalid-tcg') {
+    <p class="card-detail__hint">Deze kaartverwijzing is ongeldig.</p>
+  }
+  @case ('not-found') {
+    <p class="card-detail__hint">Deze kaart bestaat niet (meer) bij de bron.</p>
+  }
+  @case ('found') {
+    @if (card(); as card) {
+      <article class="card-detail">
+        <img class="card-detail__image" [src]="card.imageUrl" [alt]="card.name" />
+        <div class="card-detail__info">
+          <h1 class="card-detail__name">{{ card.name }}</h1>
+          <p class="card-detail__set">{{ card.setName }}</p>
+          <dl class="card-detail__facts">
+            <dt>Kaartnummer</dt>
+            <dd>{{ card.cardNumber }}</dd>
+            <dt>Zeldzaamheid</dt>
+            <dd>{{ card.rarity }}</dd>
+            <dt>Variant</dt>
+            <dd>{{ card.variant }}</dd>
+          </dl>
+        </div>
+      </article>
+    }
+  }
+}

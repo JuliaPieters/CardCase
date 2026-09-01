@@ -19,4 +19,28 @@ describe.skipIf(!process.env['RUN_SMOKE_TESTS'])('PokemonTcgProvider (smoke test
     // docs/references/pokemon-tcg-api.md.
     15000,
   );
+
+  it(
+    'haalt een echte kaart op via getById()',
+    async () => {
+      const provider = new PokemonTcgProvider();
+
+      const card = await provider.getById('basep-1');
+
+      expect(card).toMatchObject({ tcg: 'pokemon', externalId: 'basep-1', name: 'Pikachu' });
+    },
+    15000,
+  );
+
+  it(
+    'geeft null terug voor een niet-bestaand id',
+    async () => {
+      const provider = new PokemonTcgProvider();
+
+      const card = await provider.getById('dit-bestaat-vast-niet-123456');
+
+      expect(card).toBeNull();
+    },
+    15000,
+  );
 });

@@ -1,0 +1,52 @@
+<form class="card-search__form" (submit)="onFormSubmit($event)">
+  <div class="card-search__field">
+    <label for="card-search-query">Kaartnaam</label>
+    <input
+      id="card-search-query"
+      type="text"
+      name="query"
+      autocomplete="off"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+    />
+  </div>
+
+  <div class="card-search__field">
+    <label for="card-search-tcg">TCG</label>
+    <select id="card-search-tcg" name="tcg" [value]="tcgFilter()" (change)="tcgFilter.set($any($event.target).value)">
+      <option value="">Alle TCG's</option>
+      <option value="pokemon">Pokémon</option>
+      <option value="magic">Magic: The Gathering</option>
+    </select>
+  </div>
+
+  <button type="submit">Zoeken</button>
+</form>
+
+@if (failedTcgs().length > 0) {
+  <p class="card-search__error" role="alert">
+    Kon niet zoeken bij {{ failedTcgs().join(', ') }} — probeer het opnieuw.
+  </p>
+}
+
+@switch (status()) {
+  @case ('idle') {
+    <p class="card-search__hint">Zoek een kaart op naam om te beginnen.</p>
+  }
+  @case ('searching') {
+    <p class="card-search__hint">Zoeken…</p>
+  }
+  @case ('done') {
+    @if (cards().length === 0) {
+      <p class="card-search__hint">Geen kaarten gevonden voor "{{ query() }}". Probeer een andere naam of spelling.</p>
+    } @else {
+      <div class="card-search__results">
+        @for (card of cards(); track card.id) {
+          <a class="card-search__result" [routerLink]="['/cards', card.tcg, card.externalId]">
+            <app-card-tile [card]="card" />
+          </a>
+        }
+      </div>
+    }
+  }
+}

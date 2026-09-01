@@ -19,3 +19,7 @@ export interface PokemonTcgApiCard {
 export interface PokemonTcgApiCardListResponse {
   data: PokemonTcgApiCard[];
 }
+
+export interface PokemonTcgApiCardResponse {
+  data: PokemonTcgApiCard;
+}

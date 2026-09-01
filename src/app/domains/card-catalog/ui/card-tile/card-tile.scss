@@ -1,0 +1,36 @@
+.card-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.card-tile__image {
+  width: 100%;
+  aspect-ratio: 2.5 / 3.5;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--text-muted);
+  background: var(--surface-panel);
+}
+
+.card-tile__name {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-tile__meta {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
