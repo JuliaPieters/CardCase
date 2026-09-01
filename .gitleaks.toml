@@ -1,0 +1,14 @@
+title = "Cardcase gitleaks config"
+
+[extend]
+useDefault = true
+
+# Firebase's client-side webconfig apiKey (AIza...) matcht gitleaks' generieke
+# "gcp-api-key"-regel, maar is geen secret: Firestore-toegang wordt afgedwongen door
+# firestore.rules, niet door geheimhouding van deze waarde (zie docs/governance/SECURITY.md
+# en het commentaar in src/environments/environment.ts). Alleen deze exacte vorm, alleen in
+# de environment-bestanden — geen algemene uitzondering voor andere secrets.
+[allowlist]
+description = "Firebase web-config apiKey is bewust publiek, geen secret"
+paths = ['''^src/environments/environment.*\.ts$''']
+regexes = ['''AIza[0-9A-Za-z\-_]{35}''']
