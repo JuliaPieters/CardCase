@@ -11,7 +11,7 @@ Zie `docs/product-specs/index.md` voor de volledige scope.
 ## Tech stack
 
 - Angular (frontend + business logic)
-- Firebase (auth, Firestore, hosting, functions)
+- Firebase (auth, Firestore, functions) — **geen Firebase Hosting**, hosting loopt via Vercel (buiten dit repo-setup, geregeld door Julia zelf)
 - Externe data: Pokémon TCG API, Scryfall (Magic) — zie `docs/references/`
 
 ## Kernprincipe: geen handgeschreven code in domeinlogica

@@ -13,7 +13,7 @@ Geen kaartherkenning via camera — kaarten worden handmatig gezocht en toegevoe
 
 ## Stack
 
-Angular · Firebase (auth, Firestore) · Pokémon TCG API · Scryfall (Magic)
+Angular · Firebase (auth, Firestore, functions) · Vercel (hosting) · Pokémon TCG API · Scryfall (Magic)
 
 ## Ontwikkelen
 
