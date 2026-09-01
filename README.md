@@ -21,6 +21,16 @@ Angular · Firebase (auth, Firestore) · Pokémon TCG API · Scryfall (Magic)
 - `npm test` — unit tests (vitest)
 - `npm run lint` — ESLint, inclusief de architecturale laag-/provider-grenzen (zie `eslint.config.js`)
 - `npm run build` — productiebuild
+- `npm run emulators` — Firebase-emulator (Auth + Firestore) lokaal starten
+- `npm run test:rules` — Firestore security rules testen tegen de emulator (vereist Java)
+
+### Vereist lokaal
+
+- Node 24, npm.
+- Java (voor de Firestore-emulator): `brew install openjdk`. Is keg-only — voeg toe aan `PATH`:
+  `export PATH="/usr/local/opt/openjdk/bin:$PATH"`.
+- `firebase-tools` (`npm install` zet dit al klaar als devDependency). Bij een npm-cache-fout met
+  root-owned bestanden: `sudo chown -R $(id -u):$(id -g) ~/.npm`.
 
 ## npm-pakketnaam
 

@@ -1,0 +1,7 @@
+// Self-hosted via @fontsource (geen Google Fonts CDN-call bij elke pageload, zie docs/governance/DESIGN.md
+// "Typografie"). Alleen de gewichten die docs/governance/DESIGN.md daadwerkelijk gebruikt.
+@use '@fontsource/baloo-2/600.css' as baloo-600;
+@use '@fontsource/baloo-2/700.css' as baloo-700;
+@use '@fontsource/manrope/400.css' as manrope-400;
+@use '@fontsource/manrope/500.css' as manrope-500;
+@use '@fontsource/manrope/700.css' as manrope-700;

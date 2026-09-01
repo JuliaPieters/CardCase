@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// Toegangsmodel uit docs/governance/SECURITY.md. Kernprincipe: elke collectie heeft vanaf het eerste
+// commit expliciete rules — nooit `allow read, write: if true;`. Veldnamen (`ownerId`,
+// `portfolioId`) zijn een voorlopige aanname zolang de domeinen zelf nog geen Types
+// hebben (zie docs/exec-plans/active/00-foundation.md, "Beslissingen tijdens uitvoering")
+// — bij het bouwen van collection/trade-analyzer moeten deze rules meebewegen met de
+// daadwerkelijke schemakeuze (docs/design-docs/schema-versioning.md).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // users/{userId}: alleen de eigenaar (documentId == uid) mag lezen/schrijven.
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // portfolios/{portfolioId}: alleen de eigenaar, aangegeven via het ownerId-veld.
+    match /portfolios/{portfolioId} {
+      allow read, write: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // collectionEntries/{entryId}: eigenaar van de bijbehorende portfolio (via
+    // portfolioId), niet van het entry-document zelf.
+    match /collectionEntries/{entryId} {
+      function ownsParentPortfolio(portfolioId) {
+        return get(/databases/$(database)/documents/portfolios/$(portfolioId)).data.ownerId == request.auth.uid;
+      }
+
+      allow read, update, delete: if isSignedIn() && ownsParentPortfolio(resource.data.portfolioId);
+      allow create: if isSignedIn() && ownsParentPortfolio(request.resource.data.portfolioId);
+    }
+
+    // tradeAnalyses/{tradeId}: alleen de maker, aangegeven via het ownerId-veld.
+    match /tradeAnalyses/{tradeId} {
+      allow read, update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Gedeelde, door Cloud Functions bijgewerkte caches: read-only voor ingelogde
+    // gebruikers, nooit rechtstreeks schrijfbaar vanuit de client (alleen admin-SDK).
+    match /cardCache/{cardId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /priceCache/{priceId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /deckArchetypeCache/{archetypeId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

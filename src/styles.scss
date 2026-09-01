@@ -1,1 +1,33 @@
-/* You can add global styles to this file, and also import other style files */
+@use 'styles/fonts';
+@use 'styles/tokens';
+
+html,
+body {
+  margin: 0;
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+}
+
+// Toegankelijkheid, zie docs/governance/DESIGN.md "Toegankelijkheid": zichtbare focus in de accent-kleur,
+// nooit `outline: none` zonder eigen alternatief.
+:focus-visible {
+  outline: 2px solid var(--accent-secondary);
+  outline-offset: 2px;
+}
+
+// Toegankelijkheid: prefers-reduced-motion wordt gerespecteerd op app-niveau; individuele
+// animaties (bv. de "slot-in" bij het toevoegen van een kaart) vervallen naar een directe
+// statusverandering.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

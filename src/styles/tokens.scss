@@ -1,0 +1,75 @@
+// Tokensysteem uit docs/governance/DESIGN.md. Dit is de enige plek waar deze waarden voorkomen — een
+// component gebruikt altijd var(--token), nooit een losse hex/px-waarde (zie docs/governance/QUALITY.md
+// en .claude/skills/architecture-check/). Nieuwe waarde nodig? Eerst hier toevoegen met
+// naam en reden, zie docs/governance/DESIGN.md "Schaal-tokens".
+
+:root {
+  // Kleur — licht (docs/governance/DESIGN.md "Kleur")
+  --surface-base: #fffdf7;
+  --surface-panel: #fff6e0;
+  --text-primary: #241c33;
+  --text-muted: #6e6580;
+  --accent-primary: #ffc738;
+  --accent-secondary: #6c5ce7;
+  --positive: #2fa97c;
+  --negative: #ff6b5c;
+
+  // Typografie — familie
+  --font-family-display: 'Baloo 2', sans-serif;
+  --font-family-body: 'Manrope', sans-serif;
+
+  // Typografie — gewicht
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  // Typografie — schaal
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.75rem;
+  --font-size-2xl: 2.5rem;
+
+  // Ruimte
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+
+  // Radius
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-card: 4%;
+}
+
+// Donker thema: expliciete keuze van de gebruiker via [data-theme="dark"] (zie
+// docs/governance/FRONTEND.md/DESIGN.md — licht én donker vanaf v1, geen van beide is "de uitzondering").
+// Alleen kleurtokens wisselen; typografie/ruimte/radius blijven gelijk.
+[data-theme='dark'] {
+  --surface-base: #1b1730;
+  --surface-panel: #251f42;
+  --text-primary: #f3efe6;
+  --text-muted: #a79cc4;
+  --accent-primary: #ffc738;
+  --accent-secondary: #8c7cff;
+  --positive: #4fd79c;
+  --negative: #ff8272;
+}
+
+// Systeemvoorkeur als startpunt zolang de gebruiker nog geen expliciete keuze heeft
+// gemaakt (geen [data-theme]-attribuut aanwezig).
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --surface-base: #1b1730;
+    --surface-panel: #251f42;
+    --text-primary: #f3efe6;
+    --text-muted: #a79cc4;
+    --accent-primary: #ffc738;
+    --accent-secondary: #8c7cff;
+    --positive: #4fd79c;
+    --negative: #ff8272;
+  }
+}

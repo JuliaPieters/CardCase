@@ -1,0 +1,111 @@
+{
+    "data": [
+        {
+            "id": "basep-1",
+            "name": "Pikachu",
+            "supertype": "Pok\u00e9mon",
+            "subtypes": [
+                "Basic"
+            ],
+            "level": "16",
+            "hp": "60",
+            "types": [
+                "Lightning"
+            ],
+            "evolvesTo": [
+                "Raichu"
+            ],
+            "attacks": [
+                {
+                    "name": "Growl",
+                    "cost": [
+                        "Colorless"
+                    ],
+                    "convertedEnergyCost": 1,
+                    "damage": "",
+                    "text": "If the Defending Pok\u00e9mon attacks Pikachu during your opponent's next turn, any damage done by the attack is reduced by 10 (after applying Weakness and Resistance). (Benching either Pok\u00e9mon ends this effect.)"
+                },
+                {
+                    "name": "Thundershock",
+                    "cost": [
+                        "Lightning",
+                        "Lightning"
+                    ],
+                    "convertedEnergyCost": 2,
+                    "damage": "20",
+                    "text": "Flip a coin. If heads, the Defending Pok\u00e9mon is now Paralyzed."
+                }
+            ],
+            "weaknesses": [
+                {
+                    "type": "Fighting",
+                    "value": "\u00d72"
+                }
+            ],
+            "retreatCost": [
+                "Colorless"
+            ],
+            "convertedRetreatCost": 1,
+            "set": {
+                "id": "basep",
+                "name": "Wizards Black Star Promos",
+                "series": "Base",
+                "printedTotal": 53,
+                "total": 53,
+                "legalities": {
+                    "unlimited": "Legal"
+                },
+                "ptcgoCode": "PR",
+                "releaseDate": "1999/07/01",
+                "updatedAt": "2020/08/14 09:35:00",
+                "images": {
+                    "symbol": "https://images.pokemontcg.io/basep/symbol.png",
+                    "logo": "https://images.pokemontcg.io/basep/logo.png"
+                }
+            },
+            "number": "1",
+            "artist": "Keiji Kinebuchi",
+            "rarity": "Promo",
+            "flavorText": "When several of these Pok\u00e9mon gather, their electricity could build and cause lightning storms.",
+            "nationalPokedexNumbers": [
+                25
+            ],
+            "legalities": {
+                "unlimited": "Legal"
+            },
+            "images": {
+                "small": "https://images.pokemontcg.io/basep/1.png",
+                "large": "https://images.pokemontcg.io/basep/1_hires.png"
+            },
+            "tcgplayer": {
+                "url": "https://prices.pokemontcg.io/tcgplayer/basep-1",
+                "updatedAt": "2023/03/27"
+            },
+            "cardmarket": {
+                "url": "https://prices.pokemontcg.io/cardmarket/basep-1",
+                "updatedAt": "2026/07/01",
+                "prices": {
+                    "averageSellPrice": 20.3,
+                    "lowPrice": 7.47,
+                    "trendPrice": 18.44,
+                    "germanProLow": 0.0,
+                    "suggestedPrice": 0.0,
+                    "reverseHoloSell": 0.0,
+                    "reverseHoloLow": 0.0,
+                    "reverseHoloTrend": 16.32,
+                    "lowPriceExPlus": 16.5,
+                    "avg1": 24.99,
+                    "avg7": 18.65,
+                    "avg30": 22.11,
+                    "reverseHoloAvg1": 12.0,
+                    "reverseHoloAvg7": 12.83,
+                    "reverseHoloAvg30": 12.83
+                }
+            }
+        }
+    ],
+    "page": 1,
+    "pageSize": 1,
+    "count": 1,
+    "totalCount": 177
+}
