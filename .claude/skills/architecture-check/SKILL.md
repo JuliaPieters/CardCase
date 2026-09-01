@@ -1,11 +1,11 @@
 ---
 name: architecture-check
-description: "Gebruik deze skill vóór het afronden van een PR die code toevoegt of wijzigt in src/app/domains/** of src/app/providers/**. Controleert of de laag- en provider-grenzen uit ARCHITECTURE.md worden gerespecteerd, plus hardcoded waarden en SOLID-schendingen, zolang de mechanische lint-regels daarvoor nog niet volledig staan."
+description: "Gebruik deze skill vóór het afronden van een PR die code toevoegt of wijzigt in src/app/domains/** of src/app/providers/**. Controleert of de laag- en provider-grenzen uit docs/governance/ARCHITECTURE.md worden gerespecteerd, plus hardcoded waarden en SOLID-schendingen, zolang de mechanische lint-regels daarvoor nog niet volledig staan."
 ---
 
 # Architecture check
 
-Handmatige controle van de laag- en providergrenzen uit `ARCHITECTURE.md`, te gebruiken vóórdat een PR met wijzigingen in `src/app/domains/**` of `src/app/providers/**` als klaar wordt gemarkeerd. Dit vervangt (nog) mechanische lint-regels — behandel elke afwijking als iets dat expliciet gemeld moet worden, niet stilzwijgend opgelost.
+Handmatige controle van de laag- en providergrenzen uit `docs/governance/ARCHITECTURE.md`, te gebruiken vóórdat een PR met wijzigingen in `src/app/domains/**` of `src/app/providers/**` als klaar wordt gemarkeerd. Dit vervangt (nog) mechanische lint-regels — behandel elke afwijking als iets dat expliciet gemeld moet worden, niet stilzwijgend opgelost.
 
 ## Checklist
 
@@ -16,7 +16,7 @@ Loop deze punten na op elk gewijzigd of toegevoegd bestand:
 - [ ] **Geen cross-domein import zonder expliciete interface.** `card-catalog`, `collection`, `valuation`, `trade-analyzer` mogen elkaars interne types/services niet direct importeren — alleen via een expliciet gedefinieerde interface.
 - [ ] **Geen `fetch`/HTTP buiten `providers/`.** Elke externe netwerkcall (Pokémon TCG API, Scryfall, Firebase, etc.) hoort in de providers-laag. Domeinlogica roept nooit rechtstreeks een externe API aan.
 - [ ] **Geen TCG-specifiek veld buiten het genormaliseerde `Card`/`DecklistEntry`-model.** Zodra data de provider-laag verlaat, is elk veld generiek. Zoek naar velden die duidelijk provider-specifiek zijn (bv. Scryfall- of Pokémon-TCG-API-naamgeving) die doorlekken naar service/UI.
-- [ ] **Geen losse hex/px-waarden of magic numbers.** Kleuren, spacing en typografie komen uit de design tokens (`DESIGN.md`) of uit de Config-laag van het domein — niet hardcoded in componenten of services.
+- [ ] **Geen losse hex/px-waarden of magic numbers.** Kleuren, spacing en typografie komen uit de design tokens (`docs/governance/DESIGN.md`) of uit de Config-laag van het domein — niet hardcoded in componenten of services.
 - [ ] **SOLID-check:**
   - Single responsibility: doet elke Service precies één ding? Groeit een service-bestand naar een god-object?
   - Dependency inversion: hangt domeinlogica af van de `CardProvider`/`DeckDataProvider`-interface, niet van een concrete providerimplementatie?

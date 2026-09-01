@@ -33,7 +33,7 @@ Zowel een licht als een donker thema worden vanaf v1 ondersteund — geen van be
 
 ## Schaal-tokens (verplicht, geen losse waarden)
 
-Elke maat in de UI — lettertype, tekstgrootte, ruimte tussen elementen, afronding — komt uit een van onderstaande vaste schalen. Een component met een losse waarde zoals `font-size: 14px`, `margin: 6px` of een los `font-family` in plaats van een token is een architectuurfout, geen stijlkeuze — zie `QUALITY.md`.
+Elke maat in de UI — lettertype, tekstgrootte, ruimte tussen elementen, afronding — komt uit een van onderstaande vaste schalen. Een component met een losse waarde zoals `font-size: 14px`, `margin: 6px` of een los `font-family` in plaats van een token is een architectuurfout, geen stijlkeuze — zie `docs/governance/QUALITY.md`.
 
 | Token | Waarde | Gebruik |
 |---|---|---|

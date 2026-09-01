@@ -35,7 +35,7 @@ interface PriceSnapshot {
 
 ## 2. Domeinlogica kent nooit een externe API direct
 
-Zie `ARCHITECTURE.md`. Als een domein een veld nodig heeft dat niet in `Card` zit, is de vraag: hoort dit generiek in `Card`, of is dit TCG-specifieke informatie die niet generiek gemaakt moet worden? Los dit hier op, niet met een ad-hoc `any`-veld.
+Zie `docs/governance/ARCHITECTURE.md`. Als een domein een veld nodig heeft dat niet in `Card` zit, is de vraag: hoort dit generiek in `Card`, of is dit TCG-specifieke informatie die niet generiek gemaakt moet worden? Los dit hier op, niet met een ad-hoc `any`-veld.
 
 ## 3. Prijsdata wordt gecachet, nooit live per render opgehaald
 

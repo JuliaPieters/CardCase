@@ -8,14 +8,14 @@ Er is maar één Firebase-project (dat is een bewuste, praktische keuze — niet
 
 | Omgeving | Waar | Gebruikt door |
 |---|---|---|
-| **Lokaal/dev** | Firebase-emulator suite (Auth, Firestore, Functions), draait lokaal, raakt het echte project nooit | Dagelijkse ontwikkeling en **alle** geautomatiseerde tests (zie `QUALITY.md`) |
+| **Lokaal/dev** | Firebase-emulator suite (Auth, Firestore, Functions), draait lokaal, raakt het echte project nooit | Dagelijkse ontwikkeling en **alle** geautomatiseerde tests (zie `docs/governance/QUALITY.md`) |
 | **Productie** | Het ene Firebase-project | Je eigen echte collectie/portfolio, en handmatig testen vlak voor je een feature zelf gaat gebruiken |
 
 Er is geen apart staging-project. Een bijna-afgeronde feature test je handmatig in productie, met normale voorzichtigheid (zoals je toch al zou doen bij een app die alleen jij gebruikt) — dat is bij een single-user hobbyproject een acceptabele afweging.
 
 **Harde regel, juist omdat er maar één project is:** geautomatiseerde tests draaien **nooit** tegen het echte Firebase-project, uitsluitend tegen de emulator. Zonder een apart staging-project als vangnet is dit de enige bescherming tegen een test die per ongeluk je eigen collectiedata overschrijft of de gedeelde prijs-/decklist-cache vervuilt — dus dit is niet optioneel.
 
-Omgevingselectie gebeurt via environment-config (bv. Angular's `environment.ts`-per-configuratie: `emulator` vs. `production`), nooit via een hardcoded projectnaam of API-key middenin een service — zie ook de hardcoded-waarden-regel in `QUALITY.md`.
+Omgevingselectie gebeurt via environment-config (bv. Angular's `environment.ts`-per-configuratie: `emulator` vs. `production`), nooit via een hardcoded projectnaam of API-key middenin een service — zie ook de hardcoded-waarden-regel in `docs/governance/QUALITY.md`.
 
 Wil je later toch íets van een tussenstap tussen emulator en productie: de emulator kan een export/snapshot van productiedata importeren om realistischer te testen, zonder dat er ooit geschreven wordt naar het echte project. Dat is dan de "staging"-vervanger, niet een los project.
 

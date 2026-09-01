@@ -11,7 +11,7 @@ Twee dingen die Collectr en vergelijkbare apps niet doen, omdat ze puur waarde-g
 
 ## Databron: `DeckDataProvider`
 
-Analoog aan `CardProvider` (zie `ARCHITECTURE.md`): een aparte provider-interface voor archetype-/decklist-data, met dezelfde regel — domeinlogica kent nooit de ruwe API-respons, alleen het genormaliseerde model.
+Analoog aan `CardProvider` (zie `docs/governance/ARCHITECTURE.md`): een aparte provider-interface voor archetype-/decklist-data, met dezelfde regel — domeinlogica kent nooit de ruwe API-respons, alleen het genormaliseerde model.
 
 ```ts
 interface DeckDataProvider {

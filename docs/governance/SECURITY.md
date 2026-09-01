@@ -30,7 +30,7 @@ De periodieke ververs-taken voor prijzen (`valuation`) en decklist-data (`deck-i
 
 ## Mechanische afdwinging
 
-- Firestore security rules worden getest met de Firebase-emulator (zie `QUALITY.md` — repo-laag test tegen de emulator). Een PR die een collectie toevoegt zonder bijbehorende rules-test hoort niet gemerged te worden.
+- Firestore security rules worden getest met de Firebase-emulator (zie `docs/governance/QUALITY.md` — repo-laag test tegen de emulator). Een PR die een collectie toevoegt zonder bijbehorende rules-test hoort niet gemerged te worden.
 - CI-check (toe te voegen in `00-foundation.md`): faalt als er een `.env`-bestand of iets dat op een API-key lijkt in een commit zit (bv. via `gitleaks` of een vergelijkbare simpele scanner).
 
 ## Import/export

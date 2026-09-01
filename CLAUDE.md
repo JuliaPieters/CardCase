@@ -20,7 +20,7 @@ Werk depth-first: breek een taak op in kleine, testbare stappen, laat de agent e
 
 ## Architectuurregel (verplicht, mechanisch afgedwongen)
 
-Zie `ARCHITECTURE.md` voor het volledige model. Kort samengevat:
+Zie `docs/governance/ARCHITECTURE.md` voor het volledige model. Kort samengevat:
 
 - Elk bedrijfsdomein (`card-catalog`, `collection`, `valuation`, `trade-analyzer`) is gelaagd: `Types → Config → Repo → Service → UI`. Afhankelijkheden mogen alleen voorwaarts.
 - Domeinoverschrijdende functionaliteit (TCG-databronnen, auth, logging) loopt **uitsluitend** via `Providers`. Een domein mag nooit rechtstreeks een externe API aanroepen.
@@ -38,15 +38,15 @@ Externe API-responses (Pokémon TCG API, Scryfall) worden bij de grens geparsed 
 
 ## Design
 
-Zie `DESIGN.md` voor het volledige tokensysteem (kleur, typografie, layout, motion). Kort samengevat: speels/cartoonachtig maar niet donker, licht én donker thema vanaf v1, en de kaart-vorm zelf (echte TCG-verhouding) is het centrale UI-motief in plaats van generieke rounded cards. Geen losse hex-waarden in componenten — altijd via de tokens.
+Zie `docs/governance/DESIGN.md` voor het volledige tokensysteem (kleur, typografie, layout, motion). Kort samengevat: speels/cartoonachtig maar niet donker, licht én donker thema vanaf v1, en de kaart-vorm zelf (echte TCG-verhouding) is het centrale UI-motief in plaats van generieke rounded cards. Geen losse hex-waarden in componenten — altijd via de tokens.
 
 ## Beveiliging
 
-Zie `SECURITY.md` voor de Firestore-toegangsregels en secrets-beleid. Kernregel: elke collectie heeft vanaf het eerste commit expliciete owner-based rules, gedeelde caches (prijzen, decklists) zijn alleen server-side schrijfbaar.
+Zie `docs/governance/SECURITY.md` voor de Firestore-toegangsregels en secrets-beleid. Kernregel: elke collectie heeft vanaf het eerste commit expliciete owner-based rules, gedeelde caches (prijzen, decklists) zijn alleen server-side schrijfbaar.
 
 ## Omgevingen
 
-Zie `ENVIRONMENTS.md` voor de scheiding tussen lokale emulator en het (enkele) productie-Firebase-project, en hoe Firebase-quota's/kosten in de gaten worden gehouden. Tests draaien altijd tegen de emulator, nooit tegen het echte project — er is geen apart staging-project.
+Zie `docs/governance/ENVIRONMENTS.md` voor de scheiding tussen lokale emulator en het (enkele) productie-Firebase-project, en hoe Firebase-quota's/kosten in de gaten worden gehouden. Tests draaien altijd tegen de emulator, nooit tegen het echte project — er is geen apart staging-project.
 
 ## Externe API's: voorwaarden
 
@@ -58,7 +58,7 @@ Zie `docs/design-docs/schema-versioning.md` voordat je een bestaand model (`Card
 
 ## Kwaliteit
 
-Zie `QUALITY.md` voor testconventies, coverage-richtlijnen, definition-of-done per feature en de merge-filosofie. Kort samengevat: service-laag en providers goed getest, geen tests die de echte externe API's raken, kleine PR's snel mergen, instabiele tests oplossen met een herhaalde run in plaats van blokkeren.
+Zie `docs/governance/QUALITY.md` voor testconventies, coverage-richtlijnen, definition-of-done per feature en de merge-filosofie. Kort samengevat: service-laag en providers goed getest, geen tests die de echte externe API's raken, kleine PR's snel mergen, instabiele tests oplossen met een herhaalde run in plaats van blokkeren.
 
 ## Agent-observability
 
@@ -69,7 +69,7 @@ Waar mogelijk koppel je Claude Code aan tooling waarmee het zijn eigen werk kan 
 Terugkerende, geteste procedures staan als `SKILL.md` in `.claude/skills/`, precies zoals het artikel beschrijft ("skills ingebed in de repository"). Nu aanwezig:
 
 - `provider-fixtures` — hoe je een `CardProvider`/`DeckDataProvider` test tegen echte, opgeslagen API-responses in plaats van live calls.
-- `architecture-check` — handmatige controle van de laag-/provider-grenzen uit `ARCHITECTURE.md`, zolang de lint-regels dit nog niet volledig mechanisch afdwingen.
+- `architecture-check` — handmatige controle van de laag-/provider-grenzen uit `docs/governance/ARCHITECTURE.md`, zolang de lint-regels dit nog niet volledig mechanisch afdwingen.
 - `browser-validate` — hoe je een UI-wijziging zelf valideert via de browsertooling.
 
 Voeg een nieuwe skill toe zodra je merkt dat je dezelfde instructie meer dan een keer herhaalt in een prompt — dat is het signaal dat het een skill moet worden in plaats van steeds opnieuw uitgetypt te worden.

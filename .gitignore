@@ -44,7 +44,7 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-# Secrets — zie SECURITY.md: nooit gecommit, ook niet "tijdelijk"
+# Secrets — zie docs/governance/SECURITY.md: nooit gecommit, ook niet "tijdelijk"
 .env
 .env.*
 !.env.example

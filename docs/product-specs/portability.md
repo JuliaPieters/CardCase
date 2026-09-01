@@ -27,7 +27,7 @@ Pikachu,Jungle,3
 
 ### Matching-logica
 
-Elke geïmporteerde rij wordt gematcht tegen de kaartcatalogus via `CardProvider.search()` (zie `ARCHITECTURE.md`), gefilterd op de opgegeven set. Drie uitkomsten:
+Elke geïmporteerde rij wordt gematcht tegen de kaartcatalogus via `CardProvider.search()` (zie `docs/governance/ARCHITECTURE.md`), gefilterd op de opgegeven set. Drie uitkomsten:
 
 1. **Eén duidelijke match** → automatisch toevoegen aan de collectie.
 2. **Geen match** → op een "te controleren"-lijst zetten, niet stilzwijgend overslaan. De gebruiker ziet na de import expliciet welke regels niet zijn herkend.
@@ -35,7 +35,7 @@ Elke geïmporteerde rij wordt gematcht tegen de kaartcatalogus via `CardProvider
 
 ### Gedeelde matching-logica met deck-insights
 
-`deck-insights.md` heeft exact hetzelfde probleem: decklist-regels (tekst) matchen tegen een `Card`. Bouw dit als één gedeelde `CardMatcher`-utility die door zowel de import-feature als `LimitlessTcgProvider` gebruikt wordt, in plaats van de matching-logica twee keer apart te implementeren (zie SOLID/DRY in `QUALITY.md`).
+`deck-insights.md` heeft exact hetzelfde probleem: decklist-regels (tekst) matchen tegen een `Card`. Bouw dit als één gedeelde `CardMatcher`-utility die door zowel de import-feature als `LimitlessTcgProvider` gebruikt wordt, in plaats van de matching-logica twee keer apart te implementeren (zie SOLID/DRY in `docs/governance/QUALITY.md`).
 
 ## Nog niet opgelost
 

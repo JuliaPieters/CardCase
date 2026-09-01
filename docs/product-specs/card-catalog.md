@@ -17,7 +17,7 @@ Gebruiker kan kaarten zoeken over meerdere TCG's heen en een kaart selecteren om
 - Pokémon: [Pokémon TCG API](https://pokemontcg.io/) — zie `docs/references/pokemon-tcg-api-llms.txt`
 - Magic: [Scryfall API](https://scryfall.com/docs/api) — zie `docs/references/scryfall-api-llms.txt`
 
-Elke bron heeft een eigen `CardProvider`-implementatie (zie `ARCHITECTURE.md`). Zoekresultaten van meerdere providers worden samengevoegd tot één lijst van genormaliseerde `Card`-objecten.
+Elke bron heeft een eigen `CardProvider`-implementatie (zie `docs/governance/ARCHITECTURE.md`). Zoekresultaten van meerdere providers worden samengevoegd tot één lijst van genormaliseerde `Card`-objecten.
 
 ## Nog niet opgelost
 

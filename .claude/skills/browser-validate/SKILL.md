@@ -9,7 +9,7 @@ Na een UI-wijziging valideer je het gedrag zelf via de browser-MCP-tooling, in p
 
 ## Werkwijze
 
-1. **App lokaal starten.** Start de dev-server (Angular) en, indien nodig voor de wijziging, de Firebase-emulator (zie `ENVIRONMENTS.md` — nooit tegen het echte productieproject).
+1. **App lokaal starten.** Start de dev-server (Angular) en, indien nodig voor de wijziging, de Firebase-emulator (zie `docs/governance/ENVIRONMENTS.md` — nooit tegen het echte productieproject).
 
 2. **Navigeer naar het gewijzigde scherm.** Ga direct naar de view/component die is aangepast.
 
@@ -19,10 +19,10 @@ Na een UI-wijziging valideer je het gedrag zelf via de browser-MCP-tooling, in p
 
 5. **Snapshot ná de actie en vergelijk.** Controleer:
    - juiste data (klopt wat er getoond wordt met wat er verwacht wordt),
-   - juiste designtoken (kleuren/typografie/spacing komen uit `DESIGN.md`-tokens, geen losse waarden — zie ook `architecture-check`),
+   - juiste designtoken (kleuren/typografie/spacing komen uit `docs/governance/DESIGN.md`-tokens, geen losse waarden — zie ook `architecture-check`),
    - geen consolefouten (lees de browserconsole na de actie).
 
-6. **Bij een thema-wijziging:** valideer expliciet in zowel licht als donker thema (`DESIGN.md` vereist beide vanaf v1). Herhaal stap 3–5 voor beide thema's.
+6. **Bij een thema-wijziging:** valideer expliciet in zowel licht als donker thema (`docs/governance/DESIGN.md` vereist beide vanaf v1). Herhaal stap 3–5 voor beide thema's.
 
 7. **Rapporteer het resultaat in de PR-beschrijving.** Beschrijf kort wat gevalideerd is en hoe (welk scherm, welke actie, licht/donker indien van toepassing), niet alleen "werkt".
 

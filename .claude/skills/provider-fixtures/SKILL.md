@@ -29,5 +29,5 @@ Providers en de CSV-import worden getest tegen opgeslagen, echte data — nooit 
 ## Wat dit niet is
 
 - Geen mocks die de vorm van de API simuleren zonder ooit echte data te hebben gezien.
-- Geen tests die de live externe API raken (zie `QUALITY.md`).
+- Geen tests die de live externe API raken (zie `docs/governance/QUALITY.md`).
 - Geen fixtures voor domeinlogica zelf — alleen voor de provider-/import-grens waar externe data het systeem binnenkomt.

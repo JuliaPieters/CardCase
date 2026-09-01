@@ -15,13 +15,13 @@ Geen hard percentage als doel op zich — 100% coverage op een `Repo`-laag die a
 
 ## Definition of done (per feature/exec-plan)
 
-- [ ] Voldoet aan de architectuurregels uit `ARCHITECTURE.md` (lagen, providers) en de SOLID-richtlijnen uit `QUALITY.md`.
+- [ ] Voldoet aan de architectuurregels uit `docs/governance/ARCHITECTURE.md` (lagen, providers) en de SOLID-richtlijnen uit `docs/governance/QUALITY.md`.
 - [ ] Bijbehorend `docs/product-specs/<domein>.md` is bijgewerkt als het gedrag afweek van het Concept.
 - [ ] Tests aanwezig volgens bovenstaande richtlijn.
 - [ ] Lint en build slagen.
-- [ ] Design volgt `DESIGN.md`: alleen tokens gebruikt (kleur, font-size, spacing, radius), geen losse hex/px-waarden.
-- [ ] Nieuwe of gewijzigde Firestore-collecties hebben bijgewerkte security rules + rules-test, conform `SECURITY.md`.
-- [ ] Toegankelijkheid: toetsenbord-focus zichtbaar, `prefers-reduced-motion` gerespecteerd, kleur niet de enige drager van betekenis (zie `DESIGN.md`).
+- [ ] Design volgt `docs/governance/DESIGN.md`: alleen tokens gebruikt (kleur, font-size, spacing, radius), geen losse hex/px-waarden.
+- [ ] Nieuwe of gewijzigde Firestore-collecties hebben bijgewerkte security rules + rules-test, conform `docs/governance/SECURITY.md`.
+- [ ] Toegankelijkheid: toetsenbord-focus zichtbaar, `prefers-reduced-motion` gerespecteerd, kleur niet de enige drager van betekenis (zie `docs/governance/DESIGN.md`).
 - [ ] Een schemawijziging aan een bestaand model volgt `docs/design-docs/schema-versioning.md` (versie-ophoging + read-time normalisatie waar nodig).
 
 ## Merge-filosofie
@@ -35,8 +35,8 @@ Voor een hobbyproject van deze schaal is de aanpak uit het artikel (kort-levende
 ## Code-stijl (mechanisch, niet ter discussie)
 
 - Naamgeving en structuur: zie de conventies in `CLAUDE.md` (geen afkortingen, enkelvoud).
-- Kleuren/typografie/spacing: alleen via de tokens in `DESIGN.md` (bv. `--font-size-sm`, `--space-md`), nooit een losse hex-waarde, px-waarde of magic number in een component. Een component die zelf `14px` of `#FFC738` schrijft in plaats van het token te gebruiken, is fout — ook als de waarde toevallig overeenkomt met een bestaand token.
-- Datastructuren worden bij de grens geparsed (zie `ARCHITECTURE.md`), nooit `any` doorgeven vanuit een provider.
+- Kleuren/typografie/spacing: alleen via de tokens in `docs/governance/DESIGN.md` (bv. `--font-size-sm`, `--space-md`), nooit een losse hex-waarde, px-waarde of magic number in een component. Een component die zelf `14px` of `#FFC738` schrijft in plaats van het token te gebruiken, is fout — ook als de waarde toevallig overeenkomt met een bestaand token.
+- Datastructuren worden bij de grens geparsed (zie `docs/governance/ARCHITECTURE.md`), nooit `any` doorgeven vanuit een provider.
 - Geen andere hardcoded waarden die eigenlijk configuratie zijn: API-endpoints, cache-verversingsintervallen, drempelwaarden (bv. de "eerlijke ruil"-marge uit `trade-analyzer.md`) horen in de `Config`-laag van het betreffende domein, niet verspreid als losse getallen in `Service`- of `UI`-bestanden.
 
 ## SOLID
@@ -44,7 +44,7 @@ Voor een hobbyproject van deze schaal is de aanpak uit het artikel (kort-levende
 Verplicht voor de `Service`- en `Provider`-laag (waar de businesslogica zit); bij `Repo` en `UI` is dit vooral relevant zodra ze meer dan triviaal worden.
 
 - **Single responsibility**: een `Service` doet één ding. Zodra een servicebestand zowel prijsberekening als validatie als notificaties doet, hoort dat gesplitst te worden — dit is precies waarom `valuation` en `trade-analyzer` losse domeinen zijn in plaats van functies binnen `collection`.
-- **Open/closed**: nieuwe TCG toevoegen mag geen wijziging vereisen in bestaande domeinlogica, alleen een nieuwe `CardProvider`-implementatie (zie `ARCHITECTURE.md` — dit is het hele punt van die abstractie).
+- **Open/closed**: nieuwe TCG toevoegen mag geen wijziging vereisen in bestaande domeinlogica, alleen een nieuwe `CardProvider`-implementatie (zie `docs/governance/ARCHITECTURE.md` — dit is het hele punt van die abstractie).
 - **Liskov substitution**: elke `CardProvider`- of `DeckDataProvider`-implementatie moet inwisselbaar zijn zonder dat de aanroepende code weet welke TCG het is. Als `MagicProvider` een methode anders laat gedragen dan `PokemonTcgProvider` op een manier die de `Service`-laag moet detecteren, is de abstractie lek.
 - **Interface segregation**: geen enkele, allesomvattende `CardProvider`-interface met methoden die alleen voor één TCG gelden. Iets dat niet generiek is voor alle TCG's hoort niet in de gedeelde interface (zie de open vragen over `rarity` in `docs/design-docs/core-beliefs.md`).
 - **Dependency inversion**: een `Service` hangt af van de `CardProvider`-interface, nooit van een concrete `PokemonTcgProvider`-klasse. Injecteer de implementatie, importeer 'm niet direct.
