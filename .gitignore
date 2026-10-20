@@ -43,3 +43,5 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
+# Firebase web config: generated from env vars at build time (scripts/write-firebase-config.mjs)
+/public/firebase-config.json
