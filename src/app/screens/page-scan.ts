@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
+import { matchCards, norm } from '../core/card-match';
+import { COLS, isCard } from '../core/data';
+import { type CameraError, ScannerService } from '../core/scanner';
 import { CardcaseStore } from '../core/store';
 import { Led } from '../shared/bits';
 
-/** Full-screen binder page scanner styled as a dot-matrix camera. */
+/** Full-screen binder page scanner styled as a dot-matrix camera: reads every slot of the page and checks it against the binder plan. */
 @Component({
   selector: 'cc-page-scan',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,9 +65,9 @@ import { Led } from '../shared/bits';
           </div>
           <div class="relative flex-1 min-h-0 bg-lcd rounded-md shadow-[inset_0_0_0_3px_#8BAC0F] overflow-hidden">
             <div class="absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(48,98,48,.16)_0_10px,transparent_10px_20px)]"></div>
-            <div class="absolute top-[10px] left-3 font-mono font-medium text-[11px] leading-none text-lcd-mid">camerabeeld · opengeslagen binderpagina</div>
-            <div class="absolute inset-[10%_9%_8%] flex items-center justify-center">
-              <div class="relative h-full max-w-full" [style.aspect-ratio]="s.psv.aspect">
+            <video #video class="absolute inset-0 w-full h-full object-cover" autoplay muted playsinline></video>
+            <div class="absolute inset-[6%_5%] flex items-center justify-center">
+              <div #grid class="relative max-h-full max-w-full" [style.aspect-ratio]="s.psv.aspect" [style.height]="'100%'">
                 <div
                   class="absolute inset-0 grid gap-[6px]"
                   [style.grid-template-columns]="'repeat(' + s.psv.cols + ',1fr)'"
@@ -90,7 +93,7 @@ import { Led } from '../shared/bits';
             }
           </div>
           <div class="lcd self-center flex items-center gap-2 rounded-[5px] px-3 py-[7px] text-[14px] leading-none whitespace-nowrap">
-            <cc-led [color]="s.psDotColor" [blink]="s.psAlign" />{{ s.psv.status }}
+            <cc-led [color]="s.psDotColor" [blink]="s.psAlign" />{{ status() }}
           </div>
         </div>
         <div class="flex items-center justify-center gap-[26px]">
@@ -105,7 +108,8 @@ import { Led } from '../shared/bits';
           </div>
           <div class="flex flex-col items-center gap-[5px]">
             <button
-              (click)="s.psCapture()"
+              (click)="capture()"
+              [disabled]="s.psv.capOp < 1"
               class="w-[74px] h-[74px] rounded-full bg-[#E3350D] text-cream border-[3px] border-black shadow-[0_5px_0_#000] font-pixel font-semibold text-[20px] leading-none active:translate-y-1 active:shadow-[0_1px_0_#000]"
               [style.opacity]="s.psv.capOp"
             >
@@ -113,12 +117,110 @@ import { Led } from '../shared/bits';
             </button>
             <span class="font-pixel text-[11px] leading-none text-[#A8A497]">CONTROLEER</span>
           </div>
+          <div class="flex flex-col items-center gap-[5px]">
+            <label
+              class="w-[50px] h-[50px] rounded-full bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_4px_0_#000] flex items-center justify-center cursor-pointer"
+              [style.opacity]="reading() ? 0.6 : 1"
+            >
+              <span class="icon text-[22px]">add_photo_alternate</span>
+              <input type="file" accept="image/*" class="hidden" [disabled]="reading()" (change)="onPhoto($event)" />
+            </label>
+            <span class="font-pixel text-[11px] leading-none text-[#A8A497]">FOTO</span>
+          </div>
         </div>
-        <div class="text-center text-[13px] font-bold text-[#A8A497] px-5">Leg de binder plat en laat de pagina het raster vullen.</div>
+        <div class="text-center text-[13px] font-bold text-[#A8A497] px-5 text-pretty">{{ hint() }}</div>
       </div>
     </div>
   `,
 })
-export class PageScanOverlay {
-  protected readonly v = inject(CardcaseStore).vals;
+export class PageScanOverlay implements OnDestroy {
+  private readonly store = inject(CardcaseStore);
+  private readonly scanner = inject(ScannerService);
+  protected readonly v = this.store.vals;
+  private readonly video = viewChild.required<ElementRef<HTMLVideoElement>>('video');
+  private readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
+
+  protected readonly cam = signal<'starting' | 'live' | CameraError>('starting');
+  protected readonly reading = computed(() => this.store.state.ps.phase === 'reading');
+  protected readonly status = computed(() => {
+    const cam = this.cam();
+    if (this.reading() || cam === 'live') return this.v().psv.status;
+    if (cam === 'starting') return 'CAMERA STARTEN…';
+    return cam === 'denied' ? 'GEEN CAMERA-TOEGANG' : 'GEEN CAMERA GEVONDEN';
+  });
+  protected readonly hint = computed(() =>
+    this.cam() === 'live' || this.cam() === 'starting'
+      ? 'Leg de binder plat, laat de pagina precies het raster vullen en vermijd glans op de hoesjes.'
+      : 'Geen camerabeeld: kies een foto waarop de binderpagina het hele beeld vult.',
+  );
+
+  private stream?: MediaStream;
+  private alive = true;
+
+  constructor() {
+    afterNextRender(() => void this.start());
+  }
+
+  ngOnDestroy() {
+    this.alive = false;
+    this.scanner.stopCamera(this.stream);
+  }
+
+  private async start() {
+    try {
+      const stream = await this.scanner.startCamera(this.video().nativeElement);
+      if (!this.alive) return this.scanner.stopCamera(stream);
+      this.stream = stream;
+      this.cam.set('live');
+      this.store.setPs({ phase: 'locked' });
+    } catch (err) {
+      this.cam.set(typeof err === 'string' ? (err as CameraError) : 'failed');
+      // Without a camera the photo button still works.
+      this.store.setPs({ phase: 'locked' });
+    }
+  }
+
+  protected capture() {
+    if (this.cam() !== 'live') return;
+    const frame = this.scanner.grabGuide(this.video().nativeElement, this.grid().nativeElement);
+    if (frame) void this.read(frame);
+  }
+
+  protected async onPhoto(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void this.read(await this.scanner.fileToCanvas(file, 4000));
+  }
+
+  /** Splits the page image into the binder's grid and recognises the card in every slot. */
+  private async read(page: HTMLCanvasElement) {
+    const { b, idxs, expect } = this.store.pageScanTarget();
+    const cols: number = (COLS as Record<number, number>)[b.fmt];
+    const rows = b.fmt / cols;
+    const cw = page.width / cols;
+    const ch = page.height / rows;
+    // Cards in the rest of the binder are likely too (e.g. two slots swapped across pages).
+    const prefer = new Set<number>(b.slots.filter(isCard));
+    const res: Record<number, { got: number | null; conf: number; cands: { id: number; conf: number }[] }> = {};
+    this.store.setPs({ phase: 'reading', done: 0 });
+    try {
+      for (const [k, i] of idxs.entries()) {
+        // Trim the gap between pockets so the strips start at the card edge.
+        const x = (k % cols) * cw + cw * 0.03;
+        const y = Math.floor(k / cols) * ch + ch * 0.02;
+        const text = await this.scanner.readCard(page, x, y, cw * 0.94, ch * 0.96);
+        if (!this.alive) return;
+        const cands = norm(text).length >= 3 ? matchCards(text, { prefer, expect: expect(i) }) : [];
+        res[i] = { got: cands[0]?.id ?? null, conf: cands[0]?.conf ?? 0, cands };
+        this.store.setPs({ done: k + 1 });
+      }
+      this.store.pageScanned(res);
+    } catch (err) {
+      console.warn('[pagescan] tekstherkenning mislukt', err);
+      if (!this.alive) return;
+      this.store.setPs({ phase: 'locked' });
+      this.store.toast('Herkennen mislukt · controleer je verbinding');
+    }
+  }
 }

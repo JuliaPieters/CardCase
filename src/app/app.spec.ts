@@ -36,9 +36,30 @@ describe('CardcaseStore', () => {
   it('adds a scanned card to the collection', () => {
     const store = TestBed.inject(CardcaseStore);
     const before = store.vals().totalCards;
+    store.scanFound([{ id: 1, conf: 99 }, { id: 2, conf: 60 }]);
     store.setScan({ phase: 'sheet', qty: 2 });
     store.addScan();
     expect(store.vals().totalCards).toBe(before + 2);
+  });
+
+  it('checks a scanned binder page against the plan', () => {
+    const store = TestBed.inject(CardcaseStore);
+    const b = store.state.binders.find((x: any) => x.slots.some((s: any) => typeof s === 'number'));
+    store.startPageScan(b.id, [0, 1]);
+    const { idxs, expect: exp } = store.pageScanTarget();
+    const full = idxs.filter((i) => exp(i) != null);
+    expect(full.length).toBeGreaterThan(1);
+    const [a, c] = full;
+    // Every slot read correctly, except two cards that are swapped and one left empty.
+    const res: any = {};
+    idxs.forEach((i) => (res[i] = { got: exp(i), conf: 95, cands: [] }));
+    res[a] = { got: exp(c), conf: 95, cands: [] };
+    res[c] = { got: null, conf: 0, cands: [] };
+    store.pageScanned(res);
+    const det: any = store.resultModel().det;
+    expect(det[a].st).toBe('swap');
+    expect(det[c].st).toBe('empty');
+    expect(store.vals().rsIssues.length).toBe(2);
   });
 
   it('places a card in a binder slot by tap', () => {

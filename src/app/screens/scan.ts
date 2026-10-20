@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
+import { matchCards, type CardMatch } from '../core/card-match';
+import { type CameraError, ScannerService } from '../core/scanner';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
 import { Led } from '../shared/bits';
 
-/** Full-screen card scanner with the "top 3 matches" sheet. */
+/** Full-screen card scanner: reads name and collector number from the camera image and shows the best matches. */
 @Component({
   selector: 'cc-scan',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,15 +39,26 @@ import { Led } from '../shared/bits';
               PAGINA
             </button>
           </div>
-          <button title="Flitser" class="w-11 h-11 rounded-xl bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center">
-            <span class="icon text-[22px]">flash_on</span>
-          </button>
+          @if (torchAvail()) {
+            <button
+              (click)="toggleTorch()"
+              title="Flitser"
+              class="w-11 h-11 rounded-xl border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center"
+              [class]="torch() ? 'bg-lcd text-lcd-ink' : 'bg-[#2A2D35] text-[#F7F3E8]'"
+            >
+              <span class="icon text-[22px]">{{ torch() ? 'flash_on' : 'flash_off' }}</span>
+            </button>
+          }
+          <label title="Foto kiezen" class="w-11 h-11 rounded-xl bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center cursor-pointer">
+            <span class="icon text-[22px]">add_photo_alternate</span>
+            <input type="file" accept="image/*" class="hidden" (change)="onPhoto($event)" />
+          </label>
         </div>
         <div
           class="relative flex-1 mx-3 rounded-[18px] border-2 border-black overflow-hidden bg-[repeating-linear-gradient(45deg,#1E2128_0_12px,#1A1C22_12px_24px)]"
         >
-          <div class="absolute top-3 left-[14px] font-mono font-medium text-[11px] leading-none text-[#6B6F78]">camerabeeld</div>
-          <div class="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-[min(62%,280px)] aspect-[63/88]">
+          <video #video class="absolute inset-0 w-full h-full object-cover" autoplay muted playsinline></video>
+          <div #guide class="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-[min(62%,280px)] max-h-[80%] aspect-[63/88]">
             @if (s.scanLocked) {
               <div class="absolute inset-[5%] border-2 border-[rgba(155,188,15,.7)] rounded-[10px] bg-[rgba(155,188,15,.14)]"></div>
             }
@@ -59,11 +72,11 @@ import { Led } from '../shared/bits';
           </div>
           <div class="absolute bottom-[18px] left-1/2 -translate-x-1/2 bg-device border-2 border-black rounded-[9px] p-1">
             <div class="lcd flex items-center gap-2 rounded-[5px] px-3 py-[7px] text-[14px] leading-none whitespace-nowrap">
-              <cc-led [color]="s.statusDotColor" [blink]="s.statusDotBlink" />{{ s.statusText }}
+              <cc-led [color]="s.statusDotColor" [blink]="s.statusDotBlink" />{{ status() }}
             </div>
           </div>
         </div>
-        <div class="px-5 pt-[14px] pb-5 text-center text-[13px] font-bold text-[#A8A497]">Leg de kaart plat in het kader en vermijd reflecties.</div>
+        <div class="px-5 pt-[14px] pb-5 text-center text-[13px] font-bold text-[#A8A497] text-pretty">{{ hint() }}</div>
 
         @if (s.scanSheet) {
           <div class="absolute inset-0 bg-[rgba(0,0,0,.45)] pointer-events-none"></div>
@@ -73,7 +86,7 @@ import { Led } from '../shared/bits';
             <div class="w-11 h-[5px] rounded-[3px] bg-muted opacity-50 self-center"></div>
             <div class="flex items-end justify-between gap-[10px]">
               <div>
-                <div class="font-pixel text-[12px] leading-none text-muted tracking-[.08em]">TOP 3 MATCHES</div>
+                <div class="font-pixel text-[12px] leading-none text-muted tracking-[.08em]">{{ s.matchCount === 1 ? 'BESTE MATCH' : 'BESTE ' + s.matchCount + ' MATCHES' }}</div>
                 <div class="text-[20px] font-black mt-1">Welke kaart is het?</div>
               </div>
               <button (click)="s.rescan()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-[10px] py-[6px] font-extrabold text-[13px]">Opnieuw</button>
@@ -155,6 +168,134 @@ import { Led } from '../shared/bits';
     </div>
   `,
 })
-export class ScanOverlay {
-  protected readonly v = inject(CardcaseStore).vals;
+export class ScanOverlay implements OnDestroy {
+  private readonly store = inject(CardcaseStore);
+  private readonly scanner = inject(ScannerService);
+  protected readonly v = this.store.vals;
+  private readonly video = viewChild.required<ElementRef<HTMLVideoElement>>('video');
+  private readonly guide = viewChild.required<ElementRef<HTMLElement>>('guide');
+
+  protected readonly cam = signal<'starting' | 'live' | CameraError>('starting');
+  /** False until the OCR engine has been downloaded and has read its first frame. */
+  protected readonly ocrReady = signal(false);
+  protected readonly reading = signal(false);
+  protected readonly torch = signal(false);
+  protected readonly torchAvail = signal(false);
+
+  protected readonly status = computed(() => {
+    const cam = this.cam();
+    if (this.reading()) return 'FOTO LEZEN…';
+    if (cam === 'starting') return 'CAMERA STARTEN…';
+    if (cam === 'denied') return 'GEEN CAMERA-TOEGANG';
+    if (cam !== 'live') return 'GEEN CAMERA GEVONDEN';
+    if (!this.ocrReady() && this.v().scanSearching) return 'SCANNER LADEN…';
+    return this.v().statusText;
+  });
+  protected readonly hint = computed(() => {
+    const cam = this.cam();
+    if (cam === 'denied') return 'Sta cameratoegang toe in je browser, of kies een foto van de kaart.';
+    if (cam === 'unsupported' || cam === 'failed') return 'Deze browser of dit apparaat geeft geen camerabeeld. Kies een foto van de kaart.';
+    return 'Leg de kaart plat in het kader, met de naam en het kaartnummer goed zichtbaar. Vermijd reflecties.';
+  });
+
+  private stream?: MediaStream;
+  private alive = true;
+  /** Best match of the previous frame and how many frames in a row it was the best. */
+  private streak = { id: -1, n: 0 };
+  /** The card just shown is ignored for a moment after rescanning, while it is still in view. */
+  private skip = { id: -1, until: 0 };
+
+  constructor() {
+    afterNextRender(() => void this.start());
+  }
+
+  ngOnDestroy() {
+    this.alive = false;
+    this.scanner.stopCamera(this.stream);
+  }
+
+  private async start() {
+    try {
+      const stream = await this.scanner.startCamera(this.video().nativeElement);
+      if (!this.alive) return this.scanner.stopCamera(stream);
+      this.stream = stream;
+      this.torchAvail.set(this.scanner.hasTorch(stream));
+      this.cam.set('live');
+      void this.loop();
+    } catch (err) {
+      this.cam.set(typeof err === 'string' ? (err as CameraError) : 'failed');
+    }
+  }
+
+  /** Reads the card in the frame over and over while the scanner is searching. */
+  private async loop() {
+    let wasSearching = true;
+    while (this.alive) {
+      const searching = this.store.state.scan.phase === 'search';
+      if (searching && !wasSearching) this.skip.until = Date.now() + 2500;
+      wasSearching = searching;
+      if (searching && !this.reading()) {
+        const frame = this.scanner.grabGuide(this.video().nativeElement, this.guide().nativeElement);
+        if (frame) {
+          try {
+            const text = await this.scanner.readCard(frame);
+            this.ocrReady.set(true);
+            if (this.alive && this.store.state.scan.phase === 'search') this.consider(matchCards(text));
+          } catch (err) {
+            console.warn('[scan] tekstherkenning mislukt', err);
+            await sleep(2000);
+          }
+        }
+      }
+      await sleep(300);
+    }
+  }
+
+  /** Accepts a clear match at once, a weaker one only when two frames in a row agree. */
+  private consider(ms: CardMatch[]) {
+    const best = ms[0];
+    if (!best || (best.id === this.skip.id && Date.now() < this.skip.until)) {
+      this.streak = { id: -1, n: 0 };
+      return;
+    }
+    this.streak = best.id === this.streak.id ? { id: best.id, n: this.streak.n + 1 } : { id: best.id, n: 1 };
+    if (best.conf >= 75 || (best.conf >= 45 && this.streak.n >= 2)) {
+      this.skip = { id: best.id, until: Infinity };
+      this.streak = { id: -1, n: 0 };
+      this.store.scanFound(ms);
+    }
+  }
+
+  protected async onPhoto(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.reading.set(true);
+    try {
+      const text = await this.scanner.readAll(await this.scanner.fileToCanvas(file, 2000));
+      const ms = matchCards(text);
+      if (!ms.length) return this.store.toast('Geen kaart herkend · probeer een scherpere foto');
+      this.store.startScan();
+      this.store.scanFound(ms);
+    } catch (err) {
+      console.warn('[scan] foto lezen mislukt', err);
+      this.store.toast('Foto lezen mislukt · controleer je verbinding');
+    } finally {
+      this.reading.set(false);
+    }
+  }
+
+  protected async toggleTorch() {
+    if (!this.stream) return;
+    const on = !this.torch();
+    try {
+      await this.scanner.setTorch(this.stream, on);
+      this.torch.set(on);
+    } catch {
+      this.torchAvail.set(false);
+    }
+  }
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

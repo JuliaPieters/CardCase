@@ -115,7 +115,7 @@ function applyPrice(c: any, p: PriceEntry) {
 }
 
 /** Expands the compact catalog.json into the card objects data.ts works with. */
-function buildCatalog(raw: any) {
+export function buildCatalog(raw: any) {
   const T: string[] = raw.strings;
   const s = (i: number) => (i >= 0 ? T[i] : null);
   const sets = raw.sets.map((x: any) => ({
@@ -141,6 +141,8 @@ function buildCatalog(raw: any) {
       set: set.code,
       setName: set.name,
       num: parseInt(localId, 10) || 0,
+      localId,
+      total: set.official,
       numStr: pad(localId) + '/' + pad(set.official),
       names: { EN: name, DE: nameDE ?? name, JA: name, ZH: name },
       type: TYPE_MAP[s(type) ?? ''] ?? 'colorless',

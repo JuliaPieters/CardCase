@@ -3,7 +3,7 @@ import { Injectable, computed, effect, inject, signal, untracked } from '@angula
 import { AuthService, authErrorMessage } from './auth';
 import { CatalogService } from './catalog';
 import { deserializeUser, freshUser, lastAccount, readLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
-import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, TARGETS, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel } from './data';
+import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel } from './data';
 
 /**
  * Central app state + all derived view values, ported from the Cardcase design prototype.
@@ -54,13 +54,13 @@ export class CardcaseStore {
     binders: u.binders, edId: u.binders[0].id, edSpread: 0, autoSet: 'set:' + SETS[0].code, sideQ: '', sideSet: '',
     drag: null, over: null, sel: null, sideOver: false,
     vId: u.binders[0].id, vSpread: 0, flip: null,
-    scan: { phase: 'search', target: 1, sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
+    scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: ['fire', 'dragon'], langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
     shiftMode: 'buffer', job: null, done: {}, tip: false, showPrice: false, fSort: '', valRange: 'month',
     rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, newSheet: false, searchLimit: 60, collLimit: 60,
-    edMode: 'cards', decoTab: 'images', decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align' }, fixes: {}, fix: null,
+    edMode: 'cards', decoTab: 'images', decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
   }; }
-  seq = 0; scanIdx = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any; t2: any; p1: any;
+  seq = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any;
 
   /** Window listeners and timers the prototype set up in componentDidMount. */
   init() {
@@ -161,18 +161,20 @@ export class CardcaseStore {
     this.setState(s => ({ screen, prev: s.screen === 'detail' ? s.prev : s.screen, drag: null, over: null, sel: null, flip: null, ...extra }));
     this.scrollTick.update(n => n + 1);
   }
-  clearScan() { clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.p1); }
+  clearScan() { clearTimeout(this.t1); }
   startScan() {
     this.clearScan();
-    const t = TARGETS[this.scanIdx++ % TARGETS.length];
-    this.setState({ scan: { phase: 'search', target: t, sel: 0, lang: CARDS[t].avail[0], cond: 'NM', qty: 1 } });
-    this.t1 = setTimeout(() => this.setScan({ phase: 'found' }), 1700);
-    this.t2 = setTimeout(() => this.setScan({ phase: 'sheet' }), 2700);
+    this.setState(s => ({ scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: s.scan.cond, qty: 1 } }));
+  }
+  /** The scanner recognised a card: show it briefly in the frame, then the matches sheet. `matches` is [{ id, conf }], best first. */
+  scanFound(matches) {
+    if (this.state.scan.phase !== 'search' || !matches.length) return;
+    this.setScan({ phase: 'found', matches, sel: 0, lang: CARDS[matches[0].id].avail[0] });
+    clearTimeout(this.t1); this.t1 = setTimeout(() => this.setScan({ phase: 'sheet' }), 700);
   }
   setScan(p) { this.setState(s => ({ scan: { ...s.scan, ...p } })); }
-  matchesFor(t) { const c = CARDS[t]; const o = [...CARDS.filter(x => x.id !== t && x.type === c.type), ...CARDS.filter(x => x.id !== t && x.type !== c.type)]; return [c, o[0], o[1]]; }
   addScan() {
-    const s = this.state.scan; const c = this.matchesFor(s.target)[s.sel];
+    const s = this.state.scan; const m = s.matches[s.sel]; if (!m) return; const c = CARDS[m.id];
     const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;
     this.setState(st => ({ owned: { ...st.owned, [c.id]: { ...st.owned[c.id], [lang]: (st.owned[c.id][lang] || 0) + s.qty } }, added: { ...st.added, [c.id]: Date.now() } }));
     this.toast(`${c.names[lang]} toegevoegd · ${lang} · ${s.cond} · ×${s.qty}`);
@@ -252,17 +254,25 @@ export class CardcaseStore {
     this.go('moves', { job, done: {} });
   }
   startPageScan(bid, pages, i = 0) {
-    this.go('pagescan', { ps: { binderId: bid, pages, i, phase: 'align' }, fixes: {}, fix: null });
-    clearTimeout(this.p1); this.p1 = setTimeout(() => this.setState(s => ({ ps: { ...s.ps, phase: 'locked' } })), 1800);
+    this.go('pagescan', { ps: { binderId: bid, pages, i, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null });
   }
+  setPs(p) { this.setState(s => ({ ps: { ...s.ps, ...p } })); }
+  /** The binder page currently being scanned: its binder, page number and slot indexes. */
+  pageScanTarget() {
+    const st = this.state; const b = st.binders.find(x => x.id === st.ps.binderId) || st.binders[0]; const p = Math.min(st.ps.pages[st.ps.i] ?? 0, b.pages - 1);
+    const expect = i => isCard(b.slots[i]) && tot(st.owned[b.slots[i]]) > 0 ? b.slots[i] : null;
+    return { b, p, idxs: range(p * b.fmt, p * b.fmt + b.fmt), expect };
+  }
+  /** Recognition per slot of the scanned page: { [slotIndex]: { got: cardId | null, conf, cands: [{ id, conf }] } }. */
+  pageScanned(res) { this.go('pageresult', { psRes: res, fixes: {}, fix: null }); }
   resultModel() {
-    const st = this.state; const ps = st.ps; const b = st.binders.find(x => x.id === ps.binderId) || st.binders[0]; const p = Math.min(ps.pages[ps.i] ?? 0, b.pages - 1); const fmt = b.fmt;
-    const idxs = range(p * fmt, p * fmt + fmt); const present = i => isCard(b.slots[i]) && tot(st.owned[b.slots[i]]) > 0;
-    const det = {}; idxs.forEach(i => { const e = present(i) ? b.slots[i] : null; det[i] = { exp: e, got: e, st: 'ok', conf: 97 }; });
-    const ci = idxs.filter(present);
-    if (ci.length >= 3) { const a = ci[1], c = ci[2]; det[a].got = det[c].exp; det[c].got = det[a].exp; det[a].st = 'swap'; det[c].st = 'swap'; det[a].with = c; det[c].with = a; }
-    if (ci.length >= 5) { det[ci[4]].st = 'doubt'; det[ci[4]].conf = 58; }
-    if (ci.length >= 7) { det[ci[6]].got = null; det[ci[6]].st = 'empty'; }
+    const st = this.state; const { b, p, idxs, expect } = this.pageScanTarget(); const fmt = b.fmt;
+    // Compare what the scan read in each slot with the binder plan.
+    const det = {}; idxs.forEach(i => { const r = st.psRes[i] || { got: null, conf: 0, cands: [] }; det[i] = { exp: expect(i), got: r.got, conf: r.conf, cands: r.cands, st: 'ok' }; });
+    idxs.forEach(i => { const d = det[i]; if (d.got === d.exp) { if (d.got != null && d.conf < 60) d.st = 'doubt'; return; }
+      if (d.got == null) { d.st = 'empty'; return; }
+      const home = idxs.find(j => j !== i && det[j].exp === d.got); if (home != null) { d.st = 'swap'; d.with = home; return; }
+      d.st = d.conf < 60 ? 'doubt' : 'wrong'; });
     Object.entries(st.fixes).forEach(([i, f]) => { if (det[i]) { det[i].got = f.got; det[i].st = 'fixed'; } });
     return { b, p, fmt, idxs, det };
   }
@@ -519,14 +529,14 @@ export class CardcaseStore {
     }
     const ps = st.ps; const pb = st.binders.find(b => b.id === ps.binderId) || st.binders[0]; const pp = ps.pages[ps.i] ?? 0; const pcols = COLS[pb.fmt]; const prows = pb.fmt / pcols; const align = ps.phase === 'align';
     const rm = this.resultModel();
-    const S = { ok: ['check', 'Klopt', '#306230', '#F7F3E8'], fixed: ['check', 'Gecorrigeerd', '#306230', '#F7F3E8'], doubt: ['question_mark', 'Twijfel', '#F0A030', '#1A1C22'], swap: ['close', 'Omgedraaid', '#E3350D', '#FFF8EE'], empty: ['close', 'Leeg', '#E3350D', '#FFF8EE'] };
+    const S = { ok: ['check', 'Klopt', '#306230', '#F7F3E8'], fixed: ['check', 'Gecorrigeerd', '#306230', '#F7F3E8'], doubt: ['question_mark', 'Twijfel', '#F0A030', '#1A1C22'], swap: ['close', 'Verkeerd slot', '#E3350D', '#FFF8EE'], wrong: ['close', 'Andere kaart', '#E3350D', '#FFF8EE'], empty: ['close', 'Leeg', '#E3350D', '#FFF8EE'] };
     const rsSlots = rm.idxs.map(i => { const d = rm.det[i]; const [icon, label, bg, fg] = S[d.st]; const c = d.got != null ? CARDS[d.got] : null; let text = label; if (d.st === 'ok' && d.exp == null) text = 'Leeg · klopt'; if (d.st === 'doubt') text = 'Twijfel ' + d.conf + '%'; return { key: i, hasCard: !!c, isEmpty: !c, cv: c ? this.cv(c, 'EN') : null, icon, text, bg, fg, ring: d.st === 'ok' || d.st === 'fixed' ? 'transparent' : bg, open: () => this.setState({ fix: i }) }; });
     const cnt = k => rm.idxs.filter(i => k.includes(rm.det[i].st)).length;
-    const parts = [cnt(['ok', 'fixed']) + ' kloppen']; if (cnt(['swap'])) parts.push(cnt(['swap']) + ' omgedraaid'); if (cnt(['doubt'])) parts.push(cnt(['doubt']) + ' twijfel'); if (cnt(['empty'])) parts.push(cnt(['empty']) + ' leeg');
-    const rsIssues = rm.idxs.filter(i => ['swap', 'doubt', 'empty'].includes(rm.det[i].st)).map(i => { const d = rm.det[i]; const [icon, , bg, fg] = S[d.st]; const n = i % rm.fmt + 1; const text = d.st === 'swap' ? `Slot ${n} · omgedraaid met slot ${d.with % rm.fmt + 1}` : d.st === 'doubt' ? `Slot ${n} · twijfel (${d.conf}%)` : `Slot ${n} · leeg, verwacht ${CARDS[d.exp].names.EN}`; return { key: i, icon, bg, fg, text, open: () => this.setState({ fix: i }) }; });
+    const parts = [cnt(['ok', 'fixed']) + ' kloppen']; if (cnt(['swap'])) parts.push(cnt(['swap']) + ' verkeerd slot'); if (cnt(['wrong'])) parts.push(cnt(['wrong']) + ' andere kaart'); if (cnt(['doubt'])) parts.push(cnt(['doubt']) + ' twijfel'); if (cnt(['empty'])) parts.push(cnt(['empty']) + ' leeg');
+    const rsIssues = rm.idxs.filter(i => ['swap', 'wrong', 'doubt', 'empty'].includes(rm.det[i].st)).map(i => { const d = rm.det[i]; const [icon, , bg, fg] = S[d.st]; const n = i % rm.fmt + 1; const name = id => id != null ? CARDS[id].names.EN : 'leeg'; const text = d.st === 'swap' ? `Slot ${n} · ${name(d.got)} hoort in slot ${d.with % rm.fmt + 1}` : d.st === 'wrong' ? `Slot ${n} · ${name(d.got)}, verwacht ${name(d.exp)}` : d.st === 'doubt' ? `Slot ${n} · twijfel (${d.conf}%)` : `Slot ${n} · leeg, verwacht ${name(d.exp)}`; return { key: i, icon, bg, fg, text, open: () => this.setState({ fix: i }) }; });
     const fx = st.fix != null && rm.det[st.fix] ? rm.det[st.fix] : null; let fixMatches = [];
-    if (fx) { const base = CARDS[fx.exp ?? fx.got ?? 0]; const uniq = [...new Set([fx.exp, fx.got].filter(x => x != null))]; const list = [...uniq, ...CARDS.filter(c => !uniq.includes(c.id) && c.type === base.type).map(c => c.id)].slice(0, 3); const confs = fx.st === 'swap' ? [71, 66, 18] : [88, 54, 21];
-      fixMatches = list.map((id, k) => { const c = CARDS[id]; return { key: id, cv: this.cv(c, 'EN'), name: c.names.EN, meta: c.setName + ' · ' + c.set + ' ' + c.numStr + (id === fx.exp ? ' · verwacht' : ''), conf: confs[k], select: () => this.setState(s => ({ fixes: { ...s.fixes, [s.fix]: { got: id } }, fix: null })) }; }); }
+    if (fx) { const conf = new Map((fx.cands || []).map(m => [m.id, m.conf])); const list = [...new Set([fx.got, fx.exp, ...(fx.cands || []).map(m => m.id)].filter(x => x != null))].slice(0, 3);
+      fixMatches = list.map(id => { const c = CARDS[id]; return { key: id, cv: this.cv(c, 'EN'), name: c.names.EN, meta: c.setName + ' · ' + c.set + ' ' + c.numStr + (id === fx.exp ? ' · verwacht' : ''), conf: conf.get(id) ?? 0, select: () => this.setState(s => ({ fixes: { ...s.fixes, [s.fix]: { got: id } }, fix: null })) }; }); }
     return {
       isCreate: screen === 'create', isShift: screen === 'shift', isMoves: screen === 'moves', isResult: screen === 'pageresult', isPageScan: screen === 'pagescan',
       goEditor: () => this.go('editor'), goCreate: () => this.go('recipe', { rcStep: 0 }), goShift: () => this.go('shift', { shiftMode: 'buffer' }), goPageScan: () => this.startPageScan(st.edId, [2 * st.edSpread, 2 * st.edSpread + 1]),
@@ -558,12 +568,11 @@ export class CardcaseStore {
       hasJob: !!job, noJob: !job, jobTitle: job ? job.title : 'Verplaatslijst', moveGroups, hpSegs, jobDone: job ? `${doneN}/${job.steps.length} STAPPEN` : '',
       jobPagesLabel: job ? 'Daarna controleer je pagina ' + job.pages.map(p => p + 1).join(', ') : '',
       scanAdjusted: () => job && this.startPageScan(job.binderId, job.pages),
-      psv: { title: `PAGINA ${pp + 1} VAN ${pb.pages}`, sub: pb.name + ' · ' + pb.fmt + '-pocket', cols: pcols, rows: prows, aspect: `${pcols * 63} / ${prows * 88}`, cellBorder: align ? '2px dashed #306230' : '2px solid #0F380F', cellBg: align ? 'transparent' : 'rgba(15,56,15,.12)', status: align ? 'RASTER UITLIJNEN…' : pb.fmt + ' SLOTS IN BEELD', capOp: align ? 0.6 : 1 },
+      psv: { title: `PAGINA ${pp + 1} VAN ${pb.pages}`, sub: pb.name + ' · ' + pb.fmt + '-pocket', cols: pcols, rows: prows, aspect: `${pcols * 63} / ${prows * 88}`, cellBorder: align ? '2px dashed #306230' : '2px solid #0F380F', cellBg: align ? 'transparent' : 'rgba(15,56,15,.12)', status: align ? 'CAMERA STARTEN…' : ps.phase === 'reading' ? `HERKENNEN ${ps.done}/${pb.fmt}` : 'LIJN DE PAGINA UIT · DRUK A', capOp: ps.phase === 'locked' ? 1 : 0.6 },
       psCells: range(0, pb.fmt).map(i => ({ key: i, n: i + 1 })),
       psChips: ps.pages.map((p, i) => ({ key: p, label: 'P' + (p + 1), bg: i === ps.i ? '#9BBC0F' : '#2A2D35', fg: i === ps.i ? '#0F380F' : '#F7F3E8', select: () => this.startPageScan(ps.binderId, ps.pages, i) })),
       psAlign: align,
       psDotColor: align ? "#306230" : "#0F380F",
-      psCapture: () => this.go('pageresult', { fixes: {}, fix: null }),
       closePageScan: () => this.go('editor', { edId: pb.id, edSpread: Math.floor(pp / 2) }),
       rs: { title: rm.b.name + ' · pagina ' + (rm.p + 1), cols: COLS[rm.fmt], summary: parts.join(' · '), confirmLabel: ps.i < ps.pages.length - 1 ? 'Alles bevestigen · volgende pagina' : 'Alles bevestigen' },
       rsSlots, rsIssues, noIssues: !rsIssues.length,
@@ -671,9 +680,9 @@ export class CardcaseStore {
     else { vLeft = pm(2 * vs - 2); vRight = pm(2 * vs + 1); leafFront = pm(2 * vs); leafBack = pm(2 * vs - 1); }
 
     // scanner
-    const sc = st.scan; const ms = this.matchesFor(sc.target); const confs = [94, 61, 27]; const selCard = ms[sc.sel];
+    const sc = st.scan; const ms = sc.matches.map(m => CARDS[m.id]).filter(Boolean); const confs = sc.matches.map(m => m.conf); const selCard = ms[sc.sel];
     const matches = ms.map((c, i) => { const on = sc.sel === i; return { key: c.id, cv: this.cv(c, sc.lang), name: c.names[c.avail.includes(sc.lang) ? sc.lang : 'EN'], meta: `${c.setName} · ${c.set} ${c.numStr}`, conf: confs[i], bd: on ? 'var(--red)' : 'var(--line)', sh: on ? '3px 3px 0 var(--red)' : 'none', dot: on ? 'var(--red)' : 'transparent', select: () => this.setScan({ sel: i, lang: c.avail.includes(sc.lang) ? sc.lang : c.avail[0] }) }; });
-    const langOpts = LANGS.map(l => { const av = selCard.avail.includes(l); const on = sc.lang === l; return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : 'var(--ink)', op: av ? 1 : 0.4, deco: av ? 'none' : 'line-through', select: () => av && this.setScan({ lang: l }) }; });
+    const langOpts = !selCard ? [] : LANGS.map(l => { const av = selCard.avail.includes(l); const on = sc.lang === l; return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : 'var(--ink)', op: av ? 1 : 0.4, deco: av ? 'none' : 'line-through', select: () => av && this.setScan({ lang: l }) }; });
     const condOpts = CONDS.map(([k, l]) => { const on = sc.cond === k; return { key: k, code: k, label: l, bg: on ? 'var(--ink)' : 'var(--surface)', fg: on ? 'var(--bg)' : 'var(--ink)', select: () => this.setScan({ cond: k }) }; });
 
     return {
@@ -724,7 +733,7 @@ export class CardcaseStore {
       closeViewer: () => this.go('editor', { edId: vb.id, edSpread: vs }),
       scanSearching: sc.phase === 'search', scanLocked: sc.phase !== 'search', scanSheet: sc.phase === 'sheet',
       frameColor: sc.phase === 'search' ? 'rgba(155,188,15,.55)' : '#9BBC0F',
-      statusText: sc.phase === 'search' ? 'ZOEKEN NAAR KAART…' : sc.phase === 'found' ? 'KAART GEVONDEN…' : '3 MATCHES GEVONDEN',
+      statusText: sc.phase === 'search' ? 'ZOEKEN NAAR KAART…' : sc.phase === 'found' ? 'KAART GEVONDEN…' : ms.length === 1 ? '1 MATCH GEVONDEN' : ms.length + ' MATCHES GEVONDEN', matchCount: ms.length,
       statusDotColor: sc.phase === 'search' ? '#306230' : '#0F380F', statusDotBlink: sc.phase !== 'sheet',
       matches, langOpts, condOpts, scanQty: sc.qty,
       qtyInc: () => this.setScan({ qty: sc.qty + 1 }), qtyDec: () => this.setScan({ qty: Math.max(1, sc.qty - 1) }),
