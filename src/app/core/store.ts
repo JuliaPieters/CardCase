@@ -12,6 +12,9 @@ import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR
 /** Cost of buying these cards; prices are fetched lazily, so say so when some are still unknown. */
 const costLabel = cards => { const known = cards.filter(c => c.trend != null); if (!known.length) return 'prijs nog onbekend'; return (known.length < cards.length ? 'minstens ' : '') + eur(known.reduce((a, c) => a + c.trend, 0)); };
 
+/** Pixel sprite of the card's Pokémon (PokéAPI, ~1 kB), drawn in the placeholder when TCGdex has no photo of the card. */
+const spriteOf = c => c.sp >= 1 && c.sp <= 1025 ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.sp}.png` : null;
+
 @Injectable({ providedIn: 'root' })
 export class CardcaseStore {
   private readonly catalog = inject(CatalogService);
@@ -173,18 +176,17 @@ export class CardcaseStore {
     clearTimeout(this.t1); this.t1 = setTimeout(() => this.setScan({ phase: 'sheet' }), 700);
   }
   setScan(p) { this.setState(s => ({ scan: { ...s.scan, ...p } })); }
-  /** Language of the cards this user scans (from the last added scan): preferred when a number exists in several languages. */
-  scanLang(): string | null { try { return localStorage.getItem('cc-scan-lang'); } catch { return null; } }
-  setScanLang(l: string) { try { localStorage.setItem('cc-scan-lang', l); } catch {} }
+  /** Language of the cards being scanned, chosen in the scanner (EN also covers German cards); remembered on this device. */
+  scanLang(): 'EN' | 'JA' | 'ZH' { let l = null; try { l = localStorage.getItem('cc-scan-lang'); } catch {} return l === 'JA' || l === 'ZH' ? l : 'EN'; }
+  setScanLang(l: 'EN' | 'JA' | 'ZH') { try { localStorage.setItem('cc-scan-lang', l); } catch {} }
   addScan() {
     const s = this.state.scan; const m = s.matches[s.sel]; if (!m) return; const c = CARDS[m.id];
     const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;
-    this.setScanLang(c.avail[0]);
     this.setState(st => ({ owned: { ...st.owned, [c.id]: { ...st.owned[c.id], [lang]: (st.owned[c.id][lang] || 0) + s.qty } }, added: { ...st.added, [c.id]: Date.now() } }));
     this.toast(`${c.names[lang]} toegevoegd · ${lang} · ${s.cond} · ×${s.qty}`);
     this.startScan();
   }
-  cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null }; }
+  cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, art: spriteOf(c) }; }
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0] }); }
   setOwn(id, l, delta) { this.setState(s => ({ owned: { ...s.owned, [id]: { ...s.owned[id], [l]: Math.max(0, (s.owned[id][l] || 0) + delta) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added })); }
 

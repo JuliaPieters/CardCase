@@ -9,6 +9,10 @@ const NUM_W = 1800;
 
 export type CameraError = 'unsupported' | 'denied' | 'failed';
 
+/** Language of the cards being scanned; decides which OCR model reads the name (≈2–3 MB each, downloaded once). */
+export type ScanLang = 'EN' | 'JA' | 'ZH';
+const OCR_LANGS: Record<ScanLang, string[]> = { EN: ['eng'], JA: ['jpn'], ZH: ['chi_tra', 'chi_sim'] };
+
 /** What was read on a card: all text (for the name), and the bottom strip alone (for the collector number). */
 export interface CardText {
   text: string;
@@ -20,6 +24,16 @@ export interface CardText {
 export class ScannerService {
   /** Two OCR workers so the name and the number of a card are read at the same time. */
   private workers: Partial<Record<'name' | 'num', Promise<Worker>>> = {};
+  private lang: ScanLang = 'EN';
+
+  /** Switches the name reader to another card language; the number reader (digits and Latin letters) stays the same. */
+  setLanguage(lang: ScanLang) {
+    if (lang === this.lang) return;
+    this.lang = lang;
+    const old = this.workers.name;
+    delete this.workers.name;
+    old?.then((w) => w.terminate()).catch(() => {});
+  }
 
   /** Starts downloading the OCR engine (~5 MB the first time, then cached by the browser) before the first frame needs it. */
   warmUp(): Promise<unknown> {
@@ -121,7 +135,7 @@ export class ScannerService {
       // tesseract.js is CommonJS: depending on the bundler its API is on the namespace or on `default`.
       w = this.workers[kind] = import('tesseract.js').then(async (m) => {
         const { createWorker, PSM } = ((m as any).default ?? m) as typeof m;
-        const worker = await createWorker('eng');
+        const worker = await createWorker(kind === 'num' ? 'eng' : OCR_LANGS[this.lang]);
         await worker.setParameters({
           tessedit_pageseg_mode: PSM.SPARSE_TEXT,
           // The number strip only holds collector numbers ("025/198", "TG05/TG30"), set codes ("SV2a") and language codes.
@@ -130,7 +144,8 @@ export class ScannerService {
         return worker;
       });
       // A failed load (e.g. offline) is retried on the next scan.
-      w.catch(() => delete this.workers[kind]);
+      const cur = w;
+      w.catch(() => this.workers[kind] === cur && delete this.workers[kind]);
     }
     return w;
   }

@@ -73,6 +73,11 @@ describe('matchCards', () => {
     expect(name('Charizard HP 1102', { numText: '' })[0]).not.toBe('base1/1');
   });
 
+  it('matches Japanese names read by the Japanese OCR, also without the "ex"', () => {
+    expect(name('ミュウ\n004/102')[0]).toBe('JA-SV7/4');
+    expect(name('ミ ュ ウ ex')[0]).toBe('JA-SV7/4');
+  });
+
   it('returns nothing for noise', () => {
     expect(name('qwerty zxcv')).toEqual([]);
   });

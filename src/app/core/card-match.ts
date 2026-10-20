@@ -53,7 +53,7 @@ function getIndex(): Index {
       push(byNum, key, c.id);
       if (totalOf(c) != null) push(byNumTotal, key + '/' + totalOf(c), c.id);
     }
-    for (const n of new Set([c.names.EN, c.names.DE])) {
+    for (const n of new Set([c.names.EN, c.names.DE, cjkCore(c.names.EN)])) {
       const k = norm(n);
       if (k.length >= 3) push(names, k, c.id);
     }
@@ -93,7 +93,9 @@ export function matchCards(text: string, opts: MatchOptions = {}): CardMatch[] {
     if (!c) continue;
     const en = norm(c.names.EN);
     const de = norm(c.names.DE);
-    const simEN = nameSim(en, flat);
+    // For a Japanese/Chinese name the Latin suffix ("ミュウex") is often missed by OCR: the name without it nearly counts.
+    const core = norm(cjkCore(c.names.EN));
+    const simEN = Math.max(nameSim(en, flat), core !== en ? 0.95 * nameSim(core, flat) : 0);
     const simDE = nameSim(de, flat);
     let score = 0.4 * Math.max(simEN, simDE);
     // "Pikachu ex" beats plain "Pikachu" when both occur in the text.
@@ -201,19 +203,23 @@ function numKey(localId: string): string | null {
   return m ? m[1].toUpperCase() + m[2] : null;
 }
 
-/** Lowercase letters and digits only, accents removed. */
+/** Lowercase letters (any script) and digits only, accents and kana voicing marks removed, full-width folded. */
 export function norm(s: string): string {
   return (s || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
+    .replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+/** "ミュウex" → "ミュウ": a Japanese/Chinese name without its Latin suffix (ex, V, VMAX, GX…); other names unchanged. */
+function cjkCore(name: string): string {
+  return /[\u3040-\u30ff\u3400-\u9fff]/.test(name || '') ? name.replace(/[\sA-Za-z0-9-]+$/, '') : name;
 }
 
 /** How well `name` occurs somewhere in `text` (1 = exact substring), via the fuzzy substring edit distance. */
 export function nameSim(name: string, text: string): number {
   const m = name.length;
-  // Names in Japanese or Chinese normalize to almost nothing (e.g. just "ex"); those can't be read by this OCR anyway.
   if (m < 3 || !text) return 0;
   if (text.includes(name)) return 1;
   let prev = new Array(text.length + 1).fill(0);

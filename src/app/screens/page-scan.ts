@@ -158,6 +158,7 @@ export class PageScanOverlay implements OnDestroy {
   private alive = true;
 
   constructor() {
+    this.scanner.setLanguage(this.store.scanLang());
     afterNextRender(() => {
       void this.start();
       // Start downloading the OCR engine while the page is being lined up.

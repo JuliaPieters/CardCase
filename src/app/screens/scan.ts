@@ -1,6 +1,6 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
 import { matchCards, type CardMatch } from '../core/card-match';
-import { type CameraError, ScannerService } from '../core/scanner';
+import { type CameraError, type ScanLang, ScannerService } from '../core/scanner';
 import { CARDS } from '../core/data';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
@@ -25,7 +25,19 @@ import { Led } from '../shared/bits';
           </button>
           <div class="flex flex-col gap-[3px]">
             <div class="font-pixel font-semibold text-[18px] leading-none tracking-[.06em]">SCANNER</div>
-            <div class="text-[12px] font-bold text-[#A8A497]">Herkent EN · DE · JA · ZH</div>
+            <div class="flex gap-[3px]" role="radiogroup" aria-label="Taal van de kaarten">
+              @for (l of langs; track l.key) {
+                <button
+                  (click)="setLang(l.key)"
+                  role="radio"
+                  [attr.aria-checked]="lang() === l.key"
+                  class="border border-black rounded px-[6px] py-[3px] font-pixel text-[11px] leading-none"
+                  [class]="lang() === l.key ? 'bg-lcd text-lcd-ink' : 'bg-[#2A2D35] text-[#A8A497]'"
+                >
+                  {{ l.label }}
+                </button>
+              }
+            </div>
           </div>
           <div class="ml-auto grid grid-cols-2 gap-[2px] bg-black border-2 border-black rounded-[9px] overflow-hidden">
             <button (click)="s.goScan()" class="border-0 px-[10px] py-[9px] font-pixel text-[12px] leading-none" [style.background]="s.modeCardBg" [style.color]="s.modeCardFg">
@@ -182,6 +194,13 @@ export class ScanOverlay implements OnDestroy {
   protected readonly reading = signal(false);
   protected readonly torch = signal(false);
   protected readonly torchAvail = signal(false);
+  /** Language of the cards: Japanese and Chinese names need their own OCR model. */
+  protected readonly lang = signal<ScanLang>(this.store.scanLang());
+  protected readonly langs: { key: ScanLang; label: string }[] = [
+    { key: 'EN', label: 'EN·DE' },
+    { key: 'JA', label: 'JA' },
+    { key: 'ZH', label: 'ZH' },
+  ];
 
   protected readonly status = computed(() => {
     const cam = this.cam();
@@ -205,7 +224,7 @@ export class ScanOverlay implements OnDestroy {
   private stream?: MediaStream;
   private alive = true;
   /** Names of the best match in the last few frames. */
-  private recent: string[] = [];
+  private recent: { name: string; ms: CardMatch[] }[] = [];
   /**
    * Crops tried in turn (margins for ScannerService.grabGuide): the card exactly in the guide, held closer (up to ~1.6×
    * the guide) and further away (~0.8×), so it doesn't have to fill the guide precisely.
@@ -216,15 +235,27 @@ export class ScanOverlay implements OnDestroy {
   private skip = { name: '', until: 0 };
 
   constructor() {
+    this.scanner.setLanguage(this.lang());
     afterNextRender(() => {
       void this.start();
       this.warmUp();
     });
   }
 
+  protected setLang(l: ScanLang) {
+    if (l === this.lang()) return;
+    this.lang.set(l);
+    this.store.setScanLang(l);
+    this.scanner.setLanguage(l);
+    this.recent = [];
+    this.ocr.set('loading');
+    this.warmUp();
+  }
+
   private warmUp() {
+    const lang = this.lang();
     this.scanner.warmUp().then(
-      () => this.ocr.set('ready'),
+      () => lang === this.lang() && this.ocr.set('ready'),
       (err) => {
         console.warn('[scan] tekstherkenning laden mislukt', err);
         this.ocr.set('error');
@@ -262,7 +293,7 @@ export class ScanOverlay implements OnDestroy {
       if (frame) {
         try {
           const { text, numText } = await this.scanner.readCard(frame);
-          const ms = matchCards(text, { numText, lang: this.store.scanLang() });
+          const ms = matchCards(text, { numText, lang: this.lang() });
           if (DEBUG) console.debug('[scan]', frame.width + '×' + frame.height, JSON.stringify(text), ms.map((m) => `${CARDS[m.id].names.EN} ${CARDS[m.id].set} ${m.conf}%`));
           if (this.alive && this.store.state.scan.phase === 'search') this.consider(ms);
         } catch (err) {
@@ -277,16 +308,20 @@ export class ScanOverlay implements OnDestroy {
   /**
    * Accepts a clear match (name and number) at once. When only the name could be read, the same name has to come back
    * in two of the last six frames (one round of crops); the sheet then lets you pick the right print.
+   * A frame that read more of the name counts too, and wins: "リザードン" over the half-read "リザード".
    */
   private consider(ms: CardMatch[]) {
     const best = ms[0];
     let name = best && best.conf >= 35 ? CARDS[best.id].names.EN : '';
     if (name === this.skip.name && Date.now() < this.skip.until) name = '';
-    this.recent = [...this.recent.slice(-5), name];
-    if (name && (best.conf >= 70 || this.recent.filter((n) => n === name).length >= 2)) {
-      this.skip = { name, until: Infinity };
+    this.recent = [...this.recent.slice(-5), { name, ms }];
+    if (!name) return;
+    const votes = this.recent.filter((r) => r.name && r.name.includes(name));
+    if (best.conf >= 70 || votes.length >= 2) {
+      const pick = best.conf >= 70 ? { name, ms } : votes.reduce((a, r) => (r.name.length > a.name.length ? r : a));
+      this.skip = { name: pick.name, until: Infinity };
       this.recent = [];
-      this.store.scanFound(ms);
+      this.store.scanFound(pick.ms);
     }
   }
 
@@ -298,7 +333,7 @@ export class ScanOverlay implements OnDestroy {
     this.reading.set(true);
     try {
       const text = await this.scanner.readAll(await this.scanner.fileToCanvas(file, 2000));
-      const ms = matchCards(text, { lang: this.store.scanLang() });
+      const ms = matchCards(text, { lang: this.lang() });
       if (!ms.length) return this.store.toast('Geen kaart herkend · probeer een scherpere foto');
       this.store.startScan();
       this.store.scanFound(ms);

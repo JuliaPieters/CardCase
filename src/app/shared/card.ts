@@ -13,6 +13,8 @@ export interface CardView {
   dim?: boolean;
   /** Real card image (TCGdex); the drawn placeholder shows while it loads or if it fails. */
   img?: string | null;
+  /** Sprite of the Pokémon, shown in the placeholder's artwork box (for cards TCGdex has no photo of). */
+  art?: string | null;
   /** Special rarity shown as a small label on the card, e.g. IR, SAR, CHR. */
   badge?: string | null;
 }
@@ -37,9 +39,20 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
           <div class="font-pixel text-[9cqw] leading-none text-coal flex-none">{{ c().rar }}</div>
         </div>
         <div
-          class="flex-1 border-[1.5px] border-[rgba(26,28,34,.65)] rounded-[3cqw] flex items-end p-[3cqw] font-mono font-medium text-[6.5cqw] leading-none text-[rgba(26,28,34,.55)] bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.5)_0_4px,rgba(255,255,255,.18)_4px_8px)]"
+          class="relative flex-1 min-h-0 border-[1.5px] border-[rgba(26,28,34,.65)] rounded-[3cqw] flex items-end p-[3cqw] font-mono font-medium text-[6.5cqw] leading-none text-[rgba(26,28,34,.55)] bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.5)_0_4px,rgba(255,255,255,.18)_4px_8px)]"
         >
-          artwork
+          @if (c().art && !c().img) {
+            <img
+              [src]="c().art"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              class="absolute inset-0 w-full h-full object-contain [image-rendering:pixelated]"
+              (error)="$any($event.target).style.display = 'none'"
+            />
+          } @else {
+            artwork
+          }
         </div>
         <div class="flex flex-col gap-[2.5cqw]">
           <div class="h-[3cqw] w-4/5 rounded-[2cqw] bg-[rgba(26,28,34,.16)]"></div>
