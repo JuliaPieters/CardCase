@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:100%; height:100%; background:var(--page, #FBF8EF); border:2px solid var(--line, #1A1C22); border-radius:{{ page.radius }}; padding:clamp(6px,1.4vw,14px); display:flex; flex-direction:column; gap:8px">
+  <div style="display:grid; grid-template-columns:repeat({{ page.cols }}, minmax(0,1fr)); gap:clamp(4px,0.9vw,10px)">
+    <sc-for list="{{ page.slots }}" as="s" hint-placeholder-count="9">
+      <div draggable="{{ s.draggable }}" onDragStart="{{ s.onDragStart }}" onDragOver="{{ s.onDragOver }}" onDragLeave="{{ s.onDragLeave }}" onDrop="{{ s.onDrop }}" onDragEnd="{{ s.onDragEnd }}" onClick="{{ s.onClick }}" style="position:relative; aspect-ratio:63/88; border-radius:7px; background:var(--pocket, #ECE6D6); box-shadow:inset 0 2px 0 rgba(0,0,0,.08); container-type:inline-size; cursor:{{ s.cursor }}">
+        <sc-if value="{{ s.isEmpty }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute; inset:5%; border:2px dashed var(--muted, #6A6558); border-radius:6px; opacity:.45; display:flex; flex-direction:column; padding:8%; gap:8%; pointer-events:none">
+            <div style="height:8%; width:60%; border-radius:2px; background:var(--muted, #6A6558); opacity:.5"></div>
+            <div style="flex:1; border:1.5px dashed var(--muted, #6A6558); border-radius:4px"></div>
+            <div style="font:400 14cqw/1 'Pixelify Sans',monospace; color:var(--muted, #6A6558); text-align:right">{{ s.n }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s.hasCard }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; pointer-events:none"><dc-import name="Card" card="{{ s.card }}" hint-size="100%,100%"></dc-import></div>
+        </sc-if>
+        <sc-if value="{{ s.isDeco }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; border-radius:7px; border:2px solid var(--line, #1A1C22); background-image:{{ s.decoFill }}; background-size:{{ s.decoSize }}; background-position:{{ s.decoPos }}; pointer-events:none"></div>
+          <div style="position:absolute; left:50%; bottom:8%; transform:translateX(-50%); background:#FFFDF6; color:#1A1C22; border:1.5px solid #1A1C22; font:400 9.5cqw/1 'Pixelify Sans',monospace; padding:3cqw 4cqw; border-radius:3px; white-space:nowrap; pointer-events:none">DECORATIE</div>
+          <sc-if value="{{ s.decoBuf }}" hint-placeholder-val="{{ false }}">
+            <div title="Wordt vervangen als er een nieuwe kaart bij komt." style="position:absolute; top:5%; right:5%; width:22cqw; height:22cqw; min-width:16px; min-height:16px; border-radius:4px; background:#F6C945; border:1.5px solid #1A1C22; color:#1A1C22; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:14px; line-height:1">swap_horiz</span></div>
+          </sc-if>
+        </sc-if>
+        <sc-if value="{{ s.showPrice }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; left:50%; top:30%; transform:translateX(-50%); background:var(--surface, #FFFDF6); color:var(--ink, #1A1C22); border:1.5px {{ s.priceBorder }} var(--line, #1A1C22); font:400 10cqw/1 'Pixelify Sans',monospace; padding:3cqw 4cqw; border-radius:3px; white-space:nowrap; pointer-events:none">{{ s.priceLabel }}</div>
+        </sc-if>
+        <sc-if value="{{ s.isMissing }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; left:50%; bottom:8%; transform:translateX(-50%); background:var(--ink, #1A1C22); color:var(--bg, #F7F3E8); font:400 9.5cqw/1 'Pixelify Sans',monospace; padding:3cqw 5cqw; border-radius:3px; white-space:nowrap; pointer-events:none">MIST {{ s.missLabel }}</div>
+        </sc-if>
+        <sc-if value="{{ s.isReserved }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:4%; border:2px dashed var(--ink, #1A1C22); border-radius:6px; background:repeating-linear-gradient(135deg, rgba(127,120,100,.16) 0 6px, transparent 6px 12px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7cqw; pointer-events:none; opacity:.85">
+            <div style="display:flex; flex-direction:column; align-items:center">
+              <div style="width:22cqw; height:13cqw; border:5cqw solid var(--ink, #1A1C22); border-bottom:0"></div>
+              <div style="width:36cqw; height:26cqw; background:var(--ink, #1A1C22); display:flex; align-items:center; justify-content:center"><div style="width:6cqw; height:10cqw; background:var(--page, #FBF8EF)"></div></div>
+            </div>
+            <div style="font:400 10cqw/1.1 'Pixelify Sans',monospace; color:var(--ink, #1A1C22); text-align:center; padding:0 6cqw">{{ s.resLabel }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s.isMoved }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:-2px; border:2px solid #F0A030; border-radius:8px; pointer-events:none"></div>
+          <div style="position:absolute; top:-7px; left:-7px; width:22px; height:22px; border-radius:6px; background:#F0A030; border:2px solid var(--line, #1A1C22); display:flex; align-items:center; justify-content:center; pointer-events:none"><span style="font-family:'Material Symbols Rounded'; font-size:15px; line-height:1; color:#1A1C22">{{ s.moveIcon }}</span></div>
+        </sc-if>
+        <sc-if value="{{ s.isNew }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:-4px; border:3px solid #9BBC0F; border-radius:9px; box-shadow:0 0 0 2px #306230; pointer-events:none"></div>
+          <div style="position:absolute; left:50%; top:-9px; transform:translateX(-50%); background:#9BBC0F; color:#0F380F; border:2px solid #0F380F; font:400 10px/1 'Pixelify Sans',monospace; padding:3px 5px; border-radius:4px; pointer-events:none">NIEUW</div>
+        </sc-if>
+        <sc-if value="{{ s.isTarget }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:-2px; border:2px dashed #306230; border-radius:8px; background:rgba(155,188,15,.12); pointer-events:none"></div>
+        </sc-if>
+        <sc-if value="{{ s.isOver }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:-4px; border:3px solid #9BBC0F; border-radius:9px; background:rgba(155,188,15,.28); box-shadow:0 0 0 3px #306230, 0 0 18px rgba(155,188,15,.8); display:flex; align-items:center; justify-content:center; font:600 30cqw/1 'Pixelify Sans',monospace; color:#0F380F; pointer-events:none">+</div>
+        </sc-if>
+        <sc-if value="{{ s.isDragging }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; border-radius:7px; background:repeating-linear-gradient(135deg, rgba(0,0,0,.18) 0 5px, transparent 5px 10px); pointer-events:none"></div>
+        </sc-if>
+        <sc-if value="{{ s.hasWarn }}" hint-placeholder-val="{{ false }}">
+          <div title="{{ s.warnText }}" style="position:absolute; top:-7px; left:-7px; z-index:3; width:20px; height:20px; border-radius:5px; background:#F0A030; border:2px solid var(--line, #1A1C22); color:#1A1C22; display:flex; align-items:center; justify-content:center; font:700 12px/1 'Pixelify Sans',monospace">!</div>
+        </sc-if>
+        <sc-if value="{{ s.canSwap }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ s.onSwap }}" title="Andere versie" style="position:absolute; right:-7px; bottom:-7px; z-index:3; width:22px; height:22px; border-radius:50%; border:2px solid var(--line, #1A1C22); background:#9BBC0F; color:#0F380F; padding:0; cursor:pointer; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:15px; line-height:1">swap_horiz</span></button>
+        </sc-if>
+        <sc-if value="{{ s.canRemove }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ s.onRemove }}" title="Uit slot halen" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; border:2px solid var(--line, #1A1C22); background:var(--surface, #FFFDF6); color:var(--ink, #1A1C22); font:700 12px/1 Nunito,sans-serif; padding:0; cursor:pointer; display:flex; align-items:center; justify-content:center">×</button>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <div style="margin-top:auto; display:flex; justify-content:{{ page.align }}; font:400 11px/1 'Pixelify Sans',monospace; color:var(--muted, #6A6558); letter-spacing:.06em">{{ page.label }}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:440},&quot;page&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const demo = { cols: 3, radius: '10px', align: 'flex-start', label: 'PAGINA 1', slots: Array.from({ length: 9 }, (_, i) => ({ key: i, n: i + 1, isEmpty: true, cursor: 'default' })) };
+    return { page: this.props.page || demo };
+  }
+}
+</script>
+</body>
+</html>

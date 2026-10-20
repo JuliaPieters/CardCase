@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div data-page="1" onPointerDown="{{ pg.onPageDown }}" onDragOver="{{ pg.onPageDragOver }}" onDrop="{{ pg.onPageDrop }}" style="position:relative; width:100%; height:100%; border:2px solid var(--line, #1A1C22); border-radius:{{ pg.radius }}; overflow:hidden; background:var(--page, #FBF8EF); outline:{{ pg.outline }}; outline-offset:3px">
+  <div style="position:absolute; inset:0; background-image:{{ pg.bg }}; background-size:cover; background-position:center; pointer-events:none"></div>
+  <div style="position:relative; padding:clamp(6px,1.4vw,14px) clamp(6px,1.4vw,14px) 32px">
+    <div data-grid="1" onDragOver="{{ pg.onGridDragOver }}" onDrop="{{ pg.onGridDrop }}" style="position:relative; display:grid; grid-template-columns:repeat({{ pg.cols }}, minmax(0,1fr)); gap:8px">
+      <sc-for list="{{ pg.images }}" as="im" hint-placeholder-count="0">
+        <div onPointerDown="{{ im.onDown }}" style="position:absolute; z-index:1; left:calc({{ im.l }}); top:calc({{ im.t }}); width:calc({{ im.w }}); height:calc({{ im.h }}); border-radius:6px; border:2px solid var(--line, #1A1C22); cursor:{{ im.cursor }}; touch-action:none; outline:{{ im.outline }}; outline-offset:2px">
+          <div style="position:absolute; inset:0; border-radius:4px; overflow:hidden; pointer-events:none"><div style="position:absolute; inset:0; background-image:{{ im.fill }}; background-size:cover; background-position:{{ im.pos }}; transform:scale({{ im.zoom }}); transform-origin:{{ im.pos }}"></div></div>
+          <sc-if value="{{ im.buffer }}" hint-placeholder-val="{{ false }}">
+            <div title="Wordt vervangen als er een nieuwe kaart bij komt." style="position:absolute; right:5px; bottom:5px; z-index:3; width:22px; height:22px; border-radius:5px; background:#F6C945; border:2px solid #1A1C22; color:#1A1C22; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:15px; line-height:1">swap_horiz</span></div>
+          </sc-if>
+          <sc-if value="{{ im.selected }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; left:6px; top:6px; z-index:3; background:#0F380F; color:#9BBC0F; border-radius:4px; padding:4px 6px; font:400 11px/1 'Pixelify Sans',monospace; white-space:nowrap; pointer-events:none">{{ im.sizeLabel }}</div>
+            <div onPointerDown="{{ im.hTL }}" style="position:absolute; left:-9px; top:-9px; z-index:4; width:16px; height:16px; background:#9BBC0F; border:2px solid #0F380F; cursor:nwse-resize; touch-action:none"></div>
+            <div onPointerDown="{{ im.hTR }}" style="position:absolute; right:-9px; top:-9px; z-index:4; width:16px; height:16px; background:#9BBC0F; border:2px solid #0F380F; cursor:nesw-resize; touch-action:none"></div>
+            <div onPointerDown="{{ im.hBL }}" style="position:absolute; left:-9px; bottom:-9px; z-index:4; width:16px; height:16px; background:#9BBC0F; border:2px solid #0F380F; cursor:nesw-resize; touch-action:none"></div>
+            <div onPointerDown="{{ im.hBR }}" style="position:absolute; right:-9px; bottom:-9px; z-index:4; width:16px; height:16px; background:#9BBC0F; border:2px solid #0F380F; cursor:nwse-resize; touch-action:none"></div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-for list="{{ pg.cells }}" as="c" hint-placeholder-count="9">
+        <div style="position:relative; z-index:2; aspect-ratio:63/88; border-radius:6px; border:{{ c.border }}; background:{{ c.pocket }}; pointer-events:none">
+          <sc-if value="{{ c.hasCard }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; inset:0"><dc-import name="Card" card="{{ c.cv }}" hint-size="100%,100%"></dc-import></div></sc-if>
+          <sc-if value="{{ c.isOver }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; inset:-4px; border:3px solid #9BBC0F; border-radius:8px; background:rgba(155,188,15,.35); box-shadow:0 0 0 2px #306230"></div></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <sc-if value="{{ pg.hasLabel }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; left:50%; bottom:7px; transform:translateX(-50%); z-index:2; background:#FFFDF6; color:#1A1C22; border:2px solid #1A1C22; border-radius:5px; padding:3px 8px; font:400 12px/1 'Pixelify Sans',monospace; white-space:nowrap; pointer-events:none">{{ pg.label }}</div>
+  </sc-if>
+  <div style="position:absolute; left:10px; right:10px; bottom:10px; display:flex; justify-content:{{ pg.align }}; font:400 10px/1 'Pixelify Sans',monospace; color:var(--muted, #6A6558); pointer-events:none">{{ pg.num }}</div>
+  <div style="position:absolute; inset:0; z-index:3; pointer-events:none">
+    <sc-for list="{{ pg.stickers }}" as="s" hint-placeholder-count="0">
+      <div onPointerDown="{{ s.onDown }}" style="position:absolute; left:{{ s.x }}%; top:{{ s.y }}%; transform:translate(-50%,-50%) rotate({{ s.rot }}deg); pointer-events:{{ s.pe }}; cursor:{{ s.cursor }}; touch-action:none; outline:{{ s.outline }}; outline-offset:4px; border-radius:4px">
+        <sc-if value="{{ s.isPixel }}" hint-placeholder-val="{{ false }}"><div style="position:relative; width:32px; height:32px; filter:drop-shadow(2px 2px 0 rgba(26,28,34,.55))"><div style="position:absolute; left:0; top:0; width:4px; height:4px; box-shadow:{{ s.shadow }}"></div></div></sc-if>
+        <sc-if value="{{ s.isText }}" hint-placeholder-val="{{ false }}"><div style="background:{{ s.bg }}; color:{{ s.fg }}; border:2px solid #1A1C22; border-radius:5px; padding:4px 8px; font:400 13px/1 'Pixelify Sans',monospace; white-space:nowrap; box-shadow:2px 2px 0 #1A1C22">{{ s.text }}</div></sc-if>
+        <sc-if value="{{ s.selected }}" hint-placeholder-val="{{ false }}"><button onPointerDown="{{ s.onRemove }}" title="Verwijder" style="position:absolute; top:-13px; right:-13px; width:20px; height:20px; border-radius:50%; border:2px solid #1A1C22; background:#FFFDF6; color:#1A1C22; font:700 12px/1 Nunito,sans-serif; padding:0; cursor:pointer">×</button></sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ pg.watermark }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; right:8px; top:8px; z-index:4; background:#9BBC0F; color:#0F380F; border:2px solid #0F380F; border-radius:4px; padding:3px 6px; font:600 11px/1 'Pixelify Sans',monospace; letter-spacing:.04em">CARDCASE</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:460},&quot;pg&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const demo = { cols: 3, bg: 'linear-gradient(160deg,#D8F5A2,#9BBC0F)', radius: '10px', outline: 'none', align: 'flex-start', num: 'PAGINA 1', cells: Array.from({ length: 9 }, (_, i) => ({ key: i, border: '1.5px dashed rgba(106,101,88,.55)', pocket: 'rgba(255,255,255,.22)' })), images: [], stickers: [] };
+    return { pg: this.props.pg || demo };
+  }
+}
+</script>
+</body>
+</html>

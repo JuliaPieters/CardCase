@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&amp;family=Nunito:wght@400;600;700;800;900&amp;family=Noto+Sans+JP:wght@500;700;800&amp;family=Noto+Sans+SC:wght@500;700;800&amp;family=Noto+Sans+TC:wght@500;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,1,0">
+<style>
+*{box-sizing:border-box}
+body{margin:0;--bg:#F7F3E8;--surface:#FFFDF6;--soft:#EEE8D8;--ink:#1A1C22;--muted:#6A6558;--line:#1A1C22;--red:#E3350D;--page:#FBF8EF;--pocket:#ECE6D6;background:var(--bg);color:var(--ink);font-family:Nunito,'Noto Sans JP','Noto Sans SC','Noto Sans TC',sans-serif;-webkit-font-smoothing:antialiased}
+body.cc-dark{--bg:#1A1C22;--surface:#252830;--soft:#2D3039;--ink:#F2EEE3;--muted:#A8A497;--line:#050608;--page:#2A2D35;--pocket:#202228}
+a{color:var(--red)}a:hover{color:var(--ink)}
+input,select,button,textarea{font:inherit;color:inherit}
+@keyframes cc-blink{0%,55%{opacity:1}56%,100%{opacity:.25}}
+@keyframes cc-scan{from{top:4%}to{top:94%}}
+@keyframes cc-up{from{transform:translateY(100%)}to{transform:none}}
+@keyframes cc-pop{from{transform:translate(-50%,12px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+</style>
+</helmet>
+<div style="height:100vh; display:flex; background:var(--bg); color:var(--ink); overflow:hidden">
+
+  <sc-if value="{{ wide }}" hint-placeholder-val="{{ false }}">
+    <aside style="width:248px; flex:none; background:var(--red); border-right:2px solid var(--line); display:flex; flex-direction:column; gap:20px; padding:20px 16px; overflow:auto">
+      <div style="display:flex; align-items:center; gap:12px">
+        <div style="width:46px; height:46px; border-radius:50%; border:3px solid #FFF8EE; box-shadow:0 0 0 2px #1A1C22; background:radial-gradient(circle at 34% 32%, #E6F3FF 0 12%, #6FB2EE 30%, #2C63A8 72%)"></div>
+        <div style="display:flex; gap:6px">{{ leds }}</div>
+      </div>
+      <div style="background:#2B2E36; border:2px solid #1A1C22; border-radius:8px; padding:6px">
+        <div style="background:#9BBC0F; border-radius:4px; padding:10px 12px; color:#0F380F; box-shadow:inset 0 0 0 2px #8BAC0F">
+          <div style="font:700 24px/1 'Pixelify Sans',monospace; letter-spacing:.04em">CARDCASE</div>
+          <div style="font:400 11px/1.4 'Pixelify Sans',monospace; margin-top:4px">VERZAMEL · PLAN · DEEL</div>
+        </div>
+      </div>
+      <button onClick="{{ goScan }}" style="display:flex; align-items:center; justify-content:center; gap:10px; background:#9BBC0F; color:#0F380F; border:2px solid #1A1C22; border-radius:12px; box-shadow:0 5px 0 #1A1C22; padding:12px; font:600 18px/1 'Pixelify Sans',monospace; cursor:pointer" style-active="transform:translateY(4px); box-shadow:0 1px 0 #1A1C22"><span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1">photo_camera</span>Scan kaart</button>
+      <nav style="display:flex; flex-direction:column; gap:6px">
+        <sc-for list="{{ navAll }}" as="n" hint-placeholder-count="4">
+          <button onClick="{{ n.go }}" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; border:2px solid {{ n.bd }}; background:{{ n.bg }}; color:{{ n.fg }}; box-shadow:{{ n.sh }}; font:800 15px/1 Nunito,sans-serif; cursor:pointer; text-align:left"><span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1">{{ n.icon }}</span>{{ n.label }}</button>
+        </sc-for>
+      </nav>
+      <div style="margin-top:auto; display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:10px">
+        <div style="position:relative; width:54px; height:54px">
+          <div style="position:absolute; left:18px; top:0; width:18px; height:54px; background:#1A1C22; border-radius:4px"></div>
+          <div style="position:absolute; left:0; top:18px; width:54px; height:18px; background:#1A1C22; border-radius:4px"></div>
+        </div>
+        <button onClick="{{ toggleDark }}" title="Donker/licht" style="width:44px; height:44px; border-radius:50%; background:#2B2E36; color:#F7F3E8; border:2px solid #1A1C22; box-shadow:0 3px 0 #1A1C22; cursor:pointer; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1">{{ darkIcon }}</span></button>
+        <div style="width:44px; height:44px; border-radius:50%; background:#2B2E36; border:2px solid #1A1C22; box-shadow:0 3px 0 #1A1C22; display:flex; align-items:center; justify-content:center; font:600 14px/1 'Pixelify Sans',monospace; color:#A8A497">B</div>
+      </div>
+      <div style="height:22px; background:repeating-linear-gradient(110deg, transparent 0 7px, rgba(26,28,34,.55) 7px 10px); border-radius:4px"></div>
+    </aside>
+  </sc-if>
+
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column">
+    <sc-if value="{{ narrow }}" hint-placeholder-val="{{ true }}">
+      <header style="background:var(--red); border-bottom:2px solid var(--line); padding:10px 14px; display:flex; align-items:center; gap:10px; flex:none">
+        <div style="width:32px; height:32px; border-radius:50%; border:2px solid #FFF8EE; box-shadow:0 0 0 2px #1A1C22; background:radial-gradient(circle at 34% 32%, #E6F3FF 0 12%, #6FB2EE 30%, #2C63A8 72%)"></div>
+        <div style="display:flex; gap:5px">{{ leds }}</div>
+        <div style="font:700 20px/1 'Pixelify Sans',monospace; color:#FFF8EE; letter-spacing:.04em; margin-left:4px">CARDCASE</div>
+        <button onClick="{{ toggleDark }}" title="Donker/licht" style="margin-left:auto; width:38px; height:38px; border-radius:50%; background:#2B2E36; color:#F7F3E8; border:2px solid #1A1C22; box-shadow:0 3px 0 #1A1C22; cursor:pointer; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:19px; line-height:1">{{ darkIcon }}</span></button>
+      </header>
+    </sc-if>
+
+    <main ref="{{ mainRef }}" style="flex:1; overflow:auto">
+      <div style="max-width:1180px; margin:0 auto; padding:22px clamp(14px,3vw,36px) 40px">
+
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:30px">
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <div style="font:400 13px/1 'Pixelify Sans',monospace; color:var(--muted); letter-spacing:.1em">DASHBOARD</div>
+              <h1 style="margin:0; font-size:clamp(26px,4vw,38px); font-weight:900; line-height:1.1; text-wrap:pretty">Welkom terug. Je collectie groeit.</h1>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:20px">
+              <div style="flex:2 1 340px; background:#2B2E36; border:2px solid var(--line); border-radius:14px 14px 44px 14px; padding:12px 14px 16px; box-shadow:4px 4px 0 var(--line); display:flex; flex-direction:column; gap:10px">
+                <div style="display:flex; align-items:center; gap:8px; font:400 11px/1 'Pixelify Sans',monospace; color:#A8A497; letter-spacing:.12em">{{ powerLed }}POWER<span style="margin-left:auto">DEX-SCHERM</span></div>
+                <div style="position:relative; background:#9BBC0F; border-radius:6px; box-shadow:inset 0 0 0 3px #8BAC0F; padding:18px; color:#0F380F; display:flex; flex-wrap:wrap; gap:20px 32px; overflow:hidden">
+                  <div style="display:flex; flex-direction:column; gap:4px; min-width:150px">
+                    <div style="font:400 13px/1 'Pixelify Sans',monospace; letter-spacing:.08em">KAARTEN TOTAAL</div>
+                    <div style="font:700 68px/1 'Pixelify Sans',monospace">{{ totalCards }}</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px 14px; font:400 14px/1.2 'Pixelify Sans',monospace; margin-top:4px"><span>{{ uniqueCards }} UNIEK</span><span>{{ setsDone }} SET VOLTOOID</span></div>
+                  </div>
+                  <div style="flex:1 1 200px; display:flex; flex-direction:column; gap:9px; justify-content:center">
+                    <sc-for list="{{ langStats }}" as="l" hint-placeholder-count="4">
+                      <div style="display:flex; align-items:center; gap:10px; font:400 14px/1 'Pixelify Sans',monospace">
+                        <span style="width:24px">{{ l.code }}</span>
+                        <div style="flex:1; height:14px; background:#8BAC0F; border:2px solid #306230; border-radius:2px; overflow:hidden"><div style="height:100%; width:{{ l.pct }}%; background:repeating-linear-gradient(90deg,#0F380F 0 6px,#306230 6px 8px)"></div></div>
+                        <span style="width:28px; text-align:right">{{ l.n }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ lcdPixels }}" hint-placeholder-val="{{ true }}"><div style="position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(rgba(15,56,15,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(15,56,15,.10) 1px,transparent 1px); background-size:3px 3px"></div></sc-if>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; padding:0 4px">
+                  <div style="width:34px; height:10px; border-radius:6px; background:#4A4E58; transform:rotate(-20deg)"></div>
+                  <div style="width:34px; height:10px; border-radius:6px; background:#4A4E58; transform:rotate(-20deg)"></div>
+                  <div style="margin-left:auto; width:64px; height:16px; background:repeating-linear-gradient(110deg, transparent 0 6px, #1A1C22 6px 9px)"></div>
+                </div>
+              </div>
+              <div style="flex:1 1 250px; background:var(--red); border:2px solid var(--line); border-radius:14px; box-shadow:4px 4px 0 var(--line); padding:20px; display:flex; flex-direction:column; gap:16px; color:#FFF8EE; justify-content:space-between">
+                <div style="display:flex; gap:6px">{{ leds }}</div>
+                <div style="font-size:16px; font-weight:700; line-height:1.4; text-wrap:pretty">Richt je camera op een kaart. Cardcase herkent Engelse, Duitse, Japanse en Chinese edities.</div>
+                <button onClick="{{ goScan }}" style="display:flex; align-items:center; justify-content:center; gap:10px; background:#9BBC0F; color:#0F380F; border:2px solid var(--line); border-radius:12px; box-shadow:0 5px 0 var(--line); padding:15px 18px; font:600 20px/1 'Pixelify Sans',monospace; cursor:pointer" style-active="transform:translateY(4px); box-shadow:0 1px 0 var(--line)"><span style="font-family:'Material Symbols Rounded'; font-size:24px; line-height:1">photo_camera</span>Scan kaart</button>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:12px">
+              <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px">
+                <h2 style="margin:0; font:600 20px/1.2 'Pixelify Sans',monospace">Recent toegevoegd</h2>
+                <button onClick="{{ goColl }}" style="background:none; border:0; padding:4px 0; color:var(--red); font-weight:800; font-size:14px; cursor:pointer">Hele collectie →</button>
+              </div>
+              <div style="display:flex; gap:14px; overflow-x:auto; padding:2px 4px 12px 2px">
+                <sc-for list="{{ recent }}" as="r" hint-placeholder-count="6">
+                  <button onClick="{{ r.open }}" style="flex:none; width:112px; display:flex; flex-direction:column; gap:7px; background:none; border:0; padding:0; cursor:pointer; text-align:left" style-hover="transform:translateY(-3px)">
+                    <div style="aspect-ratio:63/88; width:100%; border-radius:8px; box-shadow:3px 3px 0 var(--line)"><dc-import name="Card" card="{{ r.cv }}" hint-size="100%,100%"></dc-import></div>
+                    <div style="font-size:12px; font-weight:800; color:var(--muted)">{{ r.when }}</div>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:12px">
+              <h2 style="margin:0; font:600 20px/1.2 'Pixelify Sans',monospace">Voortgang per set</h2>
+              <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px">
+                <sc-for list="{{ setProgress }}" as="s" hint-placeholder-count="4">
+                  <button onClick="{{ s.open }}" style="display:flex; flex-direction:column; gap:12px; text-align:left; background:var(--surface); border:2px solid var(--line); border-radius:12px; box-shadow:4px 4px 0 var(--line); padding:14px; cursor:pointer" style-active="transform:translate(2px,2px); box-shadow:2px 2px 0 var(--line)">
+                    <div style="display:flex; align-items:center; gap:10px">
+                      <span style="font:600 13px/1 'Pixelify Sans',monospace; background:var(--ink); color:var(--bg); padding:5px 7px; border-radius:5px">{{ s.code }}</span>
+                      <span style="font-weight:900; font-size:16px">{{ s.name }}</span>
+                      <span style="margin-left:auto; font:600 16px/1 'Pixelify Sans',monospace">{{ s.label }}</span>
+                    </div>
+                    <sc-if value="{{ s.notDone }}" hint-placeholder-val="{{ true }}">
+                      <div style="height:18px; background:#9BBC0F; border:2px solid var(--line); border-radius:4px; padding:2px"><div style="height:100%; width:{{ s.pct }}%; background:repeating-linear-gradient(90deg,#306230 0 7px,transparent 7px 9px)"></div></div>
+                    </sc-if>
+                    <sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}">
+                      <div style="height:18px; border:2px solid var(--line); border-radius:4px; background:linear-gradient(110deg,#ffb3d9,#ffe9a3 22%,#b8f5d0 44%,#a9dcff 66%,#d6b8ff 88%,#ffb3d9); display:flex; align-items:center; justify-content:center; font:600 11px/1 'Pixelify Sans',monospace; color:#1A1C22; letter-spacing:.12em">VOLTOOID</div>
+                    </sc-if>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-weight:700"><span>{{ s.langs }}</span><span>{{ s.pct }}%</span></div>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:18px">
+            <h1 style="margin:0; font:600 30px/1.1 'Pixelify Sans',monospace">Zoeken</h1>
+            <div style="display:flex; align-items:center; gap:10px; background:var(--surface); border:2px solid var(--line); border-radius:12px; box-shadow:4px 4px 0 var(--line); padding:4px 14px">
+              <span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1; color:var(--muted)">search</span>
+              <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Naam of nummer, bv. Cindrake, ヒノコン of 火狐仔" style="flex:1; min-width:0; border:0; outline:none; background:transparent; padding:12px 0; font-size:16px; font-weight:700">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
+                <span style="font-size:13px; font-weight:800; color:var(--muted); width:46px">Taal</span>
+                <sc-for list="{{ langChips }}" as="c" hint-placeholder-count="4">
+                  <button onClick="{{ c.toggle }}" style="border:2px solid var(--line); border-radius:999px; padding:6px 14px; background:{{ c.bg }}; color:{{ c.fg }}; font:600 14px/1 'Pixelify Sans',monospace; cursor:pointer; box-shadow:2px 2px 0 var(--line)">{{ c.code }}</button>
+                </sc-for>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
+                <span style="font-size:13px; font-weight:800; color:var(--muted); width:46px">Filter</span>
+                <select value="{{ fSet }}" onChange="{{ onFSet }}" style="appearance:none; background-color:var(--surface); border:2px solid var(--line); border-radius:10px; padding:8px 14px; font-weight:800; font-size:14px; box-shadow:2px 2px 0 var(--line); cursor:pointer">
+                  <option value="">Alle sets ▾</option><option value="EMB">Ember Dawn</option><option value="TDL">Tidal Echo</option><option value="VRD">Verdant Wilds</option><option value="STC">Static Surge</option>
+                </select>
+                <select value="{{ fRar }}" onChange="{{ onFRar }}" style="appearance:none; background-color:var(--surface); border:2px solid var(--line); border-radius:10px; padding:8px 14px; font-weight:800; font-size:14px; box-shadow:2px 2px 0 var(--line); cursor:pointer">
+                  <option value="">Alle zeldzaamheden ▾</option><option value="C">● Gewoon</option><option value="U">◆ Ongewoon</option><option value="R">★ Zeldzaam</option><option value="HR">✦ Holo-zeldzaam</option>
+                </select>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
+                <span style="font-size:13px; font-weight:800; color:var(--muted); width:46px">Type</span>
+                <sc-for list="{{ typeChips }}" as="t" hint-placeholder-count="10">
+                  <button onClick="{{ t.toggle }}" style="display:flex; align-items:center; gap:7px; border:2px solid var(--line); border-radius:999px; padding:5px 12px 5px 6px; background:{{ t.bg }}; color:{{ t.fg }}; font-weight:800; font-size:13px; cursor:pointer"><span style="width:16px; height:16px; border-radius:50%; border:2px solid var(--line); background:{{ t.color }}"></span>{{ t.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-weight:800; font-size:14px; color:var(--muted)"><span>{{ resultCount }}</span><sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearFilters }}" style="background:none; border:0; color:var(--red); font-weight:800; cursor:pointer">Wis filters</button></sc-if></div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(108px,1fr)); gap:18px 14px">
+              <sc-for list="{{ results }}" as="r" hint-placeholder-count="12">
+                <button onClick="{{ r.open }}" style="display:flex; flex-direction:column; gap:6px; background:none; border:0; padding:0; cursor:pointer; text-align:left; min-width:0" style-hover="transform:translateY(-3px)">
+                  <div style="aspect-ratio:63/88; width:100%; border-radius:8px; box-shadow:{{ r.shadow }}"><dc-import name="Card" card="{{ r.cv }}" hint-size="100%,100%"></dc-import></div>
+                  <div style="display:flex; justify-content:space-between; gap:6px; font-size:12px; font-weight:800"><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.name }}</span><span style="font-family:'Pixelify Sans',monospace; font-weight:400; color:{{ r.qtyColor }}; flex:none">{{ r.qtyLabel }}</span></div>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:20px">
+            <button onClick="{{ back }}" style="align-self:flex-start; display:flex; align-items:center; gap:6px; background:var(--surface); border:2px solid var(--line); border-radius:10px; box-shadow:2px 2px 0 var(--line); padding:7px 12px 7px 8px; font-weight:800; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1">arrow_back</span>Terug</button>
+            <div style="display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start">
+              <div style="flex:1 1 260px; max-width:380px; display:flex; flex-direction:column; gap:14px; margin:0 auto">
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:2px; background:var(--line); border:2px solid var(--line); border-radius:10px; overflow:hidden">
+                  <sc-for list="{{ dTabs }}" as="t" hint-placeholder-count="4">
+                    <button onClick="{{ t.select }}" style="border:0; background:{{ t.bg }}; color:{{ t.fg }}; padding:8px 4px 7px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px"><span style="font:600 16px/1 'Pixelify Sans',monospace; text-decoration:{{ t.deco }}">{{ t.code }}</span><span style="font-size:10.5px; font-weight:800; opacity:.8">{{ t.sub }}</span></button>
+                  </sc-for>
+                </div>
+                <div style="position:relative; aspect-ratio:63/88; width:100%; border-radius:12px; box-shadow:6px 6px 0 var(--line)">
+                  <dc-import name="Card" card="{{ d.cv }}" hint-size="100%,100%"></dc-import>
+                  <sc-if value="{{ d.unavailable }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:var(--ink); color:var(--bg); padding:10px 14px; border-radius:8px; font:400 14px/1.3 'Pixelify Sans',monospace; text-align:center; white-space:nowrap">NIET UITGEBRACHT<br>IN DEZE TAAL</div>
+                  </sc-if>
+                  <sc-if value="{{ d.notOwnedLang }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute; left:50%; bottom:10%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:7px 12px; border-radius:6px; font:400 13px/1 'Pixelify Sans',monospace; white-space:nowrap">NOG NIET IN BEZIT</div>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="flex:1.4 1 320px; min-width:0; display:flex; flex-direction:column; gap:18px">
+                <div style="display:flex; flex-direction:column; gap:8px">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap"><span style="font:600 13px/1 'Pixelify Sans',monospace; background:var(--ink); color:var(--bg); padding:5px 7px; border-radius:5px">{{ d.set }} {{ d.numStr }}</span><span style="font-weight:800; color:var(--muted); font-size:14px">{{ d.setName }}</span></div>
+                  <h1 style="margin:0; font-size:clamp(30px,5vw,44px); font-weight:900; line-height:1.1; font-family:Nunito,'Noto Sans JP','Noto Sans SC','Noto Sans TC',sans-serif">{{ d.name }}</h1>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px 14px; font-size:14px; color:var(--muted); font-weight:700">
+                    <sc-for list="{{ d.others }}" as="o" hint-placeholder-count="3"><span><span style="font-family:'Pixelify Sans',monospace">{{ o.code }}</span> {{ o.name }}</span></sc-for>
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px">
+                  <span style="display:flex; align-items:center; gap:7px; border:2px solid var(--line); border-radius:999px; padding:5px 12px 5px 6px; background:var(--surface); font-weight:800; font-size:13px"><span style="width:16px; height:16px; border-radius:50%; border:2px solid var(--line); background:{{ d.typeColor }}"></span>{{ d.typeLabel }}</span>
+                  <span style="border:2px solid var(--line); border-radius:999px; padding:5px 12px; background:var(--surface); font-weight:800; font-size:13px">{{ d.rarLabel }}</span>
+                  <span style="border:2px solid var(--line); border-radius:999px; padding:5px 12px; background:var(--surface); font-weight:800; font-size:13px">Uitgebracht in {{ d.availLabel }}</span>
+                </div>
+                <div style="background:var(--surface); border:2px solid var(--line); border-radius:12px; box-shadow:4px 4px 0 var(--line); padding:14px 16px; display:flex; flex-direction:column; gap:10px">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline"><h2 style="margin:0; font:600 18px/1 'Pixelify Sans',monospace">In bezit</h2><span style="font:600 22px/1 'Pixelify Sans',monospace">×{{ d.total }}</span></div>
+                  <sc-for list="{{ dOwnRows }}" as="o" hint-placeholder-count="4">
+                    <div style="display:flex; align-items:center; gap:12px; padding:6px 0; border-top:2px dashed var(--soft)">
+                      <span style="font:600 14px/1 'Pixelify Sans',monospace; width:30px">{{ o.code }}</span>
+                      <span style="flex:1; min-width:0; font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ o.lname }} · {{ o.name }}</span>
+                      <div style="display:flex; align-items:center; border:2px solid var(--line); border-radius:9px; overflow:hidden; background:var(--bg)">
+                        <button onClick="{{ o.dec }}" style="width:34px; height:32px; border:0; background:transparent; cursor:pointer; font-weight:900; font-size:18px">−</button>
+                        <span style="width:28px; text-align:center; font:600 16px/1 'Pixelify Sans',monospace">{{ o.n }}</span>
+                        <button onClick="{{ o.inc }}" style="width:34px; height:32px; border:0; background:transparent; cursor:pointer; font-weight:900; font-size:18px">+</button>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="background:var(--surface); border:2px solid var(--line); border-radius:12px; box-shadow:4px 4px 0 var(--line); padding:14px 16px; display:flex; flex-direction:column; gap:10px">
+                  <h2 style="margin:0; font:600 18px/1 'Pixelify Sans',monospace">In binders</h2>
+                  <sc-for list="{{ dBinders }}" as="b" hint-placeholder-count="1">
+                    <div style="display:flex; align-items:center; gap:12px">
+                      <div style="width:28px; height:36px; border:2px solid var(--line); border-radius:3px 6px 6px 3px; background:{{ b.cover }}; flex:none"></div>
+                      <div style="flex:1; min-width:0"><div style="font-weight:900; font-size:15px">{{ b.name }}</div><div style="font-size:13px; color:var(--muted); font-weight:700">{{ b.where }}</div></div>
+                      <button onClick="{{ b.open }}" style="background:var(--bg); border:2px solid var(--line); border-radius:9px; box-shadow:2px 2px 0 var(--line); padding:6px 12px; font-weight:800; font-size:13px; cursor:pointer">Openen</button>
+                    </div>
+                  </sc-for>
+                  <sc-if value="{{ noDBinders }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px; color:var(--muted); font-weight:700">Deze kaart zit nog in geen enkele binder.</div></sc-if>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isColl }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:18px">
+            <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap"><h1 style="margin:0; font:600 30px/1.1 'Pixelify Sans',monospace">Collectie</h1><span style="font-weight:800; color:var(--muted)">{{ collCount }}</span></div>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px">
+              <div style="display:flex; gap:2px; background:var(--line); border:2px solid var(--line); border-radius:10px; overflow:hidden">
+                <button onClick="{{ setGrid }}" title="Grid" style="border:0; padding:7px 10px; background:{{ gridBg }}; color:{{ gridFg }}; cursor:pointer; display:flex"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1">grid_view</span></button>
+                <button onClick="{{ setList }}" title="Lijst" style="border:0; padding:7px 10px; background:{{ listBg }}; color:{{ listFg }}; cursor:pointer; display:flex"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1">view_list</span></button>
+              </div>
+              <select value="{{ sort }}" onChange="{{ onSort }}" style="appearance:none; background-color:var(--surface); border:2px solid var(--line); border-radius:10px; padding:8px 14px; font-weight:800; font-size:14px; box-shadow:2px 2px 0 var(--line); cursor:pointer">
+                <option value="set">Sorteer: set ▾</option><option value="num">Sorteer: nummer ▾</option><option value="date">Sorteer: datum toegevoegd ▾</option>
+              </select>
+              <select value="{{ collSet }}" onChange="{{ onCollSet }}" style="appearance:none; background-color:var(--surface); border:2px solid var(--line); border-radius:10px; padding:8px 14px; font-weight:800; font-size:14px; box-shadow:2px 2px 0 var(--line); cursor:pointer">
+                <option value="">Alle sets ▾</option><option value="EMB">Ember Dawn</option><option value="TDL">Tidal Echo</option><option value="VRD">Verdant Wilds</option><option value="STC">Static Surge</option>
+              </select>
+              <button onClick="{{ toggleMissing }}" style="display:flex; align-items:center; gap:10px; background:none; border:0; padding:4px; cursor:pointer; font-weight:800; font-size:14px">
+                <span style="position:relative; width:46px; height:26px; border-radius:999px; border:2px solid var(--line); background:{{ missTrack }}"><span style="position:absolute; top:2px; left:{{ missKnob }}; width:18px; height:18px; border-radius:50%; background:var(--surface); border:2px solid var(--line); transition:left .15s"></span></span>
+                Alleen ontbrekend
+              </button>
+            </div>
+            <sc-if value="{{ isGrid }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(108px,1fr)); gap:18px 14px">
+                <sc-for list="{{ collItems }}" as="r" hint-placeholder-count="12">
+                  <button onClick="{{ r.open }}" style="display:flex; flex-direction:column; gap:6px; background:none; border:0; padding:0; cursor:pointer; text-align:left; min-width:0" style-hover="transform:translateY(-3px)">
+                    <div style="aspect-ratio:63/88; width:100%; border-radius:8px; box-shadow:{{ r.shadow }}"><dc-import name="Card" card="{{ r.cv }}" hint-size="100%,100%"></dc-import></div>
+                    <div style="display:flex; justify-content:space-between; gap:6px; font-size:12px; font-weight:800"><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.name }}</span><span style="font-family:'Pixelify Sans',monospace; font-weight:400; color:{{ r.qtyColor }}; flex:none">{{ r.qtyLabel }}</span></div>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--surface); border:2px solid var(--line); border-radius:12px; box-shadow:4px 4px 0 var(--line); overflow:hidden">
+                <sc-for list="{{ collItems }}" as="r" hint-placeholder-count="8">
+                  <button onClick="{{ r.open }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:10px 14px; background:transparent; border:0; border-bottom:2px solid var(--soft); cursor:pointer; text-align:left" style-hover="background:var(--soft)">
+                    <div style="width:40px; flex:none; aspect-ratio:63/88"><dc-import name="Card" card="{{ r.cv }}" hint-size="100%,100%"></dc-import></div>
+                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px"><span style="font-weight:900; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.name }}</span><span style="font-size:12px; font-weight:700; color:var(--muted)">{{ r.setNum }} · {{ r.typeLabel }}</span></div>
+                    <span style="font:400 12px/1 'Pixelify Sans',monospace; color:var(--muted); text-align:right">{{ r.langs }}</span>
+                    <span style="font:600 16px/1 'Pixelify Sans',monospace; width:58px; text-align:right; color:{{ r.qtyColor }}">{{ r.qtyLabel }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isBinders }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:22px">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+              <h1 style="margin:0; font:600 30px/1.1 'Pixelify Sans',monospace; margin-right:auto">Binders</h1>
+              <button onClick="{{ newBinder }}" style="display:flex; align-items:center; gap:6px; background:var(--red); color:#FFF8EE; border:2px solid var(--line); border-radius:12px; box-shadow:0 4px 0 var(--line); padding:10px 16px; font-weight:900; font-size:15px; cursor:pointer" style-active="transform:translateY(3px); box-shadow:0 1px 0 var(--line)"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1">add</span>Nieuwe binder</button>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:26px 20px">
+              <sc-for list="{{ binderCards }}" as="b" hint-placeholder-count="4">
+                <div style="display:flex; flex-direction:column; gap:12px">
+                  <button onClick="{{ b.edit }}" style="position:relative; aspect-ratio:5/6; border:2px solid var(--line); border-radius:6px 16px 16px 6px; background:{{ b.cover }}; box-shadow:5px 5px 0 var(--line); cursor:pointer; overflow:hidden; padding:0" style-active="transform:translate(2px,2px); box-shadow:3px 3px 0 var(--line)">
+                    <div style="position:absolute; left:0; top:0; bottom:0; width:22px; background:rgba(0,0,0,.28); border-right:2px solid var(--line)"></div>
+                    <div style="position:absolute; left:34px; right:14px; top:14px; display:flex; justify-content:space-between; align-items:center">
+                      <span style="font:600 12px/1 'Pixelify Sans',monospace; background:#1A1C22; color:#F7F3E8; padding:5px 7px; border-radius:5px">{{ b.fmt }}</span>
+                      <sc-if value="{{ b.complete }}" hint-placeholder-val="{{ false }}"><span style="font:600 11px/1 'Pixelify Sans',monospace; color:#1A1C22; padding:5px 7px; border-radius:5px; border:2px solid #1A1C22; background:linear-gradient(110deg,#ffb3d9,#ffe9a3 22%,#b8f5d0 44%,#a9dcff 66%,#d6b8ff 88%,#ffb3d9)">ALLES IN BEZIT</span></sc-if>
+                    </div>
+                    <div style="position:absolute; left:34px; right:14px; top:44px; bottom:76px">
+                      <sc-for list="{{ b.preview }}" as="p" hint-placeholder-count="3">
+                        <div style="position:absolute; top:6%; left:{{ p.left }}%; width:42%; aspect-ratio:63/88; transform:rotate({{ p.rot }}deg); border-radius:7px; box-shadow:2px 2px 0 rgba(0,0,0,.5)"><dc-import name="Card" card="{{ p.cv }}" hint-size="100%,100%"></dc-import></div>
+                      </sc-for>
+                    </div>
+                    <div style="position:absolute; left:34px; right:14px; bottom:14px; background:#FFFDF6; border:2px solid #1A1C22; border-radius:8px; padding:9px 10px; text-align:left; color:#1A1C22">
+                      <div style="font-weight:900; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ b.name }}</div>
+                      <div style="font-size:11.5px; font-weight:700; color:#6A6558">{{ b.stats }}</div>
+                    </div>
+                  </button>
+                  <div style="display:flex; align-items:center; gap:10px">
+                    <div style="flex:1; height:16px; background:#9BBC0F; border:2px solid var(--line); border-radius:4px; padding:2px"><div style="height:100%; width:{{ b.pct }}%; background:repeating-linear-gradient(90deg,#306230 0 6px,transparent 6px 8px)"></div></div>
+                    <span style="font:600 14px/1 'Pixelify Sans',monospace; width:38px; text-align:right">{{ b.pct }}%</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+                    <span style="font-size:12.5px; font-weight:800; color:var(--muted)">{{ b.missLabel }}</span>
+                    <div style="display:flex; gap:6px">
+                      <button onClick="{{ b.edit }}" style="background:var(--surface); border:2px solid var(--line); border-radius:9px; box-shadow:2px 2px 0 var(--line); padding:5px 10px; font-weight:800; font-size:13px; cursor:pointer">Bewerk</button>
+                      <button onClick="{{ b.view }}" style="background:var(--surface); border:2px solid var(--line); border-radius:9px; box-shadow:2px 2px 0 var(--line); padding:5px 10px; font-weight:800; font-size:13px; cursor:pointer">Bekijk</button>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:14px">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px">
+              <button onClick="{{ goBinders }}" title="Terug" style="width:40px; height:40px; background:var(--surface); border:2px solid var(--line); border-radius:10px; box-shadow:2px 2px 0 var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1">arrow_back</span></button>
+              <div style="display:flex; flex-direction:column; gap:3px; min-width:0; margin-right:auto">
+                <div style="font:400 12px/1 'Pixelify Sans',monospace; color:var(--muted); letter-spacing:.1em">BINDER-EDITOR</div>
+                <div style="font-weight:900; font-size:22px; line-height:1.1">{{ ed.name }}</div>
+              </div>
+              <button onClick="{{ openViewer }}" style="display:flex; align-items:center; gap:6px; background:var(--surface); border:2px solid var(--line); border-radius:10px; box-shadow:2px 2px 0 var(--line); padding:8px 12px; font-weight:800; font-size:14px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:19px; line-height:1">visibility</span>Bekijk</button>
+              <button onClick="{{ exportImg }}" style="display:flex; align-items:center; gap:6px; background:var(--red); color:#FFF8EE; border:2px solid var(--line); border-radius:10px; box-shadow:0 4px 0 var(--line); padding:8px 14px; font-weight:900; font-size:14px; cursor:pointer" style-active="transform:translateY(3px); box-shadow:0 1px 0 var(--line)"><span style="font-family:'Material Symbols Rounded'; font-size:19px; line-height:1">download</span>Exporteer als afbeelding</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; background:var(--surface); border:2px solid var(--line); border-radius:12px; box-shadow:3px 3px 0 var(--line); padding:10px 12px">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="font-size:13px; font-weight:800; color:var(--muted)">Pagina-formaat</span>
+                <div style="display:grid; grid-template-columns:repeat(4,auto); gap:2px; background:var(--line); border:2px solid var(--line); border-radius:9px; overflow:hidden">
+                  <sc-for list="{{ fmtOptions }}" as="f" hint-placeholder-count="4">
+                    <button onClick="{{ f.select }}" style="border:0; padding:7px 11px; background:{{ f.bg }}; color:{{ f.fg }}; font:600 14px/1 'Pixelify Sans',monospace; cursor:pointer">{{ f.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                <select value="{{ autoSet }}" onChange="{{ onAutoSet }}" style="appearance:none; background-color:var(--bg); border:2px solid var(--line); border-radius:9px; padding:7px 12px; font-weight:800; font-size:13px; cursor:pointer">
+                  <option value="EMB">Ember Dawn ▾</option><option value="TDL">Tidal Echo ▾</option><option value="VRD">Verdant Wilds ▾</option><option value="STC">Static Surge ▾</option>
+                </select>
+                <button onClick="{{ autofill }}" style="display:flex; align-items:center; gap:6px; background:#9BBC0F; color:#0F380F; border:2px solid var(--line); border-radius:9px; box-shadow:0 3px 0 var(--line); padding:7px 12px; font-weight:900; font-size:13px; cursor:pointer" style-active="transform:translateY(2px); box-shadow:0 1px 0 var(--line)"><span style="font-family:'Material Symbols Rounded'; font-size:18px; line-height:1">auto_awesome</span>Vul automatisch met set</button>
+              </div>
+              <button onClick="{{ addPages }}" style="background:transparent; border:2px dashed var(--line); border-radius:9px; padding:6px 11px; font-weight:800; font-size:13px; cursor:pointer">+ 2 pagina's</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px 18px; font-size:12.5px; font-weight:800; color:var(--muted)">
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:16px; height:22px; border:2px solid var(--line); border-radius:3px; background:oklch(0.80 0.11 40)"></span>Gevuld</span>
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:16px; height:22px; border:2px dashed var(--muted); border-radius:3px"></span>Leeg slot</span>
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:16px; height:22px; border:2px solid var(--line); border-radius:3px; background:#bdb9b0; opacity:.45"></span>Ontbrekend (gepland)</span>
+              <span style="display:flex; align-items:center; gap:7px"><span style="width:16px; height:22px; border:2px solid #9BBC0F; border-radius:3px; background:rgba(155,188,15,.35); box-shadow:0 0 0 2px #306230"></span>Drop-doel</span>
+            </div>
+            <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:10px; background:#9BBC0F; color:#0F380F; border:2px solid var(--line); border-radius:10px; padding:9px 12px; font:400 14px/1.3 'Pixelify Sans',monospace">
+                <span style="flex:1">TIK OP EEN SLOT OM {{ selName }} TE PLAATSEN</span>
+                <button onClick="{{ clearSel }}" style="background:#0F380F; color:#9BBC0F; border:0; border-radius:6px; padding:5px 9px; font:400 13px/1 'Pixelify Sans',monospace; cursor:pointer">ANNULEER</button>
+              </div>
+            </sc-if>
+            <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start">
+              <div style="flex:3 1 520px; min-width:0; display:flex; flex-direction:column; gap:12px">
+                <div style="display:flex; align-items:center; justify-content:center; gap:10px">
+                  <button onClick="{{ edPrev }}" style="width:38px; height:38px; background:var(--surface); border:2px solid var(--line); border-radius:10px; box-shadow:2px 2px 0 var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:{{ edPrevOp }}"><span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1">chevron_left</span></button>
+                  <div style="background:#2B2E36; border:2px solid var(--line); border-radius:8px; padding:4px"><div style="background:#9BBC0F; color:#0F380F; border-radius:4px; padding:6px 12px; font:400 14px/1 'Pixelify Sans',monospace; white-space:nowrap">{{ ed.spreadLabel }}</div></div>
+                  <button onClick="{{ edNext }}" style="width:38px; height:38px; background:var(--surface); border:2px solid var(--line); border-radius:10px; box-shadow:2px 2px 0 var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:{{ edNextOp }}"><span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1">chevron_right</span></button>
+                </div>
+                <div style="display:flex; align-items:stretch; background:{{ ed.cover }}; border:2px solid var(--line); border-radius:14px; padding:clamp(6px,1.3vw,14px); box-shadow:5px 5px 0 var(--line)">
+                  <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column"><dc-import name="BinderPage" page="{{ edLeft }}" hint-size="100%,100%"></dc-import></div>
+                  <div style="flex:none; width:clamp(14px,2.4vw,30px); display:flex; flex-direction:column; justify-content:space-evenly; align-items:center">
+                    <div style="width:80%; height:26px; border-radius:7px; background:linear-gradient(90deg,#8E949C,#EEF1F3 50%,#8E949C); border:2px solid #1A1C22"></div>
+                    <div style="width:80%; height:26px; border-radius:7px; background:linear-gradient(90deg,#8E949C,#EEF1F3 50%,#8E949C); border:2px solid #1A1C22"></div>
+                    <div style="width:80%; height:26px; border-radius:7px; background:linear-gradient(90deg,#8E949C,#EEF1F3 50%,#8E949C); border:2px solid #1A1C22"></div>
+                  </div>
+                  <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column"><dc-import name="BinderPage" page="{{ edRight }}" hint-size="100%,100%"></dc-import></div>
+                </div>
+                <div style="font-size:13px; color:var(--muted); font-weight:700; text-wrap:pretty">Sleep kaarten uit je collectie naar een slot. Sleep tussen slots om te wisselen, of terug naar de zijbalk om een kaart eruit te halen. Op touch: tik een kaart aan en daarna een slot.</div>
+              </div>
+              <aside onDragOver="{{ sideDragOver }}" onDragLeave="{{ sideDragLeave }}" onDrop="{{ sideDrop }}" style="position:relative; flex:1 1 270px; min-width:0; background:var(--surface); border:2px solid var(--line); border-radius:12px; box-shadow:4px 4px 0 var(--line); padding:14px; display:flex; flex-direction:column; gap:10px; max-height:640px">
+                <div style="display:flex; align-items:baseline; justify-content:space-between"><h2 style="margin:0; font:600 18px/1 'Pixelify Sans',monospace">Collectie</h2><span style="font-size:12px; font-weight:800; color:var(--muted)">{{ sideCount }}</span></div>
+                <input value="{{ sideQ }}" onChange="{{ onSideQ }}" placeholder="Zoek kaart…" style="border:2px solid var(--line); border-radius:9px; background:var(--bg); padding:8px 10px; font-weight:700; font-size:14px; outline:none">
+                <select value="{{ sideSet }}" onChange="{{ onSideSet }}" style="appearance:none; background-color:var(--bg); border:2px solid var(--line); border-radius:9px; padding:7px 10px; font-weight:800; font-size:13px; cursor:pointer">
+                  <option value="">Alle sets ▾</option><option value="EMB">Ember Dawn</option><option value="TDL">Tidal Echo</option><option value="VRD">Verdant Wilds</option><option value="STC">Static Surge</option>
+                </select>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(76px,1fr)); gap:12px 10px; overflow:auto; padding:4px 4px 6px 4px">
+                  <sc-for list="{{ sideItems }}" as="it" hint-placeholder-count="9">
+                    <div draggable="true" onDragStart="{{ it.onDragStart }}" onDragEnd="{{ it.onDragEnd }}" onClick="{{ it.onClick }}" style="display:flex; flex-direction:column; gap:4px; cursor:grab; opacity:{{ it.op }}; outline:3px solid {{ it.bd }}; outline-offset:2px; border-radius:7px">
+                      <div style="aspect-ratio:63/88; pointer-events:none"><dc-import name="Card" card="{{ it.cv }}" hint-size="100%,100%"></dc-import></div>
+                      <div style="display:flex; justify-content:space-between; gap:4px; font-size:10.5px; font-weight:800; pointer-events:none"><span style="font-family:'Pixelify Sans',monospace; font-weight:400">{{ it.num }}</span><span style="color:{{ it.labelColor }}">{{ it.label }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ isDraggingSlot }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; inset:0; border-radius:10px; background:{{ sideZoneBg }}; border:3px dashed var(--red); display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; font:400 16px/1.4 'Pixelify Sans',monospace; color:var(--ink); pointer-events:none">LAAT LOS OM UIT<br>DE BINDER TE HALEN</div>
+                </sc-if>
+              </aside>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </main>
+
+    <sc-if value="{{ narrow }}" hint-placeholder-val="{{ true }}">
+      <nav style="flex:none; background:var(--surface); border-top:2px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); align-items:end; padding:6px 4px calc(8px + env(safe-area-inset-bottom))">
+        <sc-for list="{{ navL }}" as="n" hint-placeholder-count="2">
+          <button onClick="{{ n.go }}" style="background:none; border:0; padding:4px 0; display:flex; flex-direction:column; align-items:center; gap:3px; color:{{ n.mfg }}; cursor:pointer; min-height:48px"><span style="font-family:'Material Symbols Rounded'; font-size:24px; line-height:1">{{ n.icon }}</span><span style="font-size:11px; font-weight:800">{{ n.label }}</span><span style="width:16px; height:3px; background:{{ n.bar }}"></span></button>
+        </sc-for>
+        <button onClick="{{ goScan }}" style="background:none; border:0; padding:0; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; color:var(--ink)">
+          <span style="margin-top:-28px; width:60px; height:60px; border-radius:18px; background:var(--red); border:2px solid var(--line); box-shadow:0 5px 0 var(--line); display:flex; align-items:center; justify-content:center; color:#FFF8EE"><span style="font-family:'Material Symbols Rounded'; font-size:30px; line-height:1">photo_camera</span></span>
+          <span style="font:600 11px/1 'Pixelify Sans',monospace">SCAN</span>
+        </button>
+        <sc-for list="{{ navR }}" as="n" hint-placeholder-count="2">
+          <button onClick="{{ n.go }}" style="background:none; border:0; padding:4px 0; display:flex; flex-direction:column; align-items:center; gap:3px; color:{{ n.mfg }}; cursor:pointer; min-height:48px"><span style="font-family:'Material Symbols Rounded'; font-size:24px; line-height:1">{{ n.icon }}</span><span style="font-size:11px; font-weight:800">{{ n.label }}</span><span style="width:16px; height:3px; background:{{ n.bar }}"></span></button>
+        </sc-for>
+      </nav>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ isScan }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:50; background:#0B0C0F; display:flex; justify-content:center">
+      <div style="position:relative; width:100%; max-width:520px; height:100%; display:flex; flex-direction:column; overflow:hidden; background:#14161B">
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; color:#F7F3E8">
+          <button onClick="{{ closeScan }}" title="Sluiten" style="width:44px; height:44px; border-radius:12px; background:#2A2D35; color:#F7F3E8; border:2px solid #000; box-shadow:0 3px 0 #000; cursor:pointer; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1">close</span></button>
+          <div style="display:flex; flex-direction:column; gap:3px"><div style="font:600 18px/1 'Pixelify Sans',monospace; letter-spacing:.06em">SCANNER</div><div style="font-size:12px; font-weight:700; color:#A8A497">Herkent EN · DE · JA · ZH</div></div>
+          <button title="Flitser" style="margin-left:auto; width:44px; height:44px; border-radius:12px; background:#2A2D35; color:#F7F3E8; border:2px solid #000; box-shadow:0 3px 0 #000; cursor:pointer; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1">flash_on</span></button>
+        </div>
+        <div style="position:relative; flex:1; margin:0 12px; border-radius:18px; border:2px solid #000; overflow:hidden; background:repeating-linear-gradient(45deg,#1E2128 0 12px,#1A1C22 12px 24px)">
+          <div style="position:absolute; top:12px; left:14px; font:500 11px/1 ui-monospace,Menlo,monospace; color:#6B6F78">camerabeeld</div>
+          <div style="position:absolute; left:50%; top:45%; transform:translate(-50%,-50%); width:min(62%,280px); aspect-ratio:63/88">
+            <sc-if value="{{ scanLocked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; inset:5%; border:2px solid rgba(155,188,15,.7); border-radius:10px; background:rgba(155,188,15,.14)"></div></sc-if>
+            <div style="position:absolute; left:0; top:0; width:24%; height:18%; border-top:5px solid {{ frameColor }}; border-left:5px solid {{ frameColor }}; border-radius:14px 0 0 0"></div>
+            <div style="position:absolute; right:0; top:0; width:24%; height:18%; border-top:5px solid {{ frameColor }}; border-right:5px solid {{ frameColor }}; border-radius:0 14px 0 0"></div>
+            <div style="position:absolute; left:0; bottom:0; width:24%; height:18%; border-bottom:5px solid {{ frameColor }}; border-left:5px solid {{ frameColor }}; border-radius:0 0 0 14px"></div>
+            <div style="position:absolute; right:0; bottom:0; width:24%; height:18%; border-bottom:5px solid {{ frameColor }}; border-right:5px solid {{ frameColor }}; border-radius:0 0 14px 0"></div>
+            <sc-if value="{{ scanSearching }}" hint-placeholder-val="{{ true }}">{{ scanLine }}</sc-if>
+          </div>
+          <div style="position:absolute; bottom:18px; left:50%; transform:translateX(-50%); background:#2B2E36; border:2px solid #000; border-radius:9px; padding:4px">
+            <div style="display:flex; align-items:center; gap:8px; background:#9BBC0F; color:#0F380F; border-radius:5px; padding:7px 12px; font:400 14px/1 'Pixelify Sans',monospace; white-space:nowrap">{{ statusDot }}{{ statusText }}</div>
+          </div>
+        </div>
+        <div style="padding:14px 20px 20px; text-align:center; font-size:13px; font-weight:700; color:#A8A497">Leg de kaart plat in het kader en vermijd reflecties.</div>
+
+        <sc-if value="{{ scanSheet }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,.45)"></div>
+          <div style="position:absolute; left:0; right:0; bottom:0; max-height:84%; overflow:auto; background:var(--bg); color:var(--ink); border-top:2px solid var(--line); border-radius:22px 22px 0 0; padding:10px 16px 20px; display:flex; flex-direction:column; gap:16px; animation:cc-up .35s cubic-bezier(.2,.9,.3,1)">
+            <div style="width:44px; height:5px; border-radius:3px; background:var(--muted); opacity:.5; align-self:center"></div>
+            <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px">
+              <div><div style="font:400 12px/1 'Pixelify Sans',monospace; color:var(--muted); letter-spacing:.08em">TOP 3 MATCHES</div><div style="font-size:20px; font-weight:900; margin-top:4px">Welke kaart is het?</div></div>
+              <button onClick="{{ rescan }}" style="background:var(--surface); border:2px solid var(--line); border-radius:9px; box-shadow:2px 2px 0 var(--line); padding:6px 10px; font-weight:800; font-size:13px; cursor:pointer">Opnieuw</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <sc-for list="{{ matches }}" as="m" hint-placeholder-count="3">
+                <button onClick="{{ m.select }}" style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--surface); border:2px solid {{ m.bd }}; border-radius:12px; box-shadow:{{ m.sh }}; cursor:pointer; text-align:left">
+                  <div style="width:50px; flex:none; aspect-ratio:63/88"><dc-import name="Card" card="{{ m.cv }}" hint-size="100%,100%"></dc-import></div>
+                  <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:5px">
+                    <div style="font-size:15px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ m.name }}</div>
+                    <div style="font-size:12px; font-weight:700; color:var(--muted)">{{ m.meta }}</div>
+                    <div style="display:flex; align-items:center; gap:8px"><div style="flex:1; max-width:150px; height:10px; background:#9BBC0F; border:2px solid var(--line); border-radius:3px; overflow:hidden"><div style="height:100%; width:{{ m.conf }}%; background:#306230"></div></div><span style="font:600 13px/1 'Pixelify Sans',monospace">{{ m.conf }}%</span></div>
+                  </div>
+                  <span style="width:24px; height:24px; flex:none; border-radius:50%; border:2px solid var(--line); background:var(--bg); display:flex; align-items:center; justify-content:center"><span style="width:12px; height:12px; border-radius:50%; background:{{ m.dot }}"></span></span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:13px; font-weight:800; color:var(--muted)">Taal</span>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:2px; background:var(--line); border:2px solid var(--line); border-radius:10px; overflow:hidden">
+                <sc-for list="{{ langOpts }}" as="l" hint-placeholder-count="4">
+                  <button onClick="{{ l.select }}" style="border:0; padding:10px 4px; background:{{ l.bg }}; color:{{ l.fg }}; opacity:{{ l.op }}; text-decoration:{{ l.deco }}; font:600 15px/1 'Pixelify Sans',monospace; cursor:pointer">{{ l.code }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:13px; font-weight:800; color:var(--muted)">Conditie</span>
+              <div style="display:flex; flex-wrap:wrap; gap:8px">
+                <sc-for list="{{ condOpts }}" as="c" hint-placeholder-count="5">
+                  <button onClick="{{ c.select }}" style="display:flex; align-items:baseline; gap:6px; border:2px solid var(--line); border-radius:999px; padding:6px 12px; background:{{ c.bg }}; color:{{ c.fg }}; cursor:pointer"><span style="font:600 14px/1 'Pixelify Sans',monospace">{{ c.code }}</span><span style="font-size:12px; font-weight:700">{{ c.label }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+              <span style="font-size:13px; font-weight:800; color:var(--muted)">Aantal</span>
+              <div style="display:flex; align-items:center; border:2px solid var(--line); border-radius:11px; overflow:hidden; background:var(--surface)">
+                <button onClick="{{ qtyDec }}" style="width:46px; height:44px; border:0; background:transparent; cursor:pointer; font-weight:900; font-size:20px">−</button>
+                <span style="width:36px; text-align:center; font:600 20px/1 'Pixelify Sans',monospace">{{ scanQty }}</span>
+                <button onClick="{{ qtyInc }}" style="width:46px; height:44px; border:0; background:transparent; cursor:pointer; font-weight:900; font-size:20px">+</button>
+              </div>
+            </div>
+            <button onClick="{{ addScan }}" style="display:flex; align-items:center; justify-content:center; gap:8px; background:var(--red); color:#FFF8EE; border:2px solid var(--line); border-radius:12px; box-shadow:0 5px 0 var(--line); padding:15px; font-weight:900; font-size:17px; cursor:pointer" style-active="transform:translateY(4px); box-shadow:0 1px 0 var(--line)"><span style="font-family:'Material Symbols Rounded'; font-size:22px; line-height:1">add</span>Toevoegen</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isViewer }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:45; background:var(--bg); display:flex; flex-direction:column; overflow:auto">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px clamp(14px,3vw,32px); background:var(--red); border-bottom:2px solid var(--line); color:#FFF8EE">
+        <button onClick="{{ closeViewer }}" title="Terug" style="width:40px; height:40px; border-radius:10px; background:#FFFDF6; color:#1A1C22; border:2px solid #1A1C22; box-shadow:0 3px 0 #1A1C22; cursor:pointer; display:flex; align-items:center; justify-content:center"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1">arrow_back</span></button>
+        <div style="font:700 18px/1 'Pixelify Sans',monospace; letter-spacing:.04em">CARDCASE</div>
+        <span style="font:400 11px/1 'Pixelify Sans',monospace; background:#1A1C22; color:#9BBC0F; padding:5px 7px; border-radius:5px">ALLEEN-LEZEN</span>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:0; background:#FFFDF6; border:2px solid #1A1C22; border-radius:10px; overflow:hidden; color:#1A1C22; max-width:100%">
+          <span style="padding:8px 10px; font:500 12px/1 ui-monospace,Menlo,monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ v.link }}</span>
+          <button onClick="{{ copyLink }}" style="display:flex; align-items:center; gap:5px; border:0; border-left:2px solid #1A1C22; background:#9BBC0F; color:#0F380F; padding:8px 10px; font-weight:900; font-size:13px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px; line-height:1">link</span>Kopieer</button>
+        </div>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:18px; padding:24px clamp(10px,3vw,32px) 32px">
+        <div style="text-align:center; display:flex; flex-direction:column; gap:6px">
+          <div style="font:400 12px/1 'Pixelify Sans',monospace; color:var(--muted); letter-spacing:.1em">GEDEELDE BINDER · {{ v.fmt }}</div>
+          <h1 style="margin:0; font-size:clamp(26px,4vw,36px); font-weight:900">{{ v.name }}</h1>
+        </div>
+        <div style="width:100%; max-width:1000px; background:{{ v.cover }}; border:2px solid var(--line); border-radius:14px; padding:clamp(6px,1.3vw,14px); box-shadow:6px 6px 0 var(--line)">
+          <div style="position:relative; display:flex; align-items:stretch; perspective:2400px">
+            <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column"><dc-import name="BinderPage" page="{{ vLeft }}" hint-size="100%,100%"></dc-import></div>
+            <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column"><dc-import name="BinderPage" page="{{ vRight }}" hint-size="100%,100%"></dc-import></div>
+            <sc-if value="{{ flipping }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; top:0; bottom:0; left:{{ leafLeft }}; width:50%; transform-origin:{{ leafOrigin }}; transform:rotateY({{ leafAngle }}deg); transition:transform .75s cubic-bezier(.35,.1,.25,1); transform-style:preserve-3d; z-index:3">
+                <div style="position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; display:flex; box-shadow:0 0 24px rgba(0,0,0,.25)"><div style="flex:1; min-width:0; display:flex; flex-direction:column"><dc-import name="BinderPage" page="{{ leafFront }}" hint-size="100%,100%"></dc-import></div></div>
+                <div style="position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; transform:rotateY(180deg); display:flex; box-shadow:0 0 24px rgba(0,0,0,.25)"><div style="flex:1; min-width:0; display:flex; flex-direction:column"><dc-import name="BinderPage" page="{{ leafBack }}" hint-size="100%,100%"></dc-import></div></div>
+              </div>
+            </sc-if>
+            <div style="position:absolute; left:50%; top:6%; bottom:6%; transform:translateX(-50%); width:clamp(10px,1.8vw,22px); display:flex; flex-direction:column; justify-content:space-evenly; z-index:5; pointer-events:none">
+              <div style="height:24px; border-radius:7px; background:linear-gradient(90deg,#8E949C,#EEF1F3 50%,#8E949C); border:2px solid #1A1C22"></div>
+              <div style="height:24px; border-radius:7px; background:linear-gradient(90deg,#8E949C,#EEF1F3 50%,#8E949C); border:2px solid #1A1C22"></div>
+              <div style="height:24px; border-radius:7px; background:linear-gradient(90deg,#8E949C,#EEF1F3 50%,#8E949C); border:2px solid #1A1C22"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px">
+          <button onClick="{{ vPrev }}" style="width:52px; height:52px; border-radius:14px; background:var(--surface); border:2px solid var(--line); box-shadow:0 4px 0 var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:{{ vPrevOp }}" style-active="transform:translateY(3px); box-shadow:0 1px 0 var(--line)"><span style="font-family:'Material Symbols Rounded'; font-size:28px; line-height:1">chevron_left</span></button>
+          <div style="background:#2B2E36; border:2px solid var(--line); border-radius:9px; padding:4px"><div style="background:#9BBC0F; color:#0F380F; border-radius:5px; padding:9px 14px; font:400 15px/1 'Pixelify Sans',monospace; white-space:nowrap">{{ v.label }}</div></div>
+          <button onClick="{{ vNext }}" style="width:52px; height:52px; border-radius:14px; background:var(--red); color:#FFF8EE; border:2px solid var(--line); box-shadow:0 4px 0 var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:{{ vNextOp }}" style-active="transform:translateY(3px); box-shadow:0 1px 0 var(--line)"><span style="font-family:'Material Symbols Rounded'; font-size:28px; line-height:1">chevron_right</span></button>
+        </div>
+        <div style="font-size:12.5px; font-weight:700; color:var(--muted)">Gebruik ← → om te bladeren</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; left:50%; bottom:calc(92px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:90; background:#2B2E36; border:2px solid #000; border-radius:10px; padding:4px; box-shadow:3px 3px 0 #000; animation:cc-pop .25s ease-out; max-width:calc(100vw - 32px)">
+      <div style="background:#9BBC0F; color:#0F380F; border-radius:6px; padding:9px 14px; font:400 14px/1.3 'Pixelify Sans',monospace">{{ toast }}</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;scan&quot;,&quot;search&quot;,&quot;detail&quot;,&quot;collection&quot;,&quot;binders&quot;,&quot;editor&quot;,&quot;viewer&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;lcdPixels&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const RAW = `Flarekit|Funkfuchs|ヒノコン|火狐仔|fire
+Cindrake|Glutdrache|モエドラ|燃龙|fire
+Blazehorn|Flammhorn|ホノツノ|焰角兽|fire
+Ashmole|Aschmaul|ハイモグ|灰鼹|fire
+Pebblup|Kieselkind|コイシン|小石怪|fighting
+Brawlor|Raufbold|ナグリン|拳斗士|fighting
+Kilnback|Ofenrücken|カマセナ|窑背龟|fire
+Sootling|Rußling|ススコ|煤灵|dark
+Emberowl|Glutkauz|ヒバズク|火枭|fire
+Puffcrest|Puffkamm|フワトサカ|绒冠鸟|colorless
+Magmaw|Magmaul|マグマウ|熔岩口|fire
+Ironfang|Eisenzahn|テツキバ|铁牙|metal
+Pyrewyrm|Feuerwurm|ホムラリュウ|焰蛇龙|dragon
+Solaris Rex|Solaris Rex|ソラリスレックス|日冕霸王|fire
+Puddlop|Pfützling|ミズポン|水洼蛙|water
+Tidepup|Gezeitling|シオワン|潮汐犬|water
+Coralisk|Korallisk|サンゴリス|珊瑚蜥|water
+Bubblefin|Blasenflosse|アワヒレ|泡鳍鱼|water
+Mistray|Nebelrochen|キリエイ|雾鳐|psychic
+Shellby|Schalbert|カラッチ|壳宝|water
+Driftling|Treibling|ナガレコ|漂流灵|psychic
+Frostkelp|Frosttang|コオリモ|冰藻|water
+Anchorite|Ankerling|イカリン|锚甲兽|metal
+Glimmeel|Glimmaal|ヒカリウナ|闪鳗|electric
+Abyssaur|Abyssaurus|シンカイリュウ|深渊龙|dragon
+Leviaqua|Leviaqua|レビアクア|海皇鲸|water
+Mossaur|Moosaurus|コケザウル|苔藓龙|grass
+Sproutle|Sprössling|メブキン|芽芽|grass
+Thornpaw|Dornpfote|トゲアシ|棘爪|grass
+Fernix|Farnix|シダクス|蕨狐|grass
+Gloomoth|Düstermotte|ヤミガ|暗蛾|dark
+Barkbear|Borkenbär|キクマ|树皮熊|grass
+Spindlet|Spindling|イトムシ|纺丝虫|grass
+Hushowl|Stillkauz|シズフクロ|静枭|psychic
+Rootrex|Wurzelrex|ネッコレックス|根霸龙|dragon
+Bloomira|Blühmira|ハナミラ|花冠姬|grass
+Voltwhisk|Voltbart|ビリヒゲ|电须鼠|electric
+Zapling|Zischling|ピリコ|小电灵|electric
+Sparkhorn|Funkenhorn|スパーツノ|电光角|electric
+Coilcat|Spulkatze|コイルネコ|线圈猫|electric
+Boltbeak|Blitzschnabel|イナズマバシ|雷喙鸟|electric
+Magnetoad|Magnetkröte|ジシャクガエル|磁蛙|metal
+Staticune|Statikun|セイデン|静电兽|colorless
+Thunderion|Donnerion|ライオネル|雷狮王|electric`;
+const SETS = [
+  { code: 'EMB', name: 'Ember Dawn', n: 14, avail: ['EN', 'DE', 'JA', 'ZH'] },
+  { code: 'TDL', name: 'Tidal Echo', n: 12, avail: ['EN', 'DE', 'JA', 'ZH'] },
+  { code: 'VRD', name: 'Verdant Wilds', n: 10, avail: ['EN', 'DE', 'JA'] },
+  { code: 'STC', name: 'Static Surge', n: 8, avail: ['EN', 'JA', 'ZH'] },
+];
+const LANGS = ['EN', 'DE', 'JA', 'ZH'];
+const LNAME = { EN: 'Engels', DE: 'Duits', JA: 'Japans', ZH: 'Chinees' };
+const TYPES = { fire: ['Vuur', 'oklch(0.80 0.11 40)'], water: ['Water', 'oklch(0.80 0.09 235)'], grass: ['Plant', 'oklch(0.83 0.10 140)'], electric: ['Elektrisch', 'oklch(0.88 0.11 95)'], psychic: ['Psychisch', 'oklch(0.80 0.09 340)'], fighting: ['Vechten', 'oklch(0.76 0.09 60)'], dark: ['Duister', 'oklch(0.64 0.05 290)'], metal: ['Metaal', 'oklch(0.82 0.03 250)'], dragon: ['Draak', 'oklch(0.75 0.09 285)'], colorless: ['Kleurloos', 'oklch(0.90 0.02 90)'] };
+const RAR = { C: ['Gewoon', '●'], U: ['Ongewoon', '◆'], R: ['Zeldzaam', '★'], HR: ['Holo-zeldzaam', '✦'] };
+const CONDS = [['M', 'Mint'], ['NM', 'Near Mint'], ['EX', 'Excellent'], ['GD', 'Good'], ['PL', 'Played']];
+const COLS = { 4: 2, 9: 3, 12: 3, 16: 4 };
+const NAV = [['home', 'Home', 'home'], ['search', 'Zoeken', 'search'], ['collection', 'Collectie', 'style'], ['binders', 'Binders', 'menu_book']];
+const TARGETS = [1, 23, 29, 39, 15, 5];
+const pad = n => String(n).padStart(3, '0');
+const ROWS = RAW.trim().split('\n').map(l => l.trim().split('|'));
+const CARDS = [];
+(() => { let k = 0; SETS.forEach(s => { for (let i = 0; i < s.n; i++) { const r = ROWS[k]; const rar = i === s.n - 1 ? 'HR' : (i === s.n - 2 || i === Math.floor(s.n / 2)) ? 'R' : (i % 3 === 2 ? 'U' : 'C'); CARDS.push({ id: k, set: s.code, setName: s.name, num: i + 1, numStr: pad(i + 1) + '/' + pad(s.n), names: { EN: r[0], DE: r[1], JA: r[2], ZH: r[3] }, type: r[4], rarity: rar, avail: s.avail }); k++; } }); })();
+const tot = o => o ? LANGS.reduce((a, l) => a + (o[l] || 0), 0) : 0;
+function initOwned() {
+  const o = {}, d = {};
+  CARDS.forEach(c => {
+    const h = (c.id * 7919 + 13) % 13; const n = { EN: 0, DE: 0, JA: 0, ZH: 0 };
+    if (c.set === 'STC') { n.EN = 1 + (c.id % 2); n.JA = c.id % 3 === 0 ? 1 : 0; }
+    else if (h < 8) { n.EN = h % 3; n.DE = h % 4 === 1 ? 1 : 0; n.JA = (h % 5 === 0 || h === 3) ? 1 : 0; n.ZH = h === 7 ? 1 : 0; }
+    LANGS.forEach(l => { if (!c.avail.includes(l)) n[l] = 0; });
+    if (h < 8 && !tot(n)) n.EN = 1;
+    o[c.id] = n; d[c.id] = (c.id * 13 + 5) % 40;
+  });
+  o[13] = { EN: 0, DE: 0, JA: 0, ZH: 0 }; o[25] = { EN: 1, DE: 0, JA: 1, ZH: 0 }; o[1] = { EN: 2, DE: 1, JA: 1, ZH: 0 };
+  return { o, d };
+}
+const range = (a, b) => Array.from({ length: b - a }, (_, i) => a + i);
+function mkB(id, name, fmt, pages, cover, place) { const slots = Array(pages * fmt).fill(null); place.forEach(([st, ids]) => ids.forEach((c, i) => { slots[st + i] = c; })); return { id, name, fmt, pages, cover, slots }; }
+const initBinders = () => [
+  mkB('b1', 'Starterbinder', 9, 6, '#E3350D', [[0, range(0, 14)], [18, range(14, 26)], [36, range(26, 36)]]),
+  mkB('b2', 'Japanse favorieten', 4, 4, '#306230', [[0, [2, 15, 27, 36, 38, 40, 1, 18]]]),
+  mkB('b3', 'Static Surge', 12, 2, '#E8B92E', [[0, range(36, 44)]]),
+  mkB('b4', 'Ruilmap', 16, 2, '#3E6FB0', [[0, [4, 9, 16, 20, 28, 31]]]),
+];
+const led = (c, blink, size) => React.createElement('span', { style: { width: size || 10, height: size || 10, borderRadius: '50%', background: c, border: '2px solid #1A1C22', display: 'inline-block', boxSizing: 'border-box', flex: 'none', animation: blink ? 'cc-blink 1.4s steps(1) infinite' : 'none' } });
+
+class Component extends DCLogic {
+  state = (() => { const r = initOwned(); return {
+    screen: this.props?.startScreen || 'home', prev: 'home', dark: !!this.props?.dark,
+    wide: typeof window !== 'undefined' && window.innerWidth >= 900,
+    owned: r.o, added: r.d, detailId: 1, detailLang: 'EN',
+    q: '', fLangs: [], fSet: '', fRar: '', fType: '',
+    view: 'grid', sort: 'set', collSet: '', missingOnly: false,
+    binders: initBinders(), edId: 'b1', edSpread: 0, autoSet: 'EMB', sideQ: '', sideSet: '',
+    drag: null, over: null, sel: null, sideOver: false,
+    vId: 'b1', vSpread: 0, flip: null,
+    scan: { phase: 'search', target: 1, sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
+  }; })();
+  mainRef = React.createRef(); seq = 0; scanIdx = 0;
+
+  componentDidMount() {
+    this.applyDark();
+    { const w = window.innerWidth >= 900; if (w !== this.state.wide) this.setState({ wide: w }); }
+    this.ro = new ResizeObserver(() => { const w = window.innerWidth >= 900; if (w !== this.state.wide) this.setState({ wide: w }); });
+    this.ro.observe(document.documentElement);
+    this.onKey = e => { if (this.state.screen !== 'viewer') return; if (e.key === 'ArrowRight') this.flip(1); if (e.key === 'ArrowLeft') this.flip(-1); };
+    window.addEventListener('keydown', this.onKey);
+    if (this.state.screen === 'scan') this.startScan();
+  }
+  componentDidUpdate(pp) {
+    if (pp.dark !== this.props.dark) this.setState({ dark: !!this.props.dark });
+    if (pp.startScreen !== this.props.startScreen && this.props.startScreen) this.go(this.props.startScreen);
+    this.applyDark();
+  }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); window.removeEventListener('keydown', this.onKey); this.clearScan(); clearTimeout(this.tt); clearTimeout(this.ft); }
+  applyDark() { document.body.classList.toggle('cc-dark', !!this.state.dark); }
+  toast(msg) { clearTimeout(this.tt); this.setState({ toast: msg }); this.tt = setTimeout(() => this.setState({ toast: null }), 2600); }
+  go(screen, extra = {}) {
+    if (screen === 'scan') this.startScan(); else this.clearScan();
+    this.setState(s => ({ screen, prev: s.screen === 'detail' ? s.prev : s.screen, drag: null, over: null, sel: null, flip: null, ...extra }));
+    if (this.mainRef.current) this.mainRef.current.scrollTop = 0;
+  }
+  clearScan() { clearTimeout(this.t1); clearTimeout(this.t2); }
+  startScan() {
+    this.clearScan();
+    const t = TARGETS[this.scanIdx++ % TARGETS.length];
+    this.setState({ scan: { phase: 'search', target: t, sel: 0, lang: CARDS[t].avail[0], cond: 'NM', qty: 1 } });
+    this.t1 = setTimeout(() => this.setScan({ phase: 'found' }), 1700);
+    this.t2 = setTimeout(() => this.setScan({ phase: 'sheet' }), 2700);
+  }
+  setScan(p) { this.setState(s => ({ scan: { ...s.scan, ...p } })); }
+  matchesFor(t) { const c = CARDS[t]; const o = [...CARDS.filter(x => x.id !== t && x.type === c.type), ...CARDS.filter(x => x.id !== t && x.type !== c.type)]; return [c, o[0], o[1]]; }
+  addScan() {
+    const s = this.state.scan; const c = this.matchesFor(s.target)[s.sel];
+    const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;
+    this.setState(st => ({ owned: { ...st.owned, [c.id]: { ...st.owned[c.id], [lang]: (st.owned[c.id][lang] || 0) + s.qty } }, added: { ...st.added, [c.id]: -seq } }));
+    this.toast(`${c.names[lang]} toegevoegd · ${lang} · ${s.cond} · ×${s.qty}`);
+    this.startScan();
+  }
+  cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : 'EN'; return { name: c.names[l], num: c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: RAR[c.rarity][1], holo: c.rarity === 'HR', missing: !!missing }; }
+  openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : 'EN' }); }
+  setOwn(id, l, delta) { this.setState(s => ({ owned: { ...s.owned, [id]: { ...s.owned[id], [l]: Math.max(0, (s.owned[id][l] || 0) + delta) } } })); }
+
+  curB() { return this.state.binders.find(b => b.id === this.state.edId); }
+  updB(id, fn) { this.setState(s => ({ binders: s.binders.map(b => b.id === id ? fn({ ...b, slots: [...b.slots] }) : b) })); }
+  setFmt(fmt) {
+    this.updB(this.state.edId, b => { let L = 0; b.slots.forEach((x, i) => { if (x != null) L = i + 1; }); let pages = Math.max(2, Math.ceil(L / fmt)); if (pages % 2) pages++; const slots = b.slots.slice(0, L); while (slots.length < pages * fmt) slots.push(null); return { ...b, fmt, pages, slots }; });
+    this.setState({ edSpread: 0 });
+  }
+  autofill() {
+    const code = this.state.autoSet; const b = this.curB();
+    const ids = CARDS.filter(c => c.set === code && !b.slots.includes(c.id)).map(c => c.id);
+    if (!ids.length) { this.toast('Deze set zit al helemaal in de binder'); return; }
+    const miss = ids.filter(id => !tot(this.state.owned[id])).length; const start = this.state.edSpread * 2 * b.fmt;
+    this.updB(b.id, nb => { let i = start; const q = [...ids]; while (q.length) { if (i >= nb.slots.length) { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); } if (nb.slots[i] == null) nb.slots[i] = q.shift(); i++; } return nb; });
+    this.toast(`${ids.length} kaarten geplaatst · ${miss} ontbrekend`);
+  }
+  dropOn(idx) {
+    const d = this.state.drag; if (!d) return;
+    this.updB(this.state.edId, b => { if (d.type === 'side') b.slots[idx] = d.cardId; else if (d.idx !== idx) { const t = b.slots[idx]; b.slots[idx] = b.slots[d.idx]; b.slots[d.idx] = t; } return b; });
+    this.setState({ drag: null, over: null });
+  }
+  pageModel(b, p, editable) {
+    const { owned, drag, over, sel } = this.state; const fmt = b.fmt; const slots = [];
+    for (let j = 0; j < fmt; j++) {
+      const idx = p * fmt + j; const cid = b.slots[idx]; const has = cid != null && p < b.pages; const own = has && tot(owned[cid]) > 0;
+      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: !has, isMissing: has && !own, isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && has, draggable: editable && has, cursor: editable ? (has ? 'grab' : (sel != null ? 'pointer' : 'default')) : 'default', card: has ? this.cv(CARDS[cid], 'EN', !own) : null };
+      if (editable) {
+        s.onDragStart = e => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; this.setState({ drag: { type: 'slot', idx, cardId: cid }, sel: null }); };
+        s.onDragOver = e => { e.preventDefault(); if (this.state.over !== idx) this.setState({ over: idx }); };
+        s.onDragLeave = () => { if (this.state.over === idx) this.setState({ over: null }); };
+        s.onDrop = e => { e.preventDefault(); this.dropOn(idx); };
+        s.onDragEnd = () => this.setState({ drag: null, over: null, sideOver: false });
+        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } };
+        s.onRemove = e => { e.stopPropagation(); this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); };
+      }
+      slots.push(s);
+    }
+    return { cols: COLS[fmt], slots, label: 'PAGINA ' + (p + 1), align: p % 2 ? 'flex-end' : 'flex-start', radius: p % 2 ? '3px 10px 10px 3px' : '10px 3px 3px 10px' };
+  }
+  flip(dir) {
+    const b = this.state.binders.find(x => x.id === this.state.vId); const last = b.pages / 2 - 1; const s = this.state.vSpread;
+    if (this.state.flip || (dir > 0 && s >= last) || (dir < 0 && s <= 0)) return;
+    this.setState({ flip: { dir, angle: 0 } });
+    requestAnimationFrame(() => requestAnimationFrame(() => this.setState({ flip: { dir, angle: dir > 0 ? -180 : 180 } })));
+    clearTimeout(this.ft); this.ft = setTimeout(() => this.setState({ vSpread: s + dir, flip: null }), 780);
+  }
+
+  renderVals() {
+    const st = this.state; const { owned, added, screen } = st;
+    const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && screen === 'editor'); return { key: id, label, icon, go: () => this.go(id), bg: on ? '#FFFDF6' : 'transparent', fg: on ? '#1A1C22' : '#FFF4EC', bd: on ? '#1A1C22' : 'transparent', sh: on ? '3px 3px 0 #1A1C22' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
+    const navAll = NAV.map(navItem);
+    const ownedCards = CARDS.filter(c => tot(owned[c.id]) > 0);
+    const totalCards = CARDS.reduce((a, c) => a + tot(owned[c.id]), 0);
+    const langN = LANGS.map(l => CARDS.reduce((a, c) => a + (owned[c.id][l] || 0), 0)); const maxL = Math.max(...langN, 1);
+    const setProgress = SETS.map(s => { const cs = CARDS.filter(c => c.set === s.code); const have = cs.filter(c => tot(owned[c.id])).length; const pct = Math.round(have / cs.length * 100); return { key: s.code, code: s.code, name: s.name, pct, done: have === cs.length, notDone: have < cs.length, label: `${have}/${cs.length}`, langs: s.avail.join(' · '), open: () => this.go('search', { fSet: s.code, q: '', fLangs: [], fRar: '', fType: '' }) }; });
+    const when = d => d <= 0 ? 'vandaag' : d === 1 ? 'gisteren' : `${d} dagen geleden`;
+    const recent = [...ownedCards].sort((a, b) => added[a.id] - added[b.id]).slice(0, 10).map(c => ({ key: c.id, cv: this.cv(c, 'EN'), when: when(added[c.id]), open: () => this.openDetail(c.id) }));
+
+    // search
+    const ql = st.q.trim().toLowerCase(); const langs = st.fLangs.length ? st.fLangs : LANGS;
+    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || c.rarity === st.fRar) && (!st.fType || c.type === st.fType) && langs.some(l => c.avail.includes(l)) && (!ql || c.numStr.includes(ql) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql))));
+    const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || 'EN'; };
+    const results = resultsRaw.map(c => { const n = tot(owned[c.id]); const l = showLang(c); return { key: c.id, cv: this.cv(c, l), name: c.names[l], qtyLabel: n ? '×' + n : 'mist', qtyColor: n ? 'var(--ink)' : 'var(--red)', shadow: '3px 3px 0 var(--line)', open: () => this.openDetail(c.id, l) }; });
+    const toggleLang = l => this.setState(s => ({ fLangs: s.fLangs.includes(l) ? s.fLangs.filter(x => x !== l) : [...s.fLangs, l] }));
+    const langChips = LANGS.map(l => { const on = st.fLangs.includes(l); return { key: l, code: l, bg: on ? '#9BBC0F' : 'var(--surface)', fg: on ? '#0F380F' : 'var(--ink)', toggle: () => toggleLang(l) }; });
+    const typeChips = Object.entries(TYPES).map(([k, [label, color]]) => { const on = st.fType === k; return { key: k, label, color, bg: on ? 'var(--ink)' : 'var(--surface)', fg: on ? 'var(--bg)' : 'var(--ink)', toggle: () => this.setState({ fType: on ? '' : k }) }; });
+
+    // detail
+    const dc = CARDS[st.detailId]; const dl = st.detailLang; const dAvail = dc.avail.includes(dl); const dOwn = owned[dc.id];
+    const dBinders = []; st.binders.forEach(b => b.slots.forEach((x, i) => { if (x === dc.id) { const p = Math.floor(i / b.fmt); dBinders.push({ key: b.id + i, name: b.name, cover: b.cover, where: `Pagina ${p + 1} · slot ${i % b.fmt + 1} · ${b.fmt}-pocket`, open: () => this.go('editor', { edId: b.id, edSpread: Math.floor(p / 2) }) }); } }));
+    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: RAR[dc.rarity][1] + ' ' + RAR[dc.rarity][0], availLabel: dc.avail.join(' · '), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: this.cv(dc, dl, !dAvail || !dOwn[dl]), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
+    const dTabs = LANGS.map(l => { const on = dl === l; const av = dc.avail.includes(l); return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : (av ? 'var(--ink)' : 'var(--muted)'), deco: av ? 'none' : 'line-through', sub: av ? (dOwn[l] ? '×' + dOwn[l] : '—') : 'n.v.t.', select: () => this.setState({ detailLang: l }) }; });
+    const dOwnRows = dc.avail.map(l => ({ key: l, code: l, lname: LNAME[l], name: dc.names[l], n: dOwn[l] || 0, inc: () => this.setOwn(dc.id, l, 1), dec: () => this.setOwn(dc.id, l, -1) }));
+
+    // collection
+    let cl = CARDS.filter(c => st.missingOnly ? !tot(owned[c.id]) : tot(owned[c.id]) > 0);
+    if (st.collSet) cl = cl.filter(c => c.set === st.collSet);
+    if (st.sort === 'num') cl = [...cl].sort((a, b) => (a.num - b.num) || (a.id - b.id));
+    if (st.sort === 'date') cl = [...cl].sort((a, b) => added[a.id] - added[b.id]);
+    const collItems = cl.map(c => { const n = tot(owned[c.id]); return { key: c.id, cv: this.cv(c, 'EN', !n), name: c.names.EN, setNum: c.set + ' ' + c.numStr, typeLabel: TYPES[c.type][0], langs: LANGS.filter(l => owned[c.id][l]).map(l => owned[c.id][l] > 1 ? `${l}×${owned[c.id][l]}` : l).join(' '), qtyLabel: n ? '×' + n : 'mist', qtyColor: n ? 'var(--ink)' : 'var(--red)', shadow: n ? '3px 3px 0 var(--line)' : 'none', open: () => this.openDetail(c.id) }; });
+
+    // binders
+    const binderCards = st.binders.map(b => { const filled = b.slots.filter(x => x != null); const miss = filled.filter(x => !tot(owned[x])).length; const pct = Math.round(filled.length / b.slots.length * 100); return { key: b.id, name: b.name, cover: b.cover, fmt: b.fmt + '-POCKET', pct, stats: `${filled.length}/${b.slots.length} slots · ${b.pages} pagina's`, missLabel: !filled.length ? 'nog leeg' : miss ? `${miss} ontbrekend` : 'alles in bezit', complete: filled.length > 0 && miss === 0, preview: filled.slice(0, 3).map((id, i) => ({ key: id, cv: this.cv(CARDS[id], 'EN', !tot(owned[id])), left: [0, 29, 58][i], rot: [-9, 0, 9][i] })), edit: () => this.go('editor', { edId: b.id, edSpread: 0 }), view: () => this.go('viewer', { vId: b.id, vSpread: 0 }) }; });
+
+    // editor
+    const eb = this.curB(); const lastSpread = eb.pages / 2 - 1; const es = Math.min(st.edSpread, lastSpread);
+    const inB = new Set(eb.slots.filter(x => x != null)); const sq = st.sideQ.trim().toLowerCase();
+    const sideItems = CARDS.filter(c => (!st.sideSet || c.set === st.sideSet) && (!sq || LANGS.some(l => c.names[l].toLowerCase().includes(sq)))).map(c => { const n = tot(owned[c.id]); const on = st.sel === c.id; return { key: c.id, cv: this.cv(c, 'EN', !n), num: c.set + ' ' + c.num, label: inB.has(c.id) ? '✓ geplaatst' : n ? '×' + n : 'mist', labelColor: n ? 'var(--muted)' : 'var(--red)', op: inB.has(c.id) ? 0.5 : 1, bd: on ? '#9BBC0F' : 'transparent', onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); }, onDragEnd: () => this.setState({ drag: null, over: null }), onClick: () => this.setState({ sel: on ? null : c.id }) }; });
+    const isDraggingSlot = !!(st.drag && st.drag.type === 'slot');
+
+    // viewer
+    const vb = st.binders.find(b => b.id === st.vId); const vs = st.vSpread; const f = st.flip; const pm = p => this.pageModel(vb, p, false);
+    let vLeft, vRight, leafFront = null, leafBack = null;
+    if (!f) { vLeft = pm(2 * vs); vRight = pm(2 * vs + 1); }
+    else if (f.dir > 0) { vLeft = pm(2 * vs); vRight = pm(2 * vs + 3); leafFront = pm(2 * vs + 1); leafBack = pm(2 * vs + 2); }
+    else { vLeft = pm(2 * vs - 2); vRight = pm(2 * vs + 1); leafFront = pm(2 * vs); leafBack = pm(2 * vs - 1); }
+
+    // scanner
+    const sc = st.scan; const ms = this.matchesFor(sc.target); const confs = [94, 61, 27]; const selCard = ms[sc.sel];
+    const matches = ms.map((c, i) => { const on = sc.sel === i; return { key: c.id, cv: this.cv(c, sc.lang), name: c.names[c.avail.includes(sc.lang) ? sc.lang : 'EN'], meta: `${c.setName} · ${c.set} ${c.numStr}`, conf: confs[i], bd: on ? 'var(--red)' : 'var(--line)', sh: on ? '3px 3px 0 var(--red)' : 'none', dot: on ? 'var(--red)' : 'transparent', select: () => this.setScan({ sel: i, lang: c.avail.includes(sc.lang) ? sc.lang : c.avail[0] }) }; });
+    const langOpts = LANGS.map(l => { const av = selCard.avail.includes(l); const on = sc.lang === l; return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : 'var(--ink)', op: av ? 1 : 0.4, deco: av ? 'none' : 'line-through', select: () => av && this.setScan({ lang: l }) }; });
+    const condOpts = CONDS.map(([k, l]) => { const on = sc.cond === k; return { key: k, code: k, label: l, bg: on ? 'var(--ink)' : 'var(--surface)', fg: on ? 'var(--bg)' : 'var(--ink)', select: () => this.setScan({ cond: k }) }; });
+
+    return {
+      wide: st.wide, narrow: !st.wide, mainRef: this.mainRef, lcdPixels: this.props.lcdPixels ?? true,
+      isHome: screen === 'home', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
+      navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2),
+      goScan: () => this.go('scan'), goColl: () => this.go('collection'), goBinders: () => this.go('binders'),
+      toggleDark: () => this.setState(s => ({ dark: !s.dark })), darkIcon: st.dark ? 'light_mode' : 'dark_mode',
+      leds: React.createElement(React.Fragment, null, led('#FF5A4E', true), led('#F6C945'), led('#7BD15B')),
+      powerLed: led('#FF5A4E', false, 9),
+      toast: st.toast, hasToast: !!st.toast,
+      totalCards, uniqueCards: ownedCards.length, setsDone: setProgress.filter(s => s.done).length,
+      langStats: LANGS.map((l, i) => ({ key: l, code: l, n: langN[i], pct: Math.round(langN[i] / maxL * 100) })),
+      recent, setProgress,
+      q: st.q, onQ: e => this.setState({ q: e.target.value }), fSet: st.fSet, onFSet: e => this.setState({ fSet: e.target.value }), fRar: st.fRar, onFRar: e => this.setState({ fRar: e.target.value }),
+      langChips, typeChips, results, resultCount: `${results.length} ${results.length === 1 ? 'resultaat' : 'resultaten'}`,
+      hasFilters: !!(st.q || st.fLangs.length || st.fSet || st.fRar || st.fType), clearFilters: () => this.setState({ q: '', fLangs: [], fSet: '', fRar: '', fType: '' }),
+      d, dTabs, dOwnRows, dBinders, noDBinders: !dBinders.length, back: () => this.go(st.prev || 'home'),
+      collItems, collCount: st.missingOnly ? `${collItems.length} ontbrekend` : `${collItems.length} uniek · ${totalCards} totaal`,
+      isGrid: st.view === 'grid', isList: st.view === 'list', setGrid: () => this.setState({ view: 'grid' }), setList: () => this.setState({ view: 'list' }),
+      gridBg: st.view === 'grid' ? 'var(--ink)' : 'var(--surface)', gridFg: st.view === 'grid' ? 'var(--bg)' : 'var(--ink)', listBg: st.view === 'list' ? 'var(--ink)' : 'var(--surface)', listFg: st.view === 'list' ? 'var(--bg)' : 'var(--ink)',
+      sort: st.sort, onSort: e => this.setState({ sort: e.target.value }), collSet: st.collSet, onCollSet: e => this.setState({ collSet: e.target.value }),
+      toggleMissing: () => this.setState(s => ({ missingOnly: !s.missingOnly })), missTrack: st.missingOnly ? '#9BBC0F' : 'var(--soft)', missKnob: st.missingOnly ? '22px' : '2px',
+      binderCards, newBinder: () => { const id = 'b' + Date.now(); this.setState(s => ({ binders: [...s.binders, mkB(id, 'Nieuwe binder', 9, 2, '#7A5BC7', [])] })); this.go('editor', { edId: id, edSpread: 0 }); },
+      ed: { name: eb.name, cover: eb.cover, spreadLabel: `PAGINA ${2 * es + 1}–${2 * es + 2} / ${eb.pages}` },
+      edLeft: this.pageModel(eb, 2 * es, true), edRight: this.pageModel(eb, 2 * es + 1, true),
+      edPrev: () => es > 0 && this.setState({ edSpread: es - 1 }), edNext: () => es < lastSpread && this.setState({ edSpread: es + 1 }), edPrevOp: es > 0 ? 1 : 0.35, edNextOp: es < lastSpread ? 1 : 0.35,
+      fmtOptions: [4, 9, 12, 16].map(n => { const on = eb.fmt === n; return { key: n, label: n + '-pocket', bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : 'var(--ink)', select: () => this.setFmt(n) }; }),
+      autoSet: st.autoSet, onAutoSet: e => this.setState({ autoSet: e.target.value }), autofill: () => this.autofill(),
+      addPages: () => { this.updB(eb.id, nb => { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); return nb; }); this.toast("2 pagina's toegevoegd"); },
+      exportImg: () => this.toast(`Pagina ${2 * es + 1}–${2 * es + 2} geëxporteerd als PNG`),
+      openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es }),
+      sideItems, sideCount: `${sideItems.length} kaarten`, sideQ: st.sideQ, onSideQ: e => this.setState({ sideQ: e.target.value }), sideSet: st.sideSet, onSideSet: e => this.setState({ sideSet: e.target.value }),
+      isDraggingSlot, sideZoneBg: st.sideOver ? 'rgba(227,53,13,.22)' : 'rgba(227,53,13,.10)',
+      sideDragOver: e => { if (this.state.drag && this.state.drag.type === 'slot') { e.preventDefault(); if (!this.state.sideOver) this.setState({ sideOver: true }); } },
+      sideDragLeave: () => this.state.sideOver && this.setState({ sideOver: false }),
+      sideDrop: e => { const dr = this.state.drag; if (dr && dr.type === 'slot') { e.preventDefault(); this.updB(this.state.edId, nb => { nb.slots[dr.idx] = null; return nb; }); } this.setState({ drag: null, over: null, sideOver: false }); },
+      hasSel: st.sel != null, selName: st.sel != null ? CARDS[st.sel].names.EN.toUpperCase() : '', clearSel: () => this.setState({ sel: null }),
+      v: { name: vb.name, cover: vb.cover, fmt: vb.fmt + '-POCKET', link: `cardcase.app/b/${vb.id}-7kq2`, label: `PAGINA ${2 * vs + 1}–${2 * vs + 2} / ${vb.pages}` },
+      vLeft, vRight, leafFront, leafBack, flipping: !!f, leafLeft: f && f.dir > 0 ? '50%' : '0%', leafOrigin: f && f.dir > 0 ? 'left center' : 'right center', leafAngle: f ? f.angle : 0,
+      vPrev: () => this.flip(-1), vNext: () => this.flip(1), vPrevOp: vs > 0 ? 1 : 0.35, vNextOp: vs < vb.pages / 2 - 1 ? 1 : 0.35,
+      copyLink: () => { try { navigator.clipboard && navigator.clipboard.writeText('https://' + `cardcase.app/b/${vb.id}-7kq2`); } catch (e) {} this.toast('Link gekopieerd'); },
+      closeViewer: () => this.go('editor', { edId: vb.id, edSpread: vs }),
+      scanSearching: sc.phase === 'search', scanLocked: sc.phase !== 'search', scanSheet: sc.phase === 'sheet',
+      frameColor: sc.phase === 'search' ? 'rgba(155,188,15,.55)' : '#9BBC0F',
+      statusText: sc.phase === 'search' ? 'ZOEKEN NAAR KAART…' : sc.phase === 'found' ? 'KAART GEVONDEN…' : '3 MATCHES GEVONDEN',
+      statusDot: led(sc.phase === 'search' ? '#306230' : '#0F380F', sc.phase !== 'sheet', 10),
+      scanLine: React.createElement('div', { style: { position: 'absolute', left: '6%', right: '6%', height: 3, top: '4%', background: '#9BBC0F', boxShadow: '0 0 14px 3px rgba(155,188,15,.75)', animation: 'cc-scan 1.6s ease-in-out infinite alternate' } }),
+      matches, langOpts, condOpts, scanQty: sc.qty,
+      qtyInc: () => this.setScan({ qty: sc.qty + 1 }), qtyDec: () => this.setScan({ qty: Math.max(1, sc.qty - 1) }),
+      addScan: () => this.addScan(), rescan: () => this.startScan(), closeScan: () => this.go('home'),
+    };
+  }
+}
+</script>
+</body>
+</html>

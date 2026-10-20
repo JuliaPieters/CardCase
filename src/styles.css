@@ -1,1 +1,249 @@
-/* You can add global styles to this file, and also import other style files */
+@import 'tailwindcss';
+/* The exported design prototype is reference material, not app source. */
+@source not '../cardcase-trading-card-app';
+
+/* Design tokens from the Cardcase prototype. Light by default, `body.cc-dark` for dark mode. */
+body {
+  --bg: #f7f3e8;
+  --surface: #fffdf6;
+  --soft: #eee8d8;
+  --ink: #1a1c22;
+  --muted: #6a6558;
+  --line: #1a1c22;
+  --red: #e3350d;
+  --page: #fbf8ef;
+  --pocket: #ece6d6;
+}
+body.cc-dark {
+  --bg: #1a1c22;
+  --surface: #252830;
+  --soft: #2d3039;
+  --ink: #f2eee3;
+  --muted: #a8a497;
+  --line: #050608;
+  --page: #2a2d35;
+  --pocket: #202228;
+}
+
+/* inline: utilities reference the body-level tokens directly, so dark mode swaps them. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-soft: var(--soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-red: var(--red);
+  --color-page: var(--page);
+  --color-pocket: var(--pocket);
+
+  --shadow-hard: 4px 4px 0 var(--line);
+  --shadow-hard-sm: 2px 2px 0 var(--line);
+  --shadow-hard-md: 3px 3px 0 var(--line);
+}
+
+@theme {
+  --font-sans: Nunito, 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', sans-serif;
+  --font-pixel: 'Pixelify Sans', monospace;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  /* Fixed palette (same in light and dark). */
+  --color-lcd: #9bbc0f;
+  --color-lcd-edge: #8bac0f;
+  --color-lcd-mid: #306230;
+  --color-lcd-ink: #0f380f;
+  --color-device: #2b2e36;
+  --color-cream: #fff8ee;
+  --color-paper: #fffdf6;
+  --color-coal: #1a1c22;
+  --color-amber: #f0a030;
+  --color-gold: #f6c945;
+
+
+  --animate-blink: cc-blink 1.4s steps(1) infinite;
+  --animate-scan: cc-scan 1.6s ease-in-out infinite alternate;
+  --animate-scan-fast: cc-scan 1.4s ease-in-out infinite alternate;
+  --animate-up: cc-up 0.25s ease-out;
+  --animate-pop: cc-pop 0.2s ease-out;
+
+  @keyframes cc-blink {
+    0%,
+    55% {
+      opacity: 1;
+    }
+    56%,
+    100% {
+      opacity: 0.25;
+    }
+  }
+  @keyframes cc-scan {
+    from {
+      top: 4%;
+    }
+    to {
+      top: 94%;
+    }
+  }
+  @keyframes cc-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes cc-pop {
+    from {
+      transform: translate(-50%, 12px);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--red);
+  }
+  a:hover {
+    color: var(--ink);
+  }
+  input,
+  select,
+  button,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Material Symbols glyph; set the size with text-[Npx]. */
+  .icon {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+  }
+  /* Bordered card surface with the hard offset shadow used everywhere. */
+  .panel {
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 4px 4px 0 var(--line);
+  }
+  /* Small outlined secondary button. */
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 2px 2px 0 var(--line);
+    padding: 8px 12px;
+    font-weight: 800;
+    font-size: 14px;
+  }
+  /* Square back / icon button. */
+  .btn-icon {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 2px 2px 0 var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Small chip-style toggle button (bg/fg set inline). */
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 9px;
+    font-weight: 800;
+    font-size: 12.5px;
+  }
+  /* Native select styled like the prototype. */
+  .select {
+    appearance: none;
+    background-color: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-weight: 800;
+    font-size: 14px;
+    box-shadow: 2px 2px 0 var(--line);
+  }
+  /* LCD-green screen on a dark bezel. */
+  .lcd {
+    background: #9bbc0f;
+    color: #0f380f;
+    font-family: var(--font-pixel);
+  }
+  .lcd-pixels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(15, 56, 15, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 56, 15, 0.1) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+  .kicker {
+    font: 400 12px/1 var(--font-pixel);
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  /* Pressed state for the chunky "physical" buttons. */
+  .press:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--line) !important;
+  }
+  .press-sm:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--line) !important;
+  }
+  .press-xy:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--line) !important;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+  }
+  .lift-sm:hover {
+    transform: translateY(-2px);
+  }
+}

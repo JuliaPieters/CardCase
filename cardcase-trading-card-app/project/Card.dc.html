@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:relative; width:100%; aspect-ratio:63/88; container-type:inline-size; border:2px solid var(--line, #1A1C22); border-radius:7px; background:{{ c.bg }}; overflow:hidden; filter:{{ filt }}; opacity:{{ op }}">
+  <div style="position:absolute; inset:0; padding:6cqw; display:flex; flex-direction:column; gap:4cqw">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:3cqw">
+      <div style="font:800 10cqw/1.15 Nunito,'Noto Sans JP','Noto Sans SC','Noto Sans TC',sans-serif; color:#1A1C22; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0">{{ c.name }}</div>
+      <div style="font:400 9cqw/1 'Pixelify Sans',monospace; color:#1A1C22; flex:none">{{ c.rar }}</div>
+    </div>
+    <div style="flex:1; border:1.5px solid rgba(26,28,34,.65); border-radius:3cqw; background:repeating-linear-gradient(135deg, rgba(255,255,255,.5) 0 4px, rgba(255,255,255,.18) 4px 8px); display:flex; align-items:flex-end; padding:3cqw; font:500 6.5cqw/1 ui-monospace,Menlo,monospace; color:rgba(26,28,34,.55)">artwork</div>
+    <div style="display:flex; flex-direction:column; gap:2.5cqw">
+      <div style="height:3cqw; width:80%; border-radius:2cqw; background:rgba(26,28,34,.16)"></div>
+      <div style="height:3cqw; width:55%; border-radius:2cqw; background:rgba(26,28,34,.16)"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:2cqw; color:#1A1C22">
+      <span style="font:700 7cqw/1 Nunito,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.typeLabel }}</span>
+      <span style="font:400 7.5cqw/1 'Pixelify Sans',monospace; white-space:nowrap">{{ c.num }}</span>
+    </div>
+  </div>
+  <sc-if value="{{ c.holo }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg, rgba(255,120,200,.45), rgba(255,230,120,.45) 25%, rgba(120,240,190,.45) 50%, rgba(120,200,255,.45) 75%, rgba(200,150,255,.45)); mix-blend-mode:overlay"></div>
+    <div style="position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 45%, transparent 55%)"></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:180,&quot;height&quot;:252},&quot;card&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const c = this.props.card || { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0.11 40)', typeLabel: 'Vuur', rar: '●' };
+    return { c, op: c.missing ? 0.38 : 1, filt: c.missing ? 'grayscale(1)' : 'none' };
+  }
+}
+</script>
+</body>
+</html>

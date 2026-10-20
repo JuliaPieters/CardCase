@@ -42,3 +42,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Firebase web config (not secret, but kept out of this public repo; see public/firebase-config.example.json)
+/public/firebase-config.json
