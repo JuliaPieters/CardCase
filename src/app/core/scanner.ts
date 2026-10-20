@@ -9,10 +9,22 @@ const NUM_W = 1800;
 
 export type CameraError = 'unsupported' | 'denied' | 'failed';
 
+/** What was read on a card: all text (for the name), and the bottom strip alone (for the collector number). */
+export interface CardText {
+  text: string;
+  numText: string;
+}
+
 /** Camera access and on-device text recognition (tesseract.js, loaded on first use). */
 @Injectable({ providedIn: 'root' })
 export class ScannerService {
-  private worker?: Promise<Worker>;
+  /** Two OCR workers so the name and the number of a card are read at the same time. */
+  private workers: Partial<Record<'name' | 'num', Promise<Worker>>> = {};
+
+  /** Starts downloading the OCR engine (~5 MB the first time, then cached by the browser) before the first frame needs it. */
+  warmUp(): Promise<unknown> {
+    return Promise.all([this.getWorker('name'), this.getWorker('num')]);
+  }
 
   /** Starts the rear camera in the given video element. Throws a CameraError. */
   async startCamera(video: HTMLVideoElement): Promise<MediaStream> {
@@ -49,14 +61,18 @@ export class ScannerService {
 
   /**
    * The part of the camera image that is under `guide` on screen, as a canvas.
-   * Accounts for the video being shown with object-fit: cover.
+   * Accounts for the video being shown with object-fit: cover. `margin` widens (or, negative, narrows) the area on
+   * every side: 0.1 = 10%, for a card held closer than the guide, -0.08 for one held further away.
    */
-  grabGuide(video: HTMLVideoElement, guide: HTMLElement): HTMLCanvasElement | null {
+  grabGuide(video: HTMLVideoElement, guide: HTMLElement, margin = 0): HTMLCanvasElement | null {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
     if (!vw || !vh) return null;
     const vr = video.getBoundingClientRect();
-    const gr = guide.getBoundingClientRect();
+    const g = guide.getBoundingClientRect();
+    const mx = g.width * margin;
+    const my = g.height * margin;
+    const gr = { left: g.left - mx, top: g.top - my, width: g.width + 2 * mx, height: g.height + 2 * my };
     const scale = Math.max(vr.width / vw, vr.height / vh);
     const ox = (vr.width - vw * scale) / 2;
     const oy = (vr.height - vh * scale) / 2;
@@ -67,22 +83,27 @@ export class ScannerService {
     return toCanvas(video, sx, sy, sw, sh, sw, sh);
   }
 
-  /** Reads the name strip (top) and number strip (bottom) of one card image. */
-  async readCard(src: CanvasImageSource, sx = 0, sy = 0, sw?: number, sh?: number): Promise<string> {
+  /** Reads the name strip (top) and number strip (bottom) of one card image; pass the result to matchCards as text + numText. */
+  async readCard(src: CanvasImageSource, sx = 0, sy = 0, sw?: number, sh?: number): Promise<CardText> {
     const w = sw ?? (src as HTMLCanvasElement).width;
     const h = sh ?? (src as HTMLCanvasElement).height;
-    const worker = await this.getWorker();
-    // Each strip is its own canvas: tesseract reads these far better than rectangles of one big image.
-    const strip = (top: number, height: number, dw: number) => toCanvas(src, sx, sy + top * h, w, height * h, dw, (dw * height) / CARD_RATIO);
-    const name = await worker.recognize(strip(0.02, 0.12, NAME_W));
-    const num = await worker.recognize(strip(0.88, 0.12, NUM_W));
-    return name.data.text + '\n' + num.data.text;
+    // Each strip is its own canvas: tesseract reads these far better than rectangles of one big image. Narrow strips read
+    // best (taller ones pull in HP and artwork), so position tolerance comes from the caller trying several crops.
+    // Upscaling a small camera crop beyond ~3× adds no detail, only work.
+    const strip = (top: number, height: number, target: number) => {
+      const dw = Math.min(target, w * 3);
+      return toCanvas(src, sx, sy + top * h, w, height * h, dw, (dw * height * h) / w);
+    };
+    const [name, num] = await Promise.all([
+      this.getWorker('name').then((wk) => wk.recognize(strip(0, 0.16, NAME_W))),
+      this.getWorker('num').then((wk) => wk.recognize(strip(0.86, 0.14, NUM_W))),
+    ]);
+    return { text: name.data.text + '\n' + num.data.text, numText: num.data.text };
   }
 
   /** Reads all text in an image (used for photos where the card position is unknown). */
   async readAll(src: HTMLCanvasElement): Promise<string> {
-    const worker = await this.getWorker();
-    return (await worker.recognize(src)).data.text;
+    return (await (await this.getWorker('name')).recognize(src)).data.text;
   }
 
   /** Draws an image file (from a photo picker) to a canvas, at most `max` pixels on its long side. */
@@ -94,17 +115,24 @@ export class ScannerService {
     return c;
   }
 
-  private getWorker(): Promise<Worker> {
-    // tesseract.js is CommonJS: depending on the bundler its API is on the namespace or on `default`.
-    this.worker ??= import('tesseract.js').then(async (m) => {
-      const { createWorker, PSM } = ((m as any).default ?? m) as typeof m;
-      const w = await createWorker('eng');
-      await w.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
-      return w;
-    });
-    // A failed load (e.g. offline) is retried on the next scan.
-    this.worker.catch(() => (this.worker = undefined));
-    return this.worker;
+  private getWorker(kind: 'name' | 'num'): Promise<Worker> {
+    let w = this.workers[kind];
+    if (!w) {
+      // tesseract.js is CommonJS: depending on the bundler its API is on the namespace or on `default`.
+      w = this.workers[kind] = import('tesseract.js').then(async (m) => {
+        const { createWorker, PSM } = ((m as any).default ?? m) as typeof m;
+        const worker = await createWorker('eng');
+        await worker.setParameters({
+          tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+          // The number strip only holds collector numbers ("025/198", "TG05/TG30"), set codes ("SV2a") and language codes.
+          ...(kind === 'num' ? { tessedit_char_whitelist: '0123456789/ ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' } : {}),
+        });
+        return worker;
+      });
+      // A failed load (e.g. offline) is retried on the next scan.
+      w.catch(() => delete this.workers[kind]);
+    }
+    return w;
   }
 }
 

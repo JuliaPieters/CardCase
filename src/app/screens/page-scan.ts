@@ -158,7 +158,11 @@ export class PageScanOverlay implements OnDestroy {
   private alive = true;
 
   constructor() {
-    afterNextRender(() => void this.start());
+    afterNextRender(() => {
+      void this.start();
+      // Start downloading the OCR engine while the page is being lined up.
+      this.scanner.warmUp().catch(() => {});
+    });
   }
 
   ngOnDestroy() {
@@ -209,9 +213,9 @@ export class PageScanOverlay implements OnDestroy {
         // Trim the gap between pockets so the strips start at the card edge.
         const x = (k % cols) * cw + cw * 0.03;
         const y = Math.floor(k / cols) * ch + ch * 0.02;
-        const text = await this.scanner.readCard(page, x, y, cw * 0.94, ch * 0.96);
+        const { text, numText } = await this.scanner.readCard(page, x, y, cw * 0.94, ch * 0.96);
         if (!this.alive) return;
-        const cands = norm(text).length >= 3 ? matchCards(text, { prefer, expect: expect(i) }) : [];
+        const cands = norm(text).length >= 3 ? matchCards(text, { numText, prefer, expect: expect(i) }) : [];
         res[i] = { got: cands[0]?.id ?? null, conf: cands[0]?.conf ?? 0, cands };
         this.store.setPs({ done: k + 1 });
       }

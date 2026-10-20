@@ -173,9 +173,13 @@ export class CardcaseStore {
     clearTimeout(this.t1); this.t1 = setTimeout(() => this.setScan({ phase: 'sheet' }), 700);
   }
   setScan(p) { this.setState(s => ({ scan: { ...s.scan, ...p } })); }
+  /** Language of the cards this user scans (from the last added scan): preferred when a number exists in several languages. */
+  scanLang(): string | null { try { return localStorage.getItem('cc-scan-lang'); } catch { return null; } }
+  setScanLang(l: string) { try { localStorage.setItem('cc-scan-lang', l); } catch {} }
   addScan() {
     const s = this.state.scan; const m = s.matches[s.sel]; if (!m) return; const c = CARDS[m.id];
     const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;
+    this.setScanLang(c.avail[0]);
     this.setState(st => ({ owned: { ...st.owned, [c.id]: { ...st.owned[c.id], [lang]: (st.owned[c.id][lang] || 0) + s.qty } }, added: { ...st.added, [c.id]: Date.now() } }));
     this.toast(`${c.names[lang]} toegevoegd · ${lang} · ${s.cond} · ×${s.qty}`);
     this.startScan();

@@ -11,6 +11,10 @@ export interface MatchOptions {
   prefer?: Set<number>;
   /** The card expected at this spot: bigger boost. */
   expect?: number | null;
+  /** Language the user scans most (EN, JA, ZH…): breaks ties between the same card in different languages. */
+  lang?: string | null;
+  /** Text of just the bottom of the card. When given, collector numbers are only looked for there (not in HP or attack damage). */
+  numText?: string;
   limit?: number;
 }
 
@@ -67,10 +71,13 @@ export function matchCards(text: string, opts: MatchOptions = {}): CardMatch[] {
   const idx = getIndex();
   // "Evolves from Kadabra" names the previous stage, not this card.
   const flat = norm(text.replace(/evolves from[^\n]*/gi, ''));
-  const nums = readNumbers(text, idx);
+  const nums = readNumbers(opts.numText ?? text, idx);
   const cand = new Set<number>();
 
   for (const n of nums) (n.total != null ? idx.byNumTotal.get(n.key + '/' + n.total) : idx.byNum.get(n.key))?.forEach((id) => cand.add(id));
+  // Words in the text: Japanese/Chinese cards print their set code ("SV2a"), modern western cards a language code ("EN").
+  const words = new Set((opts.numText ?? text).toUpperCase().match(/[A-Z0-9]+/g) ?? []);
+  const western = ['EN', 'DE', 'FR', 'IT', 'ES', 'PT'].some((l) => words.has(l));
   if (flat.length >= 3) {
     for (const [name, ids] of idx.names) {
       if (name.length < 4 && !flat.includes(name)) continue;
@@ -100,6 +107,13 @@ export function matchCards(text: string, opts: MatchOptions = {}): CardMatch[] {
       if (n.weight === 1 || total) numScore = Math.max(numScore, n.weight * (0.35 + (total ? 0.25 : 0)));
     }
     score += numScore;
+    // The same number exists in the English and the Japanese print of a set; these tell them apart.
+    if (numScore) {
+      const lang = c.avail[0];
+      if (words.has(printedCode(c.set))) score += 0.15;
+      else if (western && lang !== 'JA' && lang !== 'ZH') score += 0.1;
+      if (opts.lang && lang === opts.lang) score += 0.05;
+    }
     if (score < 0.15) continue;
     if (id === opts.expect) score += 0.3;
     else if (opts.prefer?.has(id)) score += 0.15;
@@ -141,7 +155,8 @@ function readNumbers(text: string, idx: Index): NumberRead[] {
   for (const tok of text.toUpperCase().match(/\d[\dOIL ,.'’]{2,10}/g) ?? []) {
     const d = tok.replace(/[^0-9OIL]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1');
     // Copyright years ("©1999") are on every card.
-    if (!/^\d{3,7}$/.test(d) || /^(19|20)\d\d$/.test(d)) continue;
+    // Three digits without a slash are usually HP or damage ("120"), not a collector number.
+    if (!/^\d{4,7}$/.test(d) || /^(19|20)\d\d$/.test(d)) continue;
     for (let i = 1; i <= 3 && i < d.length; i++) {
       // Prefer reading the character after the number as the slash (often seen as 1, 7 or 0).
       for (const [skip, weight] of [[1, 0.9], [0, 0.8]]) {
@@ -162,6 +177,12 @@ const PREFIXES = new Set(['TG', 'GG', 'SV', 'SWSH', 'SM', 'XY', 'BW', 'DP', 'H',
 function digits(s: string): number | null {
   const d = s.replace(/[OQD]/g, '0').replace(/[IL]/g, '1').replace(/S/g, '5');
   return /^\d+$/.test(d) ? parseInt(d, 10) : null;
+}
+
+/** Set code as printed on the card: "JA-SV2a" → "SV2A". Western catalog codes (tcgdex ids like "sv02") never match a printed word. */
+function printedCode(set: string): string {
+  const code = set.replace(/^(JA|ZH-TW|ZH-CN)-/, '').toUpperCase();
+  return code.length >= 3 && code !== set.toUpperCase() ? code : '';
 }
 
 function localIdOf(c: any): string {

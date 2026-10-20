@@ -1,6 +1,7 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
 import { matchCards, type CardMatch } from '../core/card-match';
 import { type CameraError, ScannerService } from '../core/scanner';
+import { CARDS } from '../core/data';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
 import { Led } from '../shared/bits';
@@ -176,8 +177,8 @@ export class ScanOverlay implements OnDestroy {
   private readonly guide = viewChild.required<ElementRef<HTMLElement>>('guide');
 
   protected readonly cam = signal<'starting' | 'live' | CameraError>('starting');
-  /** False until the OCR engine has been downloaded and has read its first frame. */
-  protected readonly ocrReady = signal(false);
+  /** The OCR engine: downloading, ready, or failed to load (retried automatically). */
+  protected readonly ocr = signal<'loading' | 'ready' | 'error'>('loading');
   protected readonly reading = signal(false);
   protected readonly torch = signal(false);
   protected readonly torchAvail = signal(false);
@@ -188,25 +189,48 @@ export class ScanOverlay implements OnDestroy {
     if (cam === 'starting') return 'CAMERA STARTEN…';
     if (cam === 'denied') return 'GEEN CAMERA-TOEGANG';
     if (cam !== 'live') return 'GEEN CAMERA GEVONDEN';
-    if (!this.ocrReady() && this.v().scanSearching) return 'SCANNER LADEN…';
+    if (this.ocr() === 'error') return 'SCANNER LADEN MISLUKT';
+    if (this.ocr() === 'loading' && this.v().scanSearching) return 'SCANNER LADEN…';
     return this.v().statusText;
   });
   protected readonly hint = computed(() => {
     const cam = this.cam();
     if (cam === 'denied') return 'Sta cameratoegang toe in je browser, of kies een foto van de kaart.';
     if (cam === 'unsupported' || cam === 'failed') return 'Deze browser of dit apparaat geeft geen camerabeeld. Kies een foto van de kaart.';
-    return 'Leg de kaart plat in het kader, met de naam en het kaartnummer goed zichtbaar. Vermijd reflecties.';
+    if (this.ocr() === 'error') return 'De tekstherkenning kon niet laden. Controleer je internetverbinding, we proberen het opnieuw.';
+    if (this.ocr() === 'loading') return 'De scanner wordt geladen (alleen de eerste keer even wachten).';
+    return 'Houd de kaart ongeveer in het kader, met de naam en het kaartnummer goed zichtbaar. Vermijd reflecties.';
   });
 
   private stream?: MediaStream;
   private alive = true;
-  /** Best match of the previous frame and how many frames in a row it was the best. */
-  private streak = { id: -1, n: 0 };
+  /** Names of the best match in the last few frames. */
+  private recent: string[] = [];
+  /**
+   * Crops tried in turn (margins for ScannerService.grabGuide): the card exactly in the guide, held closer (up to ~1.6×
+   * the guide) and further away (~0.8×), so it doesn't have to fill the guide precisely.
+   */
+  private readonly crops = [0, 0.15, -0.1, 0.3, 0.07];
+  private crop = 0;
   /** The card just shown is ignored for a moment after rescanning, while it is still in view. */
-  private skip = { id: -1, until: 0 };
+  private skip = { name: '', until: 0 };
 
   constructor() {
-    afterNextRender(() => void this.start());
+    afterNextRender(() => {
+      void this.start();
+      this.warmUp();
+    });
+  }
+
+  private warmUp() {
+    this.scanner.warmUp().then(
+      () => this.ocr.set('ready'),
+      (err) => {
+        console.warn('[scan] tekstherkenning laden mislukt', err);
+        this.ocr.set('error');
+        if (this.alive) setTimeout(() => this.alive && this.warmUp(), 4000);
+      },
+    );
   }
 
   ngOnDestroy() {
@@ -234,34 +258,34 @@ export class ScanOverlay implements OnDestroy {
       const searching = this.store.state.scan.phase === 'search';
       if (searching && !wasSearching) this.skip.until = Date.now() + 2500;
       wasSearching = searching;
-      if (searching && !this.reading()) {
-        const frame = this.scanner.grabGuide(this.video().nativeElement, this.guide().nativeElement);
-        if (frame) {
-          try {
-            const text = await this.scanner.readCard(frame);
-            this.ocrReady.set(true);
-            if (this.alive && this.store.state.scan.phase === 'search') this.consider(matchCards(text));
-          } catch (err) {
-            console.warn('[scan] tekstherkenning mislukt', err);
-            await sleep(2000);
-          }
+      const frame = searching && !this.reading() && this.ocr() === 'ready' && this.scanner.grabGuide(this.video().nativeElement, this.guide().nativeElement, this.crops[this.crop++ % this.crops.length]);
+      if (frame) {
+        try {
+          const { text, numText } = await this.scanner.readCard(frame);
+          const ms = matchCards(text, { numText, lang: this.store.scanLang() });
+          if (DEBUG) console.debug('[scan]', frame.width + '×' + frame.height, JSON.stringify(text), ms.map((m) => `${CARDS[m.id].names.EN} ${CARDS[m.id].set} ${m.conf}%`));
+          if (this.alive && this.store.state.scan.phase === 'search') this.consider(ms);
+        } catch (err) {
+          console.warn('[scan] tekstherkenning mislukt', err);
+          await sleep(1000);
         }
       }
-      await sleep(300);
+      await sleep(frame ? 50 : 300);
     }
   }
 
-  /** Accepts a clear match at once, a weaker one only when two frames in a row agree. */
+  /**
+   * Accepts a clear match (name and number) at once. When only the name could be read, the same name has to come back
+   * in two of the last six frames (one round of crops); the sheet then lets you pick the right print.
+   */
   private consider(ms: CardMatch[]) {
     const best = ms[0];
-    if (!best || (best.id === this.skip.id && Date.now() < this.skip.until)) {
-      this.streak = { id: -1, n: 0 };
-      return;
-    }
-    this.streak = best.id === this.streak.id ? { id: best.id, n: this.streak.n + 1 } : { id: best.id, n: 1 };
-    if (best.conf >= 75 || (best.conf >= 45 && this.streak.n >= 2)) {
-      this.skip = { id: best.id, until: Infinity };
-      this.streak = { id: -1, n: 0 };
+    let name = best && best.conf >= 35 ? CARDS[best.id].names.EN : '';
+    if (name === this.skip.name && Date.now() < this.skip.until) name = '';
+    this.recent = [...this.recent.slice(-5), name];
+    if (name && (best.conf >= 70 || this.recent.filter((n) => n === name).length >= 2)) {
+      this.skip = { name, until: Infinity };
+      this.recent = [];
       this.store.scanFound(ms);
     }
   }
@@ -274,7 +298,7 @@ export class ScanOverlay implements OnDestroy {
     this.reading.set(true);
     try {
       const text = await this.scanner.readAll(await this.scanner.fileToCanvas(file, 2000));
-      const ms = matchCards(text);
+      const ms = matchCards(text, { lang: this.store.scanLang() });
       if (!ms.length) return this.store.toast('Geen kaart herkend · probeer een scherpere foto');
       this.store.startScan();
       this.store.scanFound(ms);
@@ -297,5 +321,14 @@ export class ScanOverlay implements OnDestroy {
     }
   }
 }
+
+/** `localStorage['cc-scan-debug'] = 1` logs what the scanner reads in every frame. */
+const DEBUG = (() => {
+  try {
+    return !!localStorage.getItem('cc-scan-debug');
+  } catch {
+    return false;
+  }
+})();
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

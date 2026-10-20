@@ -61,6 +61,18 @@ describe('matchCards', () => {
     expect(name('STAGE 1 Evolves from Charizard\nPut Pikachu ex on the Basic')[0]).toBe('sv02/63');
   });
 
+  it('tells the Japanese and English print with the same number apart', () => {
+    expect(name('xx\nSV7 004/102')[0]).toBe('JA-SV7/4');
+    expect(name('Charizard\nEN 004/102')[0]).toBe('base1/4');
+    expect(name('xx\n004/102', { lang: 'JA' })[0]).toBe('JA-SV7/4');
+  });
+
+  it('reads the number only from the bottom strip when given', () => {
+    // "190" at the top is HP; the bottom strip holds the real number.
+    expect(name('Pikachu ex 190 HP\n058/102', { numText: '058/102' })[0]).toBe('base1/58');
+    expect(name('Charizard HP 1102', { numText: '' })[0]).not.toBe('base1/1');
+  });
+
   it('returns nothing for noise', () => {
     expect(name('qwerty zxcv')).toEqual([]);
   });
