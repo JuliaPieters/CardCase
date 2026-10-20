@@ -49,7 +49,8 @@ Thunderion|Donnerion|ライオネル|雷狮王|electric`;
 export const SETS: any[] = [];
 export const LANGS = ['EN', 'DE', 'JA', 'ZH'];
 export const LNAME = { EN: 'Engels', DE: 'Duits', JA: 'Japans', ZH: 'Chinees' };
-export const TYPES = { fire: ['Vuur', 'oklch(0.80 0.11 40)'], water: ['Water', 'oklch(0.80 0.09 235)'], grass: ['Plant', 'oklch(0.83 0.10 140)'], electric: ['Elektrisch', 'oklch(0.88 0.11 95)'], psychic: ['Psychisch', 'oklch(0.80 0.09 340)'], fighting: ['Vechten', 'oklch(0.76 0.09 60)'], dark: ['Duister', 'oklch(0.64 0.05 290)'], metal: ['Metaal', 'oklch(0.82 0.03 250)'], dragon: ['Draak', 'oklch(0.75 0.09 285)'], colorless: ['Kleurloos', 'oklch(0.90 0.02 90)'] };
+/** Pokémon TCG energy types, with their English card names. */
+export const TYPES = { fire: ['Fire', 'oklch(0.80 0.11 40)'], water: ['Water', 'oklch(0.80 0.09 235)'], grass: ['Grass', 'oklch(0.83 0.10 140)'], electric: ['Lightning', 'oklch(0.88 0.11 95)'], psychic: ['Psychic', 'oklch(0.80 0.09 340)'], fighting: ['Fighting', 'oklch(0.76 0.09 60)'], dark: ['Darkness', 'oklch(0.64 0.05 290)'], metal: ['Metal', 'oklch(0.82 0.03 250)'], dragon: ['Dragon', 'oklch(0.75 0.09 285)'], colorless: ['Colorless', 'oklch(0.90 0.02 90)'] };
 export const RAR = { C: ['Gewoon', '●'], U: ['Ongewoon', '◆'], R: ['Zeldzaam', '★'], HR: ['Holo-zeldzaam', '✦'], X: ['Onbekend', '?'] };
 export const CONDS = [['M', 'Mint'], ['NM', 'Near Mint'], ['EX', 'Excellent'], ['GD', 'Good'], ['PL', 'Played']];
 export const COLS = { 4: 2, 9: 3, 12: 3, 16: 4 };

@@ -52,7 +52,7 @@ export class CardcaseStore {
     screen: 'home', prev: 'home', dark: u.dark, authPanel: null, importOffer: null,
     wide: typeof window !== 'undefined' && window.innerWidth >= 900,
     owned: u.owned, added: u.added, detailId: 1, detailLang: CARDS[1].avail[0],
-    q: '', fLangs: [], fSet: '', fRar: '', fType: '',
+    q: '', fLangs: [], fSet: '', fRar: '',
     view: 'grid', sort: 'set', collSet: '', missingOnly: false,
     binders: u.binders, edId: u.binders[0].id, edSpread: 0, autoSet: 'set:' + SETS[0].code, sideQ: '', sideSet: '',
     drag: null, over: null, sel: null, sideOver: false,
@@ -637,13 +637,13 @@ export class CardcaseStore {
     const langN = LANGS.map(l => CARDS.reduce((a, c) => a + (owned[c.id][l] || 0), 0)); const maxL = Math.max(...langN, 1);
     // Sets you own cards from (most complete first); before you own anything, the newest sets.
     const progressSets = (() => { const h = SETS.filter(x => (BYSET[x.code] || []).some(c => tot(owned[c.id]))); return h.length ? h : [...SETS].sort((a, b) => (b.year || 0) - (a.year || 0)).slice(0, 4); })();
-    const setProgress = progressSets.map(s => { const cs = (BYSET[s.code] || []); const have = cs.filter(c => tot(owned[c.id])).length; const pct = Math.round(have / cs.length * 100); return { key: s.code, code: s.code, name: s.name, pct, done: have === cs.length, notDone: have < cs.length, label: `${have}/${cs.length}`, langs: s.avail.join(' · '), needLabel: have === cs.length ? 'Set compleet' : 'Nog nodig: ' + costLabel(cs.filter(c => !tot(owned[c.id]))), open: () => this.go('search', { fSet: s.code, q: '', fLangs: [], fRar: '', fType: '' }) }; }).sort((a, b) => b.pct - a.pct);
+    const setProgress = progressSets.map(s => { const cs = (BYSET[s.code] || []); const have = cs.filter(c => tot(owned[c.id])).length; const pct = Math.round(have / cs.length * 100); return { key: s.code, code: s.code, name: s.name, pct, done: have === cs.length, notDone: have < cs.length, label: `${have}/${cs.length}`, langs: s.avail.join(' · '), needLabel: have === cs.length ? 'Set compleet' : 'Nog nodig: ' + costLabel(cs.filter(c => !tot(owned[c.id]))), open: () => this.go('search', { fSet: s.code, q: '', fLangs: [], fRar: '' }) }; }).sort((a, b) => b.pct - a.pct);
     const when = t => { const d = Math.floor((Date.now() - (t || 0)) / 864e5); return d <= 0 ? 'vandaag' : d === 1 ? 'gisteren' : `${d} dagen geleden`; };
     const recent = [...ownedCards].sort((a, b) => (added[b.id] || 0) - (added[a.id] || 0)).slice(0, 10).map(c => ({ key: c.id, cv: this.cv(c, 'EN'), when: when(added[c.id]), open: () => this.openDetail(c.id) }));
 
     // search
     const ql = st.q.trim().toLowerCase(); const langs = st.fLangs.length ? st.fLangs : LANGS;
-    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && (!st.fType || c.type === st.fType) && langs.some(l => c.avail.includes(l)) && (!ql || c.numStr.includes(ql) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql))));
+    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && (!ql || c.numStr.includes(ql) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql))));
     const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || c.avail[0]; };
     const byValue = (a, b) => (b.trend ?? -1) - (a.trend ?? -1);
     const results = st.fSort === 'value' ? [...resultsRaw].sort(byValue) : resultsRaw;
@@ -651,12 +651,11 @@ export class CardcaseStore {
     const toResult = c => { const n = tot(owned[c.id]); const l = showLang(c); return { key: c.id, cv: this.cv(c, l), name: c.names[l], price: eur(c.trend), shadow: '3px 3px 0 var(--line)', open: () => this.openDetail(c.id, l) }; }; // browsing: no owned/missing marks
     const toggleLang = l => this.setState(s => ({ fLangs: s.fLangs.includes(l) ? s.fLangs.filter(x => x !== l) : [...s.fLangs, l] }));
     const langChips = LANGS.map(l => { const on = st.fLangs.includes(l); return { key: l, code: l, bg: on ? '#9BBC0F' : 'var(--surface)', fg: on ? '#0F380F' : 'var(--ink)', toggle: () => toggleLang(l) }; });
-    const typeChips = Object.entries(TYPES).map(([k, [label, color]]) => { const on = st.fType === k; return { key: k, label, color, bg: on ? 'var(--ink)' : 'var(--surface)', fg: on ? 'var(--bg)' : 'var(--ink)', toggle: () => this.setState({ fType: on ? '' : k }) }; });
 
     // detail
     const dc = CARDS[st.detailId]; const dl = st.detailLang; const dAvail = dc.avail.includes(dl); const dOwn = owned[dc.id];
     const dBinders = []; st.binders.forEach(b => b.slots.forEach((x, i) => { if (x === dc.id) { const p = Math.floor(i / b.fmt); dBinders.push({ key: b.id + i, name: b.name, cover: b.cover, where: `Pagina ${p + 1} · slot ${i % b.fmt + 1} · ${b.fmt}-pocket`, open: () => this.go('editor', { edId: b.id, edSpread: Math.floor(p / 2) }) }); } }));
-    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: this.cv(dc, dl, !dAvail || !dOwn[dl]), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
+    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: dc.typeName || TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: this.cv(dc, dl, !dAvail || !dOwn[dl]), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
     const dTabs = LANGS.map(l => { const on = dl === l; const av = dc.avail.includes(l); return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : (av ? 'var(--ink)' : 'var(--muted)'), deco: av ? 'none' : 'line-through', sub: av ? (dOwn[l] ? '×' + dOwn[l] : '—') : 'n.v.t.', select: () => this.setState({ detailLang: l }) }; });
     const dOwnRows = dc.avail.map(l => ({ key: l, code: l, lname: LNAME[l], name: dc.names[l], n: dOwn[l] || 0, inc: () => this.setOwn(dc.id, l, 1), dec: () => this.setOwn(dc.id, l, -1) }));
 
@@ -709,8 +708,8 @@ export class CardcaseStore {
       langStats: LANGS.map((l, i) => ({ key: l, code: l, n: langN[i], pct: Math.round(langN[i] / maxL * 100) })),
       recent, setProgress,
       q: st.q, onQ: e => this.setState({ q: e.target.value }), fSet: st.fSet, onFSet: e => this.setState({ fSet: e.target.value }), fRar: st.fRar, onFRar: e => this.setState({ fRar: e.target.value }),
-      langChips, typeChips, results, resultsShown: results.slice(0, st.searchLimit).map(toResult), hasMoreResults: results.length > st.searchLimit, moreResults: () => this.setState(s => ({ searchLimit: s.searchLimit + 60 })), resultCount: `${results.length} ${results.length === 1 ? 'resultaat' : 'resultaten'}`,
-      hasFilters: !!(st.q || st.fLangs.length || st.fSet || st.fRar || st.fType), clearFilters: () => this.setState({ q: '', fLangs: [], fSet: '', fRar: '', fType: '' }),
+      langChips, results, resultsShown: results.slice(0, st.searchLimit).map(toResult), hasMoreResults: results.length > st.searchLimit, moreResults: () => this.setState(s => ({ searchLimit: s.searchLimit + 60 })), resultCount: `${results.length} ${results.length === 1 ? 'resultaat' : 'resultaten'}`,
+      hasFilters: !!(st.q || st.fLangs.length || st.fSet || st.fRar), clearFilters: () => this.setState({ q: '', fLangs: [], fSet: '', fRar: '' }),
       d, dTabs, dOwnRows, dBinders, noDBinders: !dBinders.length, back: () => this.go(st.prev || 'home'),
       collItems, collShown: collItems.slice(0, st.collLimit).map(toCollItem), hasMoreColl: collItems.length > st.collLimit, moreColl: () => this.setState(s => ({ collLimit: s.collLimit + 60 })), collCount: st.missingOnly ? `${collItems.length} ontbrekend` : `${collItems.length} uniek · ${totalCards} totaal`,
       isGrid: st.view === 'grid', isList: st.view === 'list', setGrid: () => this.setState({ view: 'grid' }), setList: () => this.setState({ view: 'list' }),

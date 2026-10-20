@@ -112,16 +112,16 @@ import { EditorDeco } from './editor-deco';
                   </optgroup>
                 }
                 <optgroup label="Type">
-                  <option value="type:fire">Type: Vuur (in bezit)</option>
+                  <option value="type:fire">Type: Fire (in bezit)</option>
                   <option value="type:water">Type: Water (in bezit)</option>
-                  <option value="type:grass">Type: Plant (in bezit)</option>
-                  <option value="type:electric">Type: Elektrisch (in bezit)</option>
-                  <option value="type:psychic">Type: Psychisch (in bezit)</option>
-                  <option value="type:fighting">Type: Vechten (in bezit)</option>
-                  <option value="type:dark">Type: Duister (in bezit)</option>
-                  <option value="type:metal">Type: Metaal (in bezit)</option>
-                  <option value="type:dragon">Type: Draak (in bezit)</option>
-                  <option value="type:colorless">Type: Kleurloos (in bezit)</option>
+                  <option value="type:grass">Type: Grass (in bezit)</option>
+                  <option value="type:electric">Type: Lightning (in bezit)</option>
+                  <option value="type:psychic">Type: Psychic (in bezit)</option>
+                  <option value="type:fighting">Type: Fighting (in bezit)</option>
+                  <option value="type:dark">Type: Darkness (in bezit)</option>
+                  <option value="type:metal">Type: Metal (in bezit)</option>
+                  <option value="type:dragon">Type: Dragon (in bezit)</option>
+                  <option value="type:colorless">Type: Colorless (in bezit)</option>
                 </optgroup>
                 <optgroup label="Taal">
                   <option value="lang:EN">Taal: Engels (in bezit)</option>

@@ -21,7 +21,7 @@ export interface CardView {
   badge?: string | null;
 }
 
-const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0.11 40)', typeLabel: 'Vuur', rar: '●' };
+const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0.11 40)', typeLabel: 'Fire', rar: '●' };
 
 /** Placeholder trading card; scales with its container via container query units. */
 @Component({

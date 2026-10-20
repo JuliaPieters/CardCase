@@ -60,19 +60,6 @@ import { Card } from '../shared/card';
             <option value="value">Sorteer: waarde ▾</option>
           </select>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-[13px] font-extrabold text-muted w-[46px]">Type</span>
-          @for (t of s.typeChips; track t.key) {
-            <button
-              (click)="t.toggle()"
-              class="flex items-center gap-[7px] border-2 border-line rounded-full py-[5px] pr-3 pl-[6px] font-extrabold text-[13px]"
-              [style.background]="t.bg"
-              [style.color]="t.fg"
-            >
-              <span class="w-4 h-4 rounded-full border-2 border-line" [style.background]="t.color"></span>{{ t.label }}
-            </button>
-          }
-        </div>
       </div>
       <div class="flex justify-between items-center gap-[10px] font-extrabold text-[14px] text-muted">
         <span>{{ s.resultCount }}</span>

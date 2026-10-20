@@ -146,6 +146,8 @@ export function buildCatalog(raw: any) {
       numStr: pad(localId) + '/' + pad(set.official),
       names: { EN: name, DE: nameDE ?? name, JA: name, ZH: name },
       type: TYPE_MAP[s(type) ?? ''] ?? 'colorless',
+      /** Type as printed (e.g. Fairy, which `type` groups under psychic), or Trainer/Energy for those cards. */
+      typeName: s(type) ?? (category === 1 ? 'Trainer' : category === 2 ? 'Energy' : null),
       rarity: mapRarity(rarity),
       rarityName: rarity,
       variant: mapVariant(rarity),
