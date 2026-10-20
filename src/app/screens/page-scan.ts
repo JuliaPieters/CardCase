@@ -1,4 +1,5 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
+import { CardHashes } from '../core/card-hash';
 import { matchCards, norm } from '../core/card-match';
 import { COLS, isCard } from '../core/data';
 import { type CameraError, ScannerService } from '../core/scanner';
@@ -136,6 +137,7 @@ import { Led } from '../shared/bits';
 export class PageScanOverlay implements OnDestroy {
   private readonly store = inject(CardcaseStore);
   private readonly scanner = inject(ScannerService);
+  private readonly hashes = inject(CardHashes);
   protected readonly v = this.store.vals;
   private readonly video = viewChild.required<ElementRef<HTMLVideoElement>>('video');
   private readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
@@ -161,8 +163,8 @@ export class PageScanOverlay implements OnDestroy {
     this.scanner.setLanguage(this.store.scanLang());
     afterNextRender(() => {
       void this.start();
-      // Start downloading the OCR engine while the page is being lined up.
-      this.scanner.warmUp().catch(() => {});
+      // Load the card index while the page is being lined up; without it, fall back to text recognition.
+      void this.hashes.load().then((ok) => ok || this.scanner.warmUp().catch(() => {}));
     });
   }
 
@@ -209,15 +211,22 @@ export class PageScanOverlay implements OnDestroy {
     const prefer = new Set<number>(b.slots.filter(isCard));
     const res: Record<number, { got: number | null; conf: number; cands: { id: number; conf: number }[] }> = {};
     this.store.setPs({ phase: 'reading', done: 0 });
+    const byImage = await this.hashes.load();
     try {
       for (const [k, i] of idxs.entries()) {
-        // Trim the gap between pockets so the strips start at the card edge.
-        const x = (k % cols) * cw + cw * 0.03;
-        const y = Math.floor(k / cols) * ch + ch * 0.02;
-        const { text, numText } = await this.scanner.readCard(page, x, y, cw * 0.94, ch * 0.96);
+        // Trim the gap between pockets so the crop starts at the card edge.
+        const r = { x: (k % cols) * cw + cw * 0.03, y: Math.floor(k / cols) * ch + ch * 0.02, w: cw * 0.94, h: ch * 0.96 };
+        let cands;
+        if (byImage) {
+          // Compare with all card photos; cards of this binder, and above all the planned one, get a head start.
+          cands = this.hashes.search(this.scanner.hashCard(page, page.width, page.height, r), { prefer, expect: expect(i) }).filter((m) => m.conf >= 35);
+          await sleep(0);
+        } else {
+          const { text, numText } = await this.scanner.readCard(page, r.x, r.y, r.w, r.h);
+          cands = norm(text).length >= 3 ? matchCards(text, { numText, prefer, expect: expect(i) }) : [];
+        }
         if (!this.alive) return;
-        const cands = norm(text).length >= 3 ? matchCards(text, { numText, prefer, expect: expect(i) }) : [];
-        res[i] = { got: cands[0]?.id ?? null, conf: cands[0]?.conf ?? 0, cands };
+        res[i] = { got: cands[0]?.id ?? null, conf: cands[0]?.conf ?? 0, cands: cands.map(({ id, conf }) => ({ id, conf })) };
         this.store.setPs({ done: k + 1 });
       }
       this.store.pageScanned(res);
@@ -229,3 +238,5 @@ export class PageScanOverlay implements OnDestroy {
     }
   }
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

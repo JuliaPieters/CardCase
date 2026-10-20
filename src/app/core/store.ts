@@ -599,10 +599,11 @@ export class CardcaseStore {
 
   /** Sets for the set dropdowns, grouped by edition and newest first. With `langs`, only groups in those languages. */
   setGroups(langs = []) {
-    const groups = [['EN', 'Internationaal (EN · DE)'], ['JA', 'Japans'], ['ZH', 'Chinees']];
+    const groups = [['EN', 'Internationaal (EN · DE)', 'Engelse sets'], ['JA', 'Japans', 'Japanse sets'], ['ZH', 'Chinees', 'Chinese sets']];
+    const fSet = this.state.fSet;
     return groups
       .filter(([l]) => !langs.length || langs.includes(l) || (l === 'EN' && langs.includes('DE')))
-      .map(([l, label]) => ({ key: l, label, sets: SETS.filter(x => (x.lang || 'EN') === l).sort((a, b) => (b.year || 0) - (a.year || 0)).map(x => ({ key: x.code, code: x.code, name: x.name + (x.year ? ' (' + x.year + ')' : '') })) }))
+      .map(([l, label, placeholder]) => { const sets = SETS.filter(x => (x.lang || 'EN') === l).sort((a, b) => (b.year || 0) - (a.year || 0)); return { key: l, label, placeholder, active: sets.some(x => x.code === fSet), sets: sets.map(x => ({ key: x.code, code: x.code, name: x.name + (x.year ? ' (' + x.year + ')' : '') })) }; })
       .filter(g => g.sets.length);
   }
 

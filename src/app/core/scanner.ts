@@ -1,11 +1,35 @@
 import { Injectable } from '@angular/core';
 import type { Worker } from 'tesseract.js';
+import { HASH_REGIONS, HASH_SIDE, phash, toGray } from './phash';
 
 /** Card proportions (63 × 88 mm). */
 export const CARD_RATIO = 63 / 88;
 /** Width the name strip (top) and number strip (bottom) are scaled to before OCR; the collector number is tiny, so it gets more. */
 const NAME_W = 1200;
 const NUM_W = 1800;
+
+/**
+ * Positions tried around the expected card rectangle when hashing, as [scale, dx, dy, angle] (shifts as fractions of
+ * the card size, angle in radians): the card rarely sits exactly in the guide or the binder pocket, may be held closer
+ * or further away, and a little tilted.
+ */
+type Crop = readonly [number, number, number, number];
+const HASH_CROPS: readonly Crop[] = [
+  ...[1, 0.92, 1.08, 0.84, 1.17, 0.76, 1.27, 0.69, 0.62].map((sc): Crop => [sc, 0, 0, 0]),
+  ...[1, 0.84].flatMap((sc): Crop[] => [[sc, 0, -0.04, 0], [sc, 0, 0.04, 0], [sc, -0.04, 0, 0], [sc, 0.04, 0, 0]]),
+  ...[1, 0.84].flatMap((sc): Crop[] => [-0.11, -0.06, 0.06, 0.11].map((a): Crop => [sc, 0, 0, a])),
+];
+/** Size a tilted crop is straightened to before hashing its regions. */
+const CARD_W = 256;
+const CARD_H = Math.round(CARD_W / (63 / 88));
+
+/** A rectangle in source pixels. */
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 export type CameraError = 'unsupported' | 'denied' | 'failed';
 
@@ -79,22 +103,78 @@ export class ScannerService {
    * every side: 0.1 = 10%, for a card held closer than the guide, -0.08 for one held further away.
    */
   grabGuide(video: HTMLVideoElement, guide: HTMLElement, margin = 0): HTMLCanvasElement | null {
+    const r = this.guideRect(video, guide);
+    if (!r) return null;
+    const mx = r.w * margin;
+    const my = r.h * margin;
+    const sx = Math.max(0, r.x - mx);
+    const sy = Math.max(0, r.y - my);
+    const sw = Math.min(video.videoWidth - sx, r.w + 2 * mx);
+    const sh = Math.min(video.videoHeight - sy, r.h + 2 * my);
+    return toCanvas(video, sx, sy, sw, sh, sw, sh);
+  }
+
+  /** Where `guide` (on screen) is in the camera image, in video pixels; the video is shown with object-fit: cover. */
+  guideRect(video: HTMLVideoElement, guide: HTMLElement): Rect | null {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
     if (!vw || !vh) return null;
     const vr = video.getBoundingClientRect();
     const g = guide.getBoundingClientRect();
-    const mx = g.width * margin;
-    const my = g.height * margin;
-    const gr = { left: g.left - mx, top: g.top - my, width: g.width + 2 * mx, height: g.height + 2 * my };
     const scale = Math.max(vr.width / vw, vr.height / vh);
     const ox = (vr.width - vw * scale) / 2;
     const oy = (vr.height - vh * scale) / 2;
-    const sx = Math.max(0, (gr.left - vr.left - ox) / scale);
-    const sy = Math.max(0, (gr.top - vr.top - oy) / scale);
-    const sw = Math.min(vw - sx, gr.width / scale);
-    const sh = Math.min(vh - sy, gr.height / scale);
-    return toCanvas(video, sx, sy, sw, sh, sw, sh);
+    return { x: (g.left - vr.left - ox) / scale, y: (g.top - vr.top - oy) / scale, w: g.width / scale, h: g.height / scale };
+  }
+
+  /**
+   * Perceptual hashes (see phash.ts) of the card expected at `r` in `src` (of size srcW × srcH), at several positions
+   * and sizes around it (HASH_CROPS, or `crops`). HASH_BYTES per variant, for CardHashes.search().
+   */
+  hashCard(src: CanvasImageSource, srcW: number, srcH: number, r: Rect, crops = HASH_CROPS): Uint32Array {
+    const words: number[] = [];
+    for (const [s, dx, dy, a] of crops) {
+      const w = r.w * s;
+      const h = r.h * s;
+      const cx = r.x + r.w / 2 + dx * r.w;
+      const cy = r.y + r.h / 2 + dy * r.h;
+      const x = cx - w / 2;
+      const y = cy - h / 2;
+      // Skip crops that fall mostly outside the image.
+      if (x < -0.05 * w || y < -0.05 * h || x + w > srcW + 0.05 * w || y + h > srcH + 0.05 * h) continue;
+      if (!a) {
+        for (const [rx, ry, rw, rh] of HASH_REGIONS) words.push(...this.hashRegion(src, x + rx * w, y + ry * h, rw * w, rh * h));
+        continue;
+      }
+      // Tilted: straighten the crop into a card-sized canvas first, then hash its regions from there.
+      this.card ??= canvas(CARD_W, CARD_H).getContext('2d')!;
+      const ctx = this.card;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.translate(CARD_W / 2, CARD_H / 2);
+      ctx.rotate(-a);
+      ctx.scale(CARD_W / w, CARD_H / h);
+      ctx.translate(-cx, -cy);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0);
+      for (const [rx, ry, rw, rh] of HASH_REGIONS) words.push(...this.hashRegion(ctx.canvas, rx * CARD_W, ry * CARD_H, rw * CARD_W, rh * CARD_H));
+    }
+    return Uint32Array.from(words);
+  }
+
+  private card?: CanvasRenderingContext2D;
+
+  private c64?: CanvasRenderingContext2D;
+  private c32?: CanvasRenderingContext2D;
+
+  /** Same steps as hashImage() in scripts/sync-hashes.mjs: scale to 64², then 32², grayscale, DCT hash. */
+  private hashRegion(src: CanvasImageSource, x: number, y: number, w: number, h: number): [number, number] {
+    this.c64 ??= canvas(HASH_SIDE * 2).getContext('2d')!;
+    this.c32 ??= canvas(HASH_SIDE).getContext('2d', { willReadFrequently: true })!;
+    this.c64.imageSmoothingQuality = 'high';
+    this.c64.drawImage(src, x, y, w, h, 0, 0, HASH_SIDE * 2, HASH_SIDE * 2);
+    this.c32.imageSmoothingQuality = 'high';
+    this.c32.drawImage(this.c64.canvas, 0, 0, HASH_SIDE, HASH_SIDE);
+    return phash(toGray(this.c32.getImageData(0, 0, HASH_SIDE, HASH_SIDE).data, 4));
   }
 
   /** Reads the name strip (top) and number strip (bottom) of one card image; pass the result to matchCards as text + numText. */
@@ -149,6 +229,13 @@ export class ScannerService {
     }
     return w;
   }
+}
+
+function canvas(w: number, h = w): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return c;
 }
 
 /** Copies a region of `src` into a new canvas of dw × dh. */

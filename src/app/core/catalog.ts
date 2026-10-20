@@ -22,6 +22,9 @@ const TYPE_MAP: Record<string, string> = {
 
 export type CatalogSource = 'catalog' | 'mock';
 
+/** `generated` timestamp of the loaded catalog.json; public/card-hashes.bin must have been built from the same one. */
+export let catalogVersion = '';
+
 /** Cached Cardmarket price: [fetchedAt, trend, low, avg1, avg7, avg30]. */
 type PriceEntry = [number, number | null, number | null, number | null, number | null, number | null];
 
@@ -46,7 +49,9 @@ export class CatalogService {
     try {
       const res = await fetch('catalog.json');
       if (!res.ok) throw new Error(`catalog.json: ${res.status}`);
-      const { sets, cards } = buildCatalog(await res.json());
+      const raw = await res.json();
+      catalogVersion = raw.generated ?? '';
+      const { sets, cards } = buildCatalog(raw);
       setCatalog(sets, cards, today());
       this.applyCachedPrices();
       this.source.set('catalog');
@@ -162,6 +167,8 @@ export function buildCatalog(raw: any) {
       },
       /** Full-size original of an image from another source, tried when the resized copy fails to load. */
       imgAlt: imgFlags & 1 && set.img ? null : altImage(altRef, false),
+      /** Row in public/card-hashes.bin with the hash of the photo shown (another card's when it is borrowed). */
+      hashRow: i,
       trend: null,
     };
   });
@@ -200,6 +207,7 @@ function borrowJapaneseImages(cards: any[]) {
     if (j && same) {
       c.img.ZH = j.img.JA;
       c.imgAlt = j.imgAlt;
+      c.hashRow = j.hashRow;
     }
   }
 }

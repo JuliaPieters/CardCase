@@ -3,11 +3,13 @@
 // Card details (rarity, type, dex number, illustrator) come from TCGdex's filter endpoints, so we need a few
 // thousand requests instead of one per card. Prices are not included: the app fetches those per card at runtime.
 //
-// Images TCGdex lacks are filled in from other sources afterwards (scripts/sync-images.mjs).
+// Images TCGdex lacks are filled in from other sources afterwards (scripts/sync-images.mjs), and the scanner's image
+// index is rebuilt (scripts/sync-hashes.mjs).
 //
 // Usage: npm run sync-catalog
 
 import { mkdir, writeFile } from 'node:fs/promises';
+import { buildHashes } from './sync-hashes.mjs';
 import { addImages } from './sync-images.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
@@ -165,6 +167,9 @@ async function main() {
   await addImages(out);
   await mkdir(new URL('.', OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(out));
+  // The scanner's image index must match this catalog row for row.
+  console.log('\nScanner-index bijwerken…');
+  await buildHashes();
   console.log(`\nKlaar: ${sets.length} sets, ${cards.length} kaarten → public/catalog.json (${done} verzoeken)`);
 }
 

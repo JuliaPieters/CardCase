@@ -35,16 +35,14 @@ import { Card } from '../shared/card';
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-[13px] font-extrabold text-muted w-[46px]">Filter</span>
-          <select class="select" [value]="s.fSet" (change)="s.onFSet($event)">
-            <option value="">Alle sets ▾</option>
-            @for (g of s.setGroups; track g.key) {
-              <optgroup [label]="g.label">
-                @for (o of g.sets; track o.key) {
-                  <option [value]="o.code" [selected]="o.code === s.fSet">{{ o.name }}</option>
-                }
-              </optgroup>
-            }
-          </select>
+          @for (g of s.setGroups; track g.key) {
+            <select class="select" [class.!border-red]="g.active" (change)="s.onFSet($event)" [attr.aria-label]="g.placeholder">
+              <option value="" [selected]="!g.active">{{ g.placeholder }} ▾</option>
+              @for (o of g.sets; track o.key) {
+                <option [value]="o.code" [selected]="o.code === s.fSet">{{ o.name }}</option>
+              }
+            </select>
+          }
           <select class="select" (change)="s.onFRar($event)">
             <option value="" [selected]="!s.fRar">Alle zeldzaamheden ▾</option>
             @for (g of s.rarGroups; track g.key) {
