@@ -186,7 +186,7 @@ export class CardcaseStore {
     this.toast(`${c.names[lang]} toegevoegd · ${lang} · ${s.cond} · ×${s.qty}`);
     this.startScan();
   }
-  cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, art: spriteOf(c) }; }
+  cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, img2: c.imgAlt || null, art: spriteOf(c) }; }
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0] }); }
   setOwn(id, l, delta) { this.setState(s => ({ owned: { ...s.owned, [id]: { ...s.owned[id], [l]: Math.max(0, (s.owned[id][l] || 0) + delta) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added })); }
 

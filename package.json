@@ -8,7 +8,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "sync-catalog": "node scripts/sync-catalog.mjs"
+    "sync-catalog": "node scripts/sync-catalog.mjs",
+    "sync-images": "node scripts/sync-images.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.1",

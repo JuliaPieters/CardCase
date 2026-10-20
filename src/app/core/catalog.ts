@@ -128,7 +128,7 @@ export function buildCatalog(raw: any) {
     avail: x.lang === 'EN' ? (x.hasDE ? ['EN', 'DE'] : ['EN']) : [x.lang],
   }));
   const cards = raw.cards.map((t: any[], i: number) => {
-    const [setIdx, localId, name, nameDE, rar, type, dex, illus, imgFlags, category] = t;
+    const [setIdx, localId, name, nameDE, rar, type, dex, illus, imgFlags, category, altRef] = t;
     const set = raw.sets[setIdx];
     sets[setIdx].n++;
     const lang = set.lang;
@@ -155,13 +155,51 @@ export function buildCatalog(raw: any) {
       year: set.year ?? 0,
       illus: s(illus) ?? '',
       img: {
-        [lang]: imgFlags & 1 && set.img ? set.img + localId + '/low.webp' : null,
+        [lang]: imgFlags & 1 && set.img ? set.img + localId + '/low.webp' : altImage(altRef, true),
         DE: imgFlags & 2 && set.imgDE ? set.imgDE + localId + '/low.webp' : null,
       },
+      /** Full-size original of an image from another source, tried when the resized copy fails to load. */
+      imgAlt: imgFlags & 1 && set.img ? null : altImage(altRef, false),
       trend: null,
     };
   });
+  borrowJapaneseImages(cards);
   return { sets, cards };
+}
+
+/**
+ * Image from a source other than TCGdex (see scripts/sync-images.mjs): the official Japanese or Asian card database,
+ * or pokemontcg.io. Those originals are 150–250 kB, so they go through a resizing proxy (≈15 kB, like TCGdex's).
+ */
+function altImage(ref: string | undefined, resized: boolean): string | null {
+  if (!ref) return null;
+  const path = ref.slice(2);
+  const url =
+    ref[0] === 'j'
+      ? `https://www.pokemon-card.com/assets/images/card_images/large/${path}.jpg`
+      : ref[0] === 'c'
+        ? `https://asia.pokemon-card.com/tw/card-img/${path}.png`
+        : `https://images.pokemontcg.io/${path}.png`;
+  return resized ? `https://images.weserv.nl/?url=${encodeURIComponent(url.slice(8))}&w=250&output=webp&q=80` : url;
+}
+
+/**
+ * Taiwanese and Chinese sets reuse the Japanese set codes and numbering ("ZH-TW-SV2a" 025 = "JA-SV2a" 025), and the
+ * artwork is the same: a Chinese card without its own photo shows the Japanese one, if it is the same Pokémon
+ * (or, in a Taiwanese set, a trainer/energy card of the same kind).
+ */
+function borrowJapaneseImages(cards: any[]) {
+  const ja = new Map<string, any>();
+  for (const c of cards) if (c.avail[0] === 'JA' && c.img.JA) ja.set(c.set.slice(3) + '/' + c.num, c);
+  for (const c of cards) {
+    if (c.avail[0] !== 'ZH' || c.img.ZH) continue;
+    const j = ja.get(c.set.replace(/^ZH-(TW|CN)-/, '') + '/' + c.num);
+    const same = c.sp <= 1025 ? j?.sp === c.sp : c.category !== 0 && j?.category === c.category && c.set.startsWith('ZH-TW-');
+    if (j && same) {
+      c.img.ZH = j.img.JA;
+      c.imgAlt = j.imgAlt;
+    }
+  }
 }
 
 function mapRarity(r: string | null): string {

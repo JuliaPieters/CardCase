@@ -13,6 +13,8 @@ export interface CardView {
   dim?: boolean;
   /** Real card image (TCGdex); the drawn placeholder shows while it loads or if it fails. */
   img?: string | null;
+  /** Second try for `img` (the full-size original when `img` is a resized copy from a proxy). */
+  img2?: string | null;
   /** Sprite of the Pokémon, shown in the placeholder's artwork box (for cards TCGdex has no photo of). */
   art?: string | null;
   /** Special rarity shown as a small label on the card, e.g. IR, SAR, CHR. */
@@ -70,7 +72,7 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
           loading="lazy"
           decoding="async"
           class="absolute inset-0 w-full h-full object-cover"
-          (error)="$any($event.target).style.display = 'none'"
+          (error)="fallback($event)"
         />
       } @else if (c().holo) {
         <div
@@ -89,4 +91,12 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
 export class Card {
   readonly card = input<CardView | null | undefined>(null);
   protected readonly c = computed(() => this.card() ?? DEMO);
+
+  /** A failed image falls back to `img2` once, then to the drawn placeholder underneath. */
+  protected fallback(e: Event) {
+    const el = e.target as HTMLImageElement;
+    const next = this.c().img2;
+    if (next && el.src !== next) el.src = next;
+    else el.style.display = 'none';
+  }
 }
