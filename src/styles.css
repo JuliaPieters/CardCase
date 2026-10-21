@@ -2,6 +2,27 @@
 /* The exported design prototype is reference material, not app source. */
 @source not '../cardcase-trading-card-app';
 
+/*
+ * Big screens show the whole app larger (its sizes are in px throughout, so rem scaling wouldn't reach them). The
+ * factor is applied as `zoom` on the html element; viewport heights used inside are divided by it (--z).
+ */
+:root {
+  --z: 1;
+}
+@media (min-width: 1800px) and (min-height: 860px) {
+  :root {
+    --z: 1.15;
+  }
+}
+@media (min-width: 2300px) and (min-height: 1100px) {
+  :root {
+    --z: 1.3;
+  }
+}
+html {
+  zoom: var(--z);
+}
+
 /* Design tokens from the Cardcase prototype. Light by default, `body.cc-dark` for dark mode. */
 body {
   --bg: #f7f3e8;

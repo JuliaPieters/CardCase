@@ -306,7 +306,7 @@ import { EditorDeco } from './editor-deco';
               (dragover)="s.sideDragOver($event)"
               (dragleave)="s.sideDragLeave()"
               (drop)="s.sideDrop($event)"
-              class="panel relative flex-[1_1_300px] md:max-w-[440px] min-w-0 p-[14px] flex flex-col gap-[10px] max-h-[75vh] md:max-h-[calc(100dvh-60px)] md:sticky md:top-4"
+              class="panel relative flex-[1_1_300px] md:max-w-[440px] min-w-0 p-[14px] flex flex-col gap-[10px] max-h-[calc(75vh/var(--z))] md:max-h-[calc(100dvh/var(--z)-60px)] md:sticky md:top-4"
             >
               @if (s.side; as sp) {
                 <!-- Search every card, always in view: typing shows the results below. -->

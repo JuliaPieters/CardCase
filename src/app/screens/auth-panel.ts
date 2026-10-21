@@ -32,7 +32,7 @@ const GUEST_KEY = 'cc-guest';
           </p>
         }
         <div
-          class="w-full max-w-[420px] max-h-[92vh] overflow-auto bg-bg text-ink border-2 border-line rounded-2xl shadow-[6px_6px_0_var(--line)]"
+          class="w-full max-w-[420px] max-h-[calc(92vh/var(--z))] overflow-auto bg-bg text-ink border-2 border-line rounded-2xl shadow-[6px_6px_0_var(--line)]"
           (click)="$event.stopPropagation()"
         >
           <div class="bg-red border-b-2 border-line px-4 py-3 flex items-center gap-3 rounded-t-[14px]">

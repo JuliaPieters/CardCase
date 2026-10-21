@@ -23,7 +23,7 @@ function onePage(b, p, pflip, where, model, leafModel) {
   return { page: model(base), leaf: f ? leafModel(f.dir > 0 ? f.from : f.to) : null, angle: f ? f.angle : 0, label: `PAGINA ${(f ? f.to : p) + 1} / ${b.pages}` };
 }
 /** Widest a two-page spread of this format can be while it still fits the screen's height (below the page arrows). */
-const spreadMaxW = fmt => { const cols = COLS[fmt], rows = fmt / cols; return `max(560px, calc((100dvh - 150px) * ${((2 * cols * 63) / (rows * 88) * 1.04).toFixed(3)}))`; };
+const spreadMaxW = fmt => { const cols = COLS[fmt], rows = fmt / cols; return `max(560px, calc((100dvh / var(--z) - 150px) * ${((2 * cols * 63) / (rows * 88) * 1.04).toFixed(3)}))`; };
 /** What the count on a slot with several fitting cards refers to ("4 IR'S"). */
 const altsNoun = r => r && r.pref === 'illus' ? "IR'S" : r && r.pref === 'fullart' ? "FULL ARTS" : 'OPTIES';
 /** Moves a slot's recipe labels (warn, alts) along with its card: swaps them with slot `j`, or clears them (j null). */

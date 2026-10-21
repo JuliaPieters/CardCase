@@ -67,7 +67,7 @@ import { Card } from '../shared/card';
           <button (click)="s.clearFilters()" class="tap bg-transparent border-0 text-red font-extrabold">Wis filters</button>
         }
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(108px,1fr))] gap-x-[14px] gap-y-[18px]">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(clamp(108px,9vw,170px),1fr))] gap-x-[14px] gap-y-[18px]">
         @for (r of s.resultsShown; track r.key) {
           <button (click)="r.open()" class="lift glare-trigger flex flex-col gap-[6px] bg-transparent border-0 p-0 text-left min-w-0">
             <div class="aspect-[63/88] w-full rounded-lg" [style.box-shadow]="r.shadow"><cc-card [card]="r.cv" glare="hover" /></div>
