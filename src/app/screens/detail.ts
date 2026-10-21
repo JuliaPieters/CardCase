@@ -75,7 +75,7 @@ import { Trend } from '../shared/bits';
               <button
                 (click)="s.toggleTip()"
                 title="Over deze prijzen"
-                class="w-6 h-6 rounded-full border-2 border-line bg-bg p-0 flex items-center justify-center font-pixel font-semibold text-[13px] leading-none"
+                class="tap w-6 h-6 rounded-full border-2 border-line bg-bg p-0 flex items-center justify-center font-pixel font-semibold text-[13px] leading-none"
               >
                 i
               </button>
@@ -144,9 +144,9 @@ import { Trend } from '../shared/bits';
                 <span class="font-pixel font-semibold text-[14px] leading-none w-[30px]">{{ o.code }}</span>
                 <span class="flex-1 min-w-0 font-bold text-[14px] overflow-hidden text-ellipsis whitespace-nowrap">{{ o.lname }} · {{ o.name }}</span>
                 <div class="flex items-center border-2 border-line rounded-[9px] overflow-hidden bg-bg">
-                  <button (click)="o.dec()" class="w-[34px] h-8 border-0 bg-transparent font-black text-[18px]">−</button>
+                  <button (click)="o.dec()" class="w-11 h-10 border-0 bg-transparent font-black text-[18px]">−</button>
                   <span class="w-7 text-center font-pixel font-semibold text-[16px] leading-none">{{ o.n }}</span>
-                  <button (click)="o.inc()" class="w-[34px] h-8 border-0 bg-transparent font-black text-[18px]">+</button>
+                  <button (click)="o.inc()" class="w-11 h-10 border-0 bg-transparent font-black text-[18px]">+</button>
                 </div>
               </div>
             }

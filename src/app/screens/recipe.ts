@@ -56,7 +56,7 @@ import { Pix } from '../shared/bits';
               </button>
             }
           </div>
-          <button (click)="s.goManual()" class="self-start bg-transparent border-0 py-1 px-0 text-red font-black text-[14px]">
+          <button (click)="s.goManual()" class="tap self-start bg-transparent border-0 py-1 px-0 text-red font-black text-[14px]">
             Liever alles zelf instellen? Handmatig →
           </button>
         </div>

@@ -75,8 +75,8 @@ import { Card } from '../shared/card';
                 <span class="text-[12px] font-extrabold text-muted">{{ b.missLabel }}</span>
               </div>
               <div class="flex gap-[6px]">
-                <button (click)="b.edit()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-[10px] py-[5px] font-extrabold text-[13px]">Bewerk</button>
-                <button (click)="b.view()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-[10px] py-[5px] font-extrabold text-[13px]">Bekijk</button>
+                <button (click)="b.edit()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-3 py-[10px] font-extrabold text-[13px]">Bewerk</button>
+                <button (click)="b.view()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-3 py-[10px] font-extrabold text-[13px]">Bekijk</button>
               </div>
             </div>
           </div>

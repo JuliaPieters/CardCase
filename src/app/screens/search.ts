@@ -25,7 +25,7 @@ import { Card } from '../shared/card';
           @for (c of s.langChips; track c.key) {
             <button
               (click)="c.toggle()"
-              class="border-2 border-line rounded-full py-[6px] px-[14px] font-pixel font-semibold text-[14px] leading-none shadow-[2px_2px_0_var(--line)]"
+              class="border-2 border-line rounded-full py-[10px] px-4 font-pixel font-semibold text-[14px] leading-none shadow-[2px_2px_0_var(--line)]"
               [style.background]="c.bg"
               [style.color]="c.fg"
             >
@@ -33,17 +33,17 @@ import { Card } from '../shared/card';
             </button>
           }
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-[13px] font-extrabold text-muted w-[46px]">Filter</span>
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <span class="col-span-2 text-[13px] font-extrabold text-muted w-[46px]">Filter</span>
           @for (g of s.setGroups; track g.key) {
-            <select class="select" [class.!border-red]="g.active" (change)="s.onFSet($event)" [attr.aria-label]="g.placeholder">
+            <select class="select w-full sm:w-auto" [class.!border-red]="g.active" (change)="s.onFSet($event)" [attr.aria-label]="g.placeholder">
               <option value="" [selected]="!g.active">{{ g.placeholder }} ▾</option>
               @for (o of g.sets; track o.key) {
                 <option [value]="o.code" [selected]="o.code === s.fSet">{{ o.name }}</option>
               }
             </select>
           }
-          <select class="select" (change)="s.onFRar($event)">
+          <select class="select w-full sm:w-auto" (change)="s.onFRar($event)">
             <option value="" [selected]="!s.fRar">Alle zeldzaamheden ▾</option>
             @for (g of s.rarGroups; track g.key) {
               <optgroup [label]="g.label">
@@ -53,7 +53,7 @@ import { Card } from '../shared/card';
               </optgroup>
             }
           </select>
-          <select class="select" [value]="s.fSort" (change)="s.onFSort($event)">
+          <select class="select w-full sm:w-auto" [value]="s.fSort" (change)="s.onFSort($event)">
             <option value="">Sorteer: set ▾</option>
             <option value="value">Sorteer: waarde ▾</option>
           </select>
@@ -62,7 +62,7 @@ import { Card } from '../shared/card';
       <div class="flex justify-between items-center gap-[10px] font-extrabold text-[14px] text-muted">
         <span>{{ s.resultCount }}</span>
         @if (s.hasFilters) {
-          <button (click)="s.clearFilters()" class="bg-transparent border-0 text-red font-extrabold">Wis filters</button>
+          <button (click)="s.clearFilters()" class="tap bg-transparent border-0 text-red font-extrabold">Wis filters</button>
         }
       </div>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(108px,1fr))] gap-x-[14px] gap-y-[18px]">

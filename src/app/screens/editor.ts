@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
 import { BinderPage } from '../shared/binder-page';
@@ -19,16 +19,21 @@ import { EditorDeco } from './editor-deco';
           <div class="kicker">BINDER-EDITOR</div>
           <div class="font-black text-[22px] leading-[1.1]">{{ s.ed.name }}</div>
         </div>
-        <button (click)="s.goShift()" class="btn"><span class="icon text-[19px]">low_priority</span>Verschuiven</button>
-        <button (click)="s.goPageScan()" class="btn"><span class="icon text-[19px]">document_scanner</span>Pagina scannen</button>
-        <button (click)="s.goCreate()" class="btn"><span class="icon text-[19px]">add</span>Binder aanmaken</button>
-        <button (click)="s.openViewer()" class="btn"><span class="icon text-[19px]">visibility</span>Bekijk</button>
-        <button
-          (click)="s.exportImg()"
-          class="press-sm flex items-center gap-[6px] bg-red text-cream border-2 border-line rounded-[10px] shadow-[0_4px_0_var(--line)] px-[14px] py-2 font-black text-[14px]"
-        >
-          <span class="icon text-[19px]">download</span>Exporteer als afbeelding
-        </button>
+        @if (s.wide) {
+          <button (click)="s.goShift()" class="btn"><span class="icon text-[19px]">low_priority</span>Verschuiven</button>
+          <button (click)="s.goPageScan()" class="btn"><span class="icon text-[19px]">document_scanner</span>Pagina scannen</button>
+          <button (click)="s.goCreate()" class="btn"><span class="icon text-[19px]">add</span>Binder aanmaken</button>
+          <button (click)="s.openViewer()" class="btn"><span class="icon text-[19px]">visibility</span>Bekijk</button>
+          <button
+            (click)="s.exportImg()"
+            class="press-sm flex items-center gap-[6px] bg-red text-cream border-2 border-line rounded-[10px] shadow-[0_4px_0_var(--line)] px-[14px] py-2 font-black text-[14px]"
+          >
+            <span class="icon text-[19px]">download</span>Exporteer als afbeelding
+          </button>
+        } @else {
+          <button (click)="s.openViewer()" title="Bekijk" class="btn-icon"><span class="icon text-[21px]">visibility</span></button>
+          <button (click)="menu.set(true)" title="Meer acties" class="btn-icon"><span class="icon text-[22px]">more_horiz</span></button>
+        }
       </div>
       <div class="flex flex-wrap items-center gap-x-[14px] gap-y-[10px]">
         <div class="grid grid-cols-2 gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden shadow-hard-md">
@@ -83,13 +88,13 @@ import { EditorDeco } from './editor-deco';
             </div>
           }
           <div class="flex flex-wrap items-center gap-x-[18px] gap-y-3 bg-surface border-2 border-line rounded-xl shadow-hard-md px-3 py-[10px]">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-col items-stretch gap-[6px] w-full sm:w-auto sm:flex-row sm:items-center sm:gap-2">
               <span class="text-[13px] font-extrabold text-muted">Pagina-formaat</span>
-              <div class="grid grid-cols-[repeat(4,auto)] gap-[2px] bg-line border-2 border-line rounded-[9px] overflow-hidden">
+              <div class="grid grid-cols-4 sm:grid-cols-[repeat(4,auto)] gap-[2px] bg-line border-2 border-line rounded-[9px] overflow-hidden">
                 @for (f of s.fmtOptions; track f.key) {
                   <button
                     (click)="f.select()"
-                    class="border-0 px-[11px] py-[7px] font-pixel font-semibold text-[14px] leading-none"
+                    class="border-0 px-[11px] py-[10px] font-pixel font-semibold text-[14px] leading-none whitespace-nowrap"
                     [style.background]="f.bg"
                     [style.color]="f.fg"
                   >
@@ -98,11 +103,11 @@ import { EditorDeco } from './editor-deco';
                 }
               </div>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap min-w-0 max-w-full">
               <select
                 [value]="s.autoSet"
                 (change)="s.onAutoSet($event)"
-                class="appearance-none bg-bg border-2 border-line rounded-[9px] px-3 py-[7px] font-extrabold text-[13px] cursor-pointer"
+                class="appearance-none max-w-full min-w-0 text-ellipsis bg-bg border-2 border-line rounded-[9px] px-3 py-[9px] font-extrabold text-[13px] cursor-pointer"
               >
                 @for (g of s.setGroups; track g.key) {
                   <optgroup [label]="'Set · ' + g.label">
@@ -142,8 +147,8 @@ import { EditorDeco } from './editor-deco';
                 <span class="icon text-[18px]">auto_awesome</span>Vul automatisch
               </button>
             </div>
-            <button (click)="s.addPages()" class="bg-transparent border-2 border-dashed border-line rounded-[9px] px-[11px] py-[6px] font-extrabold text-[13px]">+ 2 pagina's</button>
-            <button (click)="s.toggleShowPrice()" class="flex items-center gap-[9px] bg-transparent border-0 p-[2px] font-extrabold text-[13px]">
+            <button (click)="s.addPages()" class="bg-transparent border-2 border-dashed border-line rounded-[9px] px-[11px] py-[9px] font-extrabold text-[13px]">+ 2 pagina's</button>
+            <button (click)="s.toggleShowPrice()" class="flex items-center gap-[9px] bg-transparent border-0 py-2 px-[2px] font-extrabold text-[13px]">
               <cc-switch [on]="s.spKnob === '22px'" />
               Toon waarde
             </button>
@@ -281,9 +286,44 @@ import { EditorDeco } from './editor-deco';
         <cc-editor-deco />
       }
     </div>
+
+    @if (menu() && s.narrow) {
+      <div (click)="menu.set(false)" class="fixed inset-0 z-[60] bg-[rgba(0,0,0,.45)] flex items-end justify-center">
+        <div
+          (click)="$event.stopPropagation()"
+          class="w-full max-w-[560px] bg-bg text-ink border-2 border-b-0 border-line rounded-t-[22px] px-4 pt-[10px] pb-[calc(20px+env(safe-area-inset-bottom))] flex flex-col gap-[10px] animate-up [animation-duration:.3s] [animation-timing-function:cubic-bezier(.2,.9,.3,1)]"
+        >
+          <div class="w-11 h-[5px] rounded-[3px] bg-muted opacity-50 self-center"></div>
+          <div class="kicker mt-1">{{ s.ed.name }}</div>
+          @for (a of actions; track a.label) {
+            <button (click)="run(a.go(s))" class="btn justify-start py-3 text-[15px]">
+              <span class="icon text-[21px]">{{ a.icon }}</span>{{ a.label }}
+            </button>
+          }
+          <button
+            (click)="run(s.exportImg)"
+            class="press-sm flex items-center gap-[6px] bg-red text-cream border-2 border-line rounded-[10px] shadow-[0_4px_0_var(--line)] px-3 py-3 font-black text-[15px]"
+          >
+            <span class="icon text-[21px]">download</span>Exporteer als afbeelding
+          </button>
+        </div>
+      </div>
+    }
   `,
 })
 export class EditorScreen {
   protected readonly v = inject(CardcaseStore).vals;
   protected readonly rings = [0, 1, 2];
+  /** Phone-only action sheet for the header buttons that don't fit next to the title. */
+  protected readonly menu = signal(false);
+  protected readonly actions = [
+    { label: 'Verschuiven', icon: 'low_priority', go: (s: any) => s.goShift },
+    { label: 'Pagina scannen', icon: 'document_scanner', go: (s: any) => s.goPageScan },
+    { label: 'Binder aanmaken', icon: 'add', go: (s: any) => s.goCreate },
+  ];
+
+  protected run(action: () => void) {
+    this.menu.set(false);
+    action();
+  }
 }

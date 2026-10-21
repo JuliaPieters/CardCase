@@ -42,7 +42,7 @@ import { Led, Trend } from '../shared/bits';
             @for (t of s.vTabs; track t.key) {
               <button
                 (click)="t.select()"
-                class="border-2 border-lcd-ink rounded-md py-[7px] px-3 font-pixel text-[13px] leading-none"
+                class="border-2 border-lcd-ink rounded-md py-[11px] px-3 font-pixel text-[13px] leading-none"
                 [style.background]="t.bg"
                 [style.color]="t.fg"
               >

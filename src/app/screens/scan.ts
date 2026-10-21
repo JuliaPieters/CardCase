@@ -14,7 +14,7 @@ import { Led } from '../shared/bits';
   imports: [Card, Led],
   template: `
     @let s = v();
-    <div class="fixed inset-0 z-50 bg-[#0B0C0F] flex justify-center">
+    <div class="fixed inset-0 z-50 bg-[#0B0C0F] flex justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div class="relative w-full max-w-[520px] h-full flex flex-col overflow-hidden bg-[#14161B]">
         <div class="flex items-center gap-3 px-[14px] py-3 text-[#F7F3E8]">
           <button
@@ -32,7 +32,7 @@ import { Led } from '../shared/bits';
                   (click)="setLang(l.key)"
                   role="radio"
                   [attr.aria-checked]="lang() === l.key"
-                  class="border border-black rounded px-[6px] py-[3px] font-pixel text-[11px] leading-none"
+                  class="border border-black rounded px-2 py-[6px] font-pixel text-[12px] leading-none"
                   [class]="lang() === l.key ? 'bg-lcd text-lcd-ink' : 'bg-[#2A2D35] text-[#A8A497]'"
                 >
                   {{ l.label }}
@@ -41,12 +41,12 @@ import { Led } from '../shared/bits';
             </div>
           </div>
           <div class="ml-auto grid grid-cols-2 gap-[2px] bg-black border-2 border-black rounded-[9px] overflow-hidden">
-            <button (click)="s.goScan()" class="border-0 px-[10px] py-[9px] font-pixel text-[12px] leading-none" [style.background]="s.modeCardBg" [style.color]="s.modeCardFg">
+            <button (click)="s.goScan()" class="border-0 px-3 py-[14px] font-pixel text-[12px] leading-none" [style.background]="s.modeCardBg" [style.color]="s.modeCardFg">
               KAART
             </button>
             <button
               (click)="s.goPageScanFromScan()"
-              class="border-0 px-[10px] py-[9px] font-pixel text-[12px] leading-none"
+              class="border-0 px-3 py-[14px] font-pixel text-[12px] leading-none"
               [style.background]="s.modePageBg"
               [style.color]="s.modePageFg"
             >

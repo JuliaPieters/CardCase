@@ -58,13 +58,13 @@ import { CardcaseStore } from '../core/store';
             <span class="text-[12.5px] font-extrabold text-muted">Papierformaat</span>
             <div class="grid grid-cols-2 gap-[2px] bg-line border-2 border-line rounded-[9px] overflow-hidden">
               @for (o of s.paperOpts; track o.key) {
-                <button (click)="o.select()" class="border-0 p-[9px] font-pixel font-semibold text-[14px] leading-none" [style.background]="o.bg" [style.color]="o.fg">
+                <button (click)="o.select()" class="border-0 p-3 font-pixel font-semibold text-[14px] leading-none" [style.background]="o.bg" [style.color]="o.fg">
                   {{ o.label }}
                 </button>
               }
             </div>
           </div>
-          <button (click)="s.toggleBleed()" class="flex items-center gap-[9px] bg-transparent border-0 p-[2px] font-extrabold text-[13.5px] text-left">
+          <button (click)="s.toggleBleed()" class="flex items-center gap-[9px] bg-transparent border-0 py-2 px-[2px] font-extrabold text-[13.5px] text-left">
             <span class="relative flex-none w-[46px] h-[26px] rounded-full border-2 border-line" [style.background]="s.bleedTrack">
               <span class="absolute top-[2px] w-[18px] h-[18px] rounded-full bg-surface border-2 border-line transition-[left] duration-150" [style.left]="s.bleedKnob"></span>
             </span>

@@ -104,7 +104,7 @@ import { Led, Leds, Trend } from '../shared/bits';
       <div class="flex flex-col gap-3">
         <div class="flex items-baseline justify-between gap-3">
           <h2 class="m-0 font-pixel font-semibold text-[20px] leading-[1.2]">Recent toegevoegd</h2>
-          <button (click)="s.goColl()" class="bg-transparent border-0 py-1 px-0 text-red font-extrabold text-[14px]">Hele collectie →</button>
+          <button (click)="s.goColl()" class="tap bg-transparent border-0 py-1 px-0 text-red font-extrabold text-[14px]">Hele collectie →</button>
         </div>
         <div class="flex gap-[14px] overflow-x-auto pt-[2px] pr-1 pb-3 pl-[2px]">
           @for (r of s.recent; track r.key) {

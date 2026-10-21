@@ -13,16 +13,16 @@ import { Switch } from '../shared/bits';
       <div class="flex items-baseline gap-3 flex-wrap">
         <h1 class="m-0 font-pixel font-semibold text-[30px] leading-[1.1]">Collectie</h1>
         <span class="font-extrabold text-muted">{{ s.collCount }}</span>
-        <button (click)="s.goValue()" class="ml-auto flex items-center gap-[6px] bg-transparent border-0 text-red font-black text-[14px]">
+        <button (click)="s.goValue()" class="tap ml-auto flex items-center gap-[6px] bg-transparent border-0 text-red font-black text-[14px]">
           <span class="icon text-[19px]">payments</span>Collectiewaarde →
         </button>
       </div>
       <div class="flex flex-wrap items-center gap-[10px]">
         <div class="flex gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden">
-          <button (click)="s.setGrid()" title="Grid" class="border-0 py-[7px] px-[10px] flex" [style.background]="s.gridBg" [style.color]="s.gridFg">
+          <button (click)="s.setGrid()" title="Grid" class="border-0 py-[10px] px-3 flex" [style.background]="s.gridBg" [style.color]="s.gridFg">
             <span class="icon text-[20px]">grid_view</span>
           </button>
-          <button (click)="s.setList()" title="Lijst" class="border-0 py-[7px] px-[10px] flex" [style.background]="s.listBg" [style.color]="s.listFg">
+          <button (click)="s.setList()" title="Lijst" class="border-0 py-[10px] px-3 flex" [style.background]="s.listBg" [style.color]="s.listFg">
             <span class="icon text-[20px]">view_list</span>
           </button>
         </div>
