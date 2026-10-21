@@ -283,7 +283,7 @@ import { EditorDeco } from './editor-deco';
               }
               <div class="text-[13px] text-muted font-bold text-pretty">
                 Sleep kaarten uit je collectie naar een slot. Sleep tussen slots om te wisselen, of terug naar de zijbalk om een kaart eruit te halen. Op
-                touch: tik een kaart aan en daarna een slot. Tik op een leeg slot om het als buffer te reserveren, nog eens tikken maakt het weer leeg.
+                touch: tik een kaart aan en daarna een slot. Tik op een leeg slot om het als buffer te reserveren, nog eens tikken maakt het weer leeg. Klik een kaart of art aan en druk op Backspace (of de ×) om hem weg te halen.
               </div>
             </div>
             <aside

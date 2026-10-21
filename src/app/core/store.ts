@@ -97,6 +97,12 @@ export class CardcaseStore {
     const onResize = () => { const w = window.innerWidth >= 900; if (w !== this.state.wide) this.setState({ wide: w }); };
     onResize();
     window.addEventListener('resize', onResize);
+    // Editor: Backspace or Delete removes what's selected (not while typing in a field).
+    window.addEventListener('keydown', e => {
+      if (this.state.screen !== 'editor' || (e.key !== 'Backspace' && e.key !== 'Delete')) return;
+      const t = e.target as HTMLElement; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (this.removeSelected()) e.preventDefault();
+    });
     window.addEventListener('keydown', e => { if (this.state.screen !== 'viewer') return; const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (d) this.state.wide ? this.flip(d) : this.turn('v', d); });
     window.addEventListener('pointermove', e => this.onPD(e));
     window.addEventListener('pointerup', () => { if (this.pd) clearTimeout(this.pd.turnT); this.pd = null; });
@@ -314,6 +320,20 @@ export class CardcaseStore {
       haveItems, picks, pickHead: picks.length ? picks.length + ' slots om naar te kijken' : 'Geen keuzes open',
     };
   }
+  /** Removes the selected decoration (decorate mode) or the card or art in the selected slot. False when nothing is selected. */
+  removeSelected() {
+    const st = this.state; const b = this.curB();
+    if (st.edMode === 'deco' && st.decoSel) { const { type, id } = st.decoSel; this.updDeco(dd => { if (type === 'img') dd.images = dd.images.filter(i => i.id !== id); else dd.stickers = dd.stickers.filter(x => x.id !== id); }); this.setState({ decoSel: null }); this.toast(type === 'img' ? 'Afbeelding verwijderd' : 'Sticker verwijderd'); return true; }
+    if (st.actSlot == null) return false;
+    this.removeSlot(b, st.actSlot); return true;
+  }
+  /** Empties a slot: a card goes back out of the binder, art is removed from the page (the cards flow back). */
+  removeSlot(b, idx) {
+    const x = b.slots[idx];
+    if (typeof x === 'string' && x.startsWith('D:')) { this.updDeco(dd => { dd.images = dd.images.filter(i => 'D:' + i.id !== x); }); this.toast('Art verwijderd'); }
+    else if (isCard(x)) { this.updB(b.id, nb => { nb.slots[idx] = null; slotMeta(nb, idx, null); return nb; }); this.toast(CARDS[x].names.EN + ' uit de binder gehaald'); }
+    this.setState({ actSlot: null });
+  }
   /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
   deleteBinder(id) {
     const b = this.state.binders.find(x => x.id === id); if (!b) return;
@@ -355,15 +375,15 @@ export class CardcaseStore {
     for (let j = 0; j < fmt; j++) {
       const idx = p * fmt + j; const x = p < b.pages ? src[idx] : null; const has = isCard(x); const isD = typeof x === 'string' && x.startsWith('D:'); const res = isRes(x) && !isD; const own = has && tot(owned[x]) > 0;
       const mv = ov && ov.moved && ov.moved[idx];
-      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && has, isAct: editable && has && this.state.actSlot === idx, draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
+      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && (has || isD), isAct: editable && (has || isD) && this.state.actSlot === idx, draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
       if (editable) {
         s.onDragStart = e => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; this.setState({ drag: { type: 'slot', idx, cardId: x }, sel: null }); };
         s.onDragOver = e => { e.preventDefault(); if (this.state.over !== idx) this.setState({ over: idx }); };
         s.onDragLeave = () => { if (this.state.over === idx) this.setState({ over: null }); };
         s.onDrop = e => { e.preventDefault(); this.dropOn(idx); };
         s.onDragEnd = () => this.setState({ drag: null, over: null, sideOver: false });
-        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.updB(b.id, nb => { nb.slots[idx] = 'B'; return nb; }); } else if (res) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx })); };
-        s.onRemove = e => { e.stopPropagation(); this.updB(b.id, nb => { nb.slots[idx] = null; slotMeta(nb, idx, null); return nb; }); this.setState({ actSlot: null }); };
+        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.updB(b.id, nb => { nb.slots[idx] = 'B'; return nb; }); } else if (res && !isD) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx })); };
+        s.onRemove = e => { e.stopPropagation(); this.removeSlot(b, idx); };
       }
       slots.push(s);
     }
@@ -519,7 +539,7 @@ export class CardcaseStore {
       isCardsMode: st.edMode !== 'deco', isDecoMode: st.edMode === 'deco', modeCards: segBtn(st.edMode !== 'deco'), modeDeco: segBtn(st.edMode === 'deco'),
       setCardsMode: () => this.setState({ edMode: 'cards', decoSel: null }), setDecoMode: () => this.setState({ edMode: 'deco', sel: null }),
       dLeft: mkPage(pages[0], 0, true), dRight: mkPage(pages[1], 1, true),
-      decoSpreadLabel: 'PAGINA ' + (pages[0] + 1) + '–' + (pages[1] + 1) + ' / ' + b.pages, activePageLabel: 'Actief: pagina ' + (ap + 1) + ' · klik een afbeelding of sticker om te bewerken',
+      decoSpreadLabel: 'PAGINA ' + (pages[0] + 1) + '–' + (pages[1] + 1) + ' / ' + b.pages, activePageLabel: 'Actief: pagina ' + (ap + 1) + ' · klik een afbeelding of sticker om te bewerken, Backspace verwijdert hem',
       decoTabs: [['images', 'Afbeeldingen', 'image'], ['bgs', 'Achtergronden', 'wallpaper'], ['stickers', 'Stickers', 'star'], ['templates', 'Templates', 'dashboard'], ['suggest', 'Suggesties', 'auto_awesome']].map(([k, l, icon]) => ({ key: k, label: l, icon, ...chip(st.decoTab === k), select: () => this.setState({ decoTab: k }) })),
       tabImages: st.decoTab === 'images', tabBgs: st.decoTab === 'bgs', tabStickers: st.decoTab === 'stickers', tabTemplates: st.decoTab === 'templates', tabSuggest: st.decoTab === 'suggest',
       sizeOpts: sizeKeys.map(([k, l]) => ({ key: k, label: l, ...chip(st.decoSize === k), select: () => this.setState({ decoSize: k }) })),
