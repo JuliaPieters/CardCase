@@ -185,7 +185,7 @@ export function mkShowcase() {
   b.deco = { bg: { 0: { fill: 'repeating-linear-gradient(0deg,oklch(0.83 0.10 140 / 0.35) 0 4px,transparent 4px 12px),repeating-linear-gradient(90deg,oklch(0.83 0.10 140 / 0.35) 0 4px,transparent 4px 12px),linear-gradient(#FFFDF6,#FFFDF6)', label: '' }, 1: { fill: 'linear-gradient(180deg,oklch(0.83 0.10 140 / 0.25),oklch(0.83 0.10 140 / 0.7))', label: 'VERDANT WILDS' } },
     images: [{ id: 'i1', page: 0, col: 0, row: 0, w: 3, h: 1, fill: IMGS[2].fill, x: 50, y: 50, zoom: 1, buffer: false }, { id: 'i2', page: 1, col: 1, row: 1, w: 1, h: 1, fill: IMGS[0].fill, x: 50, y: 50, zoom: 1, buffer: true }],
     stickers: [{ id: 's1', page: 0, x: 88, y: 7, kind: 'icon', icon: 'star', color: '#F6C945', rot: -8 }, { id: 's2', page: 1, x: 24, y: 8, kind: 'text', text: 'CHASE ★', bg: '#E3350D', fg: '#FFF8EE', rot: -6 }, { id: 's3', page: 1, x: 78, y: 52, kind: 'icon', icon: 'sparkle', color: '#9BBC0F', rot: 0 }] };
-  b.slots = syncSlots(b); return b;
+  return Object.assign(b, syncSlots(b));
 }
 export const KINDS = [['set', 'Setbinder', 'collections_bookmark', 'Een of meer sets op volgorde, met buffers.'], ['smart', 'Themabinder', 'filter_alt', 'Op type, taal, zeldzaamheid of waarde.'], ['trade', 'Ruilbinder', 'swap_horiz', 'Al je dubbele exemplaren, op waarde.'], ['free', 'Vrije binder', 'auto_stories', 'Lege pagina\'s voor favorieten of displays.']];
 export function smartCards(o, own) { return CARDS.filter(c => (!o.types.length || o.types.includes(c.type)) && (!o.rars.length || o.rars.includes(c.rarity)) && c.trend >= (o.minVal || 0) && (!o.langs.length || o.langs.some(l => o.ownedOnly ? ((own[c.id] || {})[l] || 0) > 0 : c.avail.includes(l))) && (!o.ownedOnly || tot(own[c.id]) > 0)); }
