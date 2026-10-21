@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { ArtPiece } from './art-piece';
 import { Card } from './card';
+import { Pix } from './bits';
 
 const DEMO = {
   cols: 3,
@@ -14,14 +15,30 @@ const DEMO = {
 @Component({
   selector: 'cc-binder-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ArtPiece, Card],
+  imports: [ArtPiece, Card, Pix],
   host: { class: 'flex flex-col flex-1' },
   template: `
+    @let dc = p().deco;
     <div
-      class="w-full h-full bg-page border-2 border-line p-[clamp(6px,1.4vw,14px)] flex flex-col gap-2"
+      data-page="1"
+      [attr.data-pn]="dc?.pn"
+      class="relative w-full h-full bg-page border-2 border-line p-[clamp(6px,1.4vw,14px)] flex flex-col gap-2 overflow-hidden"
       [style.border-radius]="p().radius"
+      (pointerdown)="dc?.onPageDown?.()"
+      (dragover)="dc?.onPageDragOver?.($event)"
+      (drop)="dc?.onPageDrop?.($event)"
     >
-      <div class="grid [--g:clamp(4px,0.9vw,10px)] gap-[var(--g)]" [style.grid-template-columns]="'repeat(' + p().cols + ', minmax(0,1fr))'">
+      @if (dc && dc.bg !== 'none') {
+        <div class="absolute inset-0 bg-cover bg-center pointer-events-none" [style.background-image]="dc.bg"></div>
+      }
+      <!-- The gap is fixed (8px): moving and resizing art measures pockets with it. -->
+      <div
+        data-grid="1"
+        class="relative grid [--g:8px] gap-[var(--g)]"
+        [style.grid-template-columns]="'repeat(' + p().cols + ', minmax(0,1fr))'"
+        (dragover)="dc?.onGridDragOver?.($event)"
+        (drop)="dc?.onGridDrop?.($event)"
+      >
         @for (s of p().slots; track s.key) {
           <div
             class="group relative aspect-[63/88] rounded-[7px] bg-pocket shadow-[inset_0_2px_0_rgba(0,0,0,.08)] [container-type:inline-size]"
@@ -43,6 +60,12 @@ const DEMO = {
             }
             @if (s.hasCard) {
               <div class="absolute inset-0 pointer-events-none"><cc-card [card]="s.card" /></div>
+            }
+            @if (s.isOwned) {
+              <!-- Owned: a check mark, so every card keeps its colours and the page can be judged as a whole. -->
+              <div title="In bezit" class="absolute top-[4%] right-[4%] z-[3] w-[max(18px,17cqw)] h-[max(18px,17cqw)] rounded-full bg-lcd-mid text-cream border-[1.5px] border-line flex items-center justify-center shadow-[0_2px_0_var(--line)] pointer-events-none">
+                <span class="icon text-[max(13px,12cqw)]">check</span>
+              </div>
             }
             @if (s.isAct) {
               <div class="absolute -inset-[3px] border-[3px] border-red rounded-[9px] pointer-events-none"></div>
@@ -88,6 +111,9 @@ const DEMO = {
               <div class="absolute left-1/2 -top-[9px] -translate-x-1/2 bg-lcd text-lcd-ink border-2 border-lcd-ink font-pixel text-[10px] leading-none px-[5px] py-[3px] rounded pointer-events-none">
                 NIEUW
               </div>
+            }
+            @if (s.isDropOver) {
+              <div class="absolute -inset-1 z-[3] border-[3px] border-lcd rounded-[9px] bg-[rgba(155,188,15,.35)] shadow-[0_0_0_2px_#306230] pointer-events-none"></div>
             }
             @if (s.isTarget) {
               <div class="absolute -inset-[2px] border-2 border-dashed border-lcd-mid rounded-lg bg-[rgba(155,188,15,.12)] pointer-events-none"></div>
@@ -145,8 +171,58 @@ const DEMO = {
             }
           </div>
         }
+        @for (im of dc?.images || []; track im.key) {
+          <!-- Art: select, move and resize; its picture is drawn in the pockets underneath. -->
+          <div
+            class="absolute z-[4] rounded-[7px] touch-none cursor-move"
+            [style.left]="'calc(' + im.l + ')'"
+            [style.top]="'calc(' + im.t + ')'"
+            [style.width]="'calc(' + im.w + ')'"
+            [style.height]="'calc(' + im.h + ')'"
+            [style.outline]="im.selected ? '3px solid #9BBC0F' : 'none'"
+            [style.outline-offset]="'2px'"
+            (pointerdown)="im.onDown($event)"
+          >
+            @if (im.buffer) {
+              <div title="Wordt vervangen als er een nieuwe kaart bij komt." class="absolute right-[5px] bottom-[5px] w-[22px] h-[22px] rounded-[5px] bg-gold border-2 border-coal text-coal flex items-center justify-center pointer-events-none">
+                <span class="icon text-[15px]">swap_horiz</span>
+              </div>
+            }
+            @if (im.selected) {
+              <div class="absolute left-[6px] top-[6px] bg-lcd-ink text-lcd rounded px-[6px] py-1 font-pixel text-[11px] leading-none whitespace-nowrap pointer-events-none">{{ im.sizeLabel }}</div>
+              <div (pointerdown)="im.hTL($event)" class="absolute -left-[9px] -top-[9px] w-4 h-4 bg-lcd border-2 border-lcd-ink cursor-nwse-resize touch-none"></div>
+              <div (pointerdown)="im.hTR($event)" class="absolute -right-[9px] -top-[9px] w-4 h-4 bg-lcd border-2 border-lcd-ink cursor-nesw-resize touch-none"></div>
+              <div (pointerdown)="im.hBL($event)" class="absolute -left-[9px] -bottom-[9px] w-4 h-4 bg-lcd border-2 border-lcd-ink cursor-nesw-resize touch-none"></div>
+              <div (pointerdown)="im.hBR($event)" class="absolute -right-[9px] -bottom-[9px] w-4 h-4 bg-lcd border-2 border-lcd-ink cursor-nwse-resize touch-none"></div>
+            }
+          </div>
+        }
       </div>
       <div class="mt-auto flex font-pixel text-[11px] leading-none text-muted tracking-[.06em]" [style.justify-content]="p().align">{{ p().label }}</div>
+      @if (dc?.bgLabel) {
+        <div class="absolute left-1/2 bottom-[7px] -translate-x-1/2 z-[2] bg-paper text-coal border-2 border-coal rounded-[5px] px-2 py-[3px] font-pixel text-[12px] leading-none whitespace-nowrap pointer-events-none">{{ dc?.bgLabel }}</div>
+      }
+      <div class="absolute inset-0 z-[5] pointer-events-none">
+        @for (st of dc?.stickers || []; track st.key) {
+          <div
+            class="absolute touch-none rounded outline-offset-4"
+            [style.left.%]="st.x"
+            [style.top.%]="st.y"
+            [style.transform]="'translate(-50%,-50%) rotate(' + st.rot + 'deg)'"
+            [style.pointer-events]="st.pe"
+            [style.cursor]="st.cursor"
+            [style.outline]="st.selected ? '2px dashed #306230' : 'none'"
+            (pointerdown)="st.onDown?.($event)"
+          >
+            @if (st.isPixel) {
+              <cc-pix [shadow]="st.shadow" class="drop-shadow-[2px_2px_0_rgba(26,28,34,.55)]" />
+            }
+            @if (st.isText) {
+              <div class="border-2 border-coal rounded-[5px] px-2 py-1 font-pixel text-[13px] leading-none whitespace-nowrap shadow-[2px_2px_0_#1A1C22]" [style.background]="st.bg" [style.color]="st.fg">{{ st.text }}</div>
+            }
+          </div>
+        }
+      </div>
     </div>
   `,
 })

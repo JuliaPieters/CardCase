@@ -9,7 +9,7 @@ export interface CardView {
   rar: string;
   holo?: boolean;
   missing?: boolean;
-  /** Greyed out: only used in binder plans, for planned cards you don't own yet. */
+  /** A planned card you don't own yet (binder plans); shown in colour, owned ones get a check mark instead. */
   dim?: boolean;
   /** Real card image (TCGdex); the drawn placeholder shows while it loads or if it fails. */
   img?: string | null;
@@ -32,7 +32,6 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
     <div
       class="relative w-full aspect-[63/88] [container-type:inline-size] border-2 border-line rounded-[7px] overflow-hidden"
       [style.background]="c().bg"
-      [style.filter]="c().dim ? 'grayscale(1) contrast(.8) brightness(1.12)' : 'none'"
     >
       <div class="absolute inset-0 p-[6cqw] flex flex-col gap-[4cqw]">
         <div class="flex items-center justify-between gap-[3cqw]">

@@ -89,7 +89,7 @@ export class CardcaseStore {
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: ['fire', 'dragon'], langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
     shiftMode: 'buffer', job: null, done: {}, tip: false, showPrice: false, fSort: '', valRange: 'month',
     rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, delAsk: null, sideTab: 'need', needSort: 'binder', newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
-    edMode: 'cards', decoTab: 'images', decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
+    edMode: 'cards', decoTab: 'images', toolTab: 'cards', edMenu: false, decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
   }; }
   seq = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any;
 
@@ -367,7 +367,7 @@ export class CardcaseStore {
   /** Removes the selected decoration (decorate mode) or the card or art in the selected slot. False when nothing is selected. */
   removeSelected() {
     const st = this.state; const b = this.curB();
-    if (st.edMode === 'deco' && st.decoSel) { const { type, id } = st.decoSel; this.updDeco(dd => { if (type === 'img') dd.images = dd.images.filter(i => i.id !== id); else dd.stickers = dd.stickers.filter(x => x.id !== id); }); this.setState({ decoSel: null }); this.toast(type === 'img' ? 'Afbeelding verwijderd' : 'Sticker verwijderd'); return true; }
+    if (st.decoSel) { const { type, id } = st.decoSel; this.updDeco(dd => { if (type === 'img') dd.images = dd.images.filter(i => i.id !== id); else dd.stickers = dd.stickers.filter(x => x.id !== id); }); this.setState({ decoSel: null }); this.toast(type === 'img' ? 'Afbeelding verwijderd' : 'Sticker verwijderd'); return true; }
     if (st.actSlot == null) return false;
     this.removeSlot(b, st.actSlot); return true;
   }
@@ -463,6 +463,37 @@ export class CardcaseStore {
     this.updB(this.state.edId, b => { if (d.type === 'side') { b.slots[idx] = d.cardId; slotMeta(b, idx, null); } else if (d.idx !== idx) { const t = b.slots[idx]; b.slots[idx] = b.slots[d.idx]; b.slots[d.idx] = t; slotMeta(b, idx, d.idx); } return b; });
     this.setState({ drag: null, over: null });
   }
+  /**
+   * A page's decoration for the binder page: background, stickers, and (editable) handles on the art to select,
+   * move and resize it, plus the drop targets for art, stickers and cards dragged from the panel. The art itself is
+   * drawn in its pockets (decoPiece). `k` is the page's side of the spread (0 left, 1 right).
+   */
+  decoLayer(b, p, k, editable) {
+    const st = this.state; const d = b.deco || EMPTYD; const fmt = b.fmt, cols = COLS[fmt], rows = fmt / cols; const sel = st.decoSel; const G = 8;
+    const posC = (n, i) => '(100% - ' + ((n - 1) * G) + 'px) / ' + n + ' * ' + i + ' + ' + (i * G) + 'px';
+    const spanC = (n, i) => '(100% - ' + ((n - 1) * G) + 'px) / ' + n + ' * ' + i + ' + ' + ((i - 1) * G) + 'px';
+    const bgv = d.bg[p]; const o = st.decoOver;
+    const images = !editable ? [] : d.images.filter(im => im.page === p).map(im => {
+      const on = !!(sel && sel.type === 'img' && sel.id === im.id); const n = im.w * im.h;
+      return { key: im.id, l: posC(cols, im.col), t: posC(rows, im.row), w: spanC(cols, im.w), h: spanC(rows, im.h), selected: on, buffer: !!im.buffer, sizeLabel: im.w + '×' + im.h + ' · ' + n + (n > 1 ? ' VAKKEN' : ' VAK'),
+        onDown: e => { this.setState({ actSlot: null }); this.decoDown(e, 'move', im, k); }, hTL: e => this.decoDown(e, 'resize', im, k, -1, -1), hTR: e => this.decoDown(e, 'resize', im, k, 1, -1), hBL: e => this.decoDown(e, 'resize', im, k, -1, 1), hBR: e => this.decoDown(e, 'resize', im, k, 1, 1) };
+    });
+    const stickers = d.stickers.filter(x => x.page === p).map(x => {
+      const on = !!(editable && sel && sel.type === 'stk' && sel.id === x.id);
+      return { key: x.id, x: x.x, y: x.y, rot: x.rot || 0, isPixel: x.kind === 'icon', isText: x.kind === 'text', shadow: x.kind === 'icon' ? pixShadow(x.icon, x.color) : 'none', text: x.text || '', bg: x.bg || '#FFFDF6', fg: x.fg || '#1A1C22', selected: on, pe: editable ? 'auto' : 'none', cursor: editable ? 'grab' : 'default',
+        onDown: editable ? e => { this.setState({ actSlot: null }); this.decoDown(e, 'stk', x, k); } : undefined };
+    });
+    // Pockets under art or a card being dragged from the panel.
+    const over = new Set(); if (editable && o && o.p === p) for (let r = o.row; r < o.row + o.h; r++) for (let c = o.col; c < o.col + o.w; c++) over.add(r * cols + c);
+    return {
+      pn: p, bg: bgv ? resolveFill(bgv.fill) : 'none', bgLabel: bgv && bgv.label ? bgv.label : '', images, stickers, over,
+      onPageDown: editable ? () => this.setState({ decoPage: k }) : undefined,
+      onPageDragOver: editable ? e => { if (this.dragPayload && this.dragPayload.type === 'stk') e.preventDefault(); } : undefined,
+      onPageDrop: editable ? e => { if (!this.dragPayload || this.dragPayload.type !== 'stk') return; e.preventDefault(); this.dropOnPage(e, p, k); } : undefined,
+      onGridDragOver: editable ? e => { const pl = this.dragPayload; if (!pl || pl.type === 'stk') return; e.preventDefault(); const cell = this.cellAt(e, cols, rows); const sz = pl.type === 'img' ? this.fitSize(cols, rows) : [1, 1]; const col = Math.min(cell.col, cols - sz[0]), row = Math.min(cell.row, rows - sz[1]); const oo = this.state.decoOver; if (!oo || oo.p !== p || oo.col !== col || oo.row !== row || oo.w !== sz[0] || oo.h !== sz[1]) this.setState({ decoOver: { p, col, row, w: sz[0], h: sz[1] } }); } : undefined,
+      onGridDrop: editable ? e => { const pl = this.dragPayload; if (!pl || pl.type === 'stk') return; e.preventDefault(); e.stopPropagation(); this.dropOnGrid(p, k); } : undefined,
+    };
+  }
   pageModel(b, p, editable, ov) {
     const { owned, drag, over, sel } = this.state; const fmt = b.fmt; const src = (ov && ov.slots) || b.slots; const slots = [];
     // Art selected by one of its pockets: all its pockets show as selected.
@@ -470,19 +501,20 @@ export class CardcaseStore {
     for (let j = 0; j < fmt; j++) {
       const idx = p * fmt + j; const x = p < b.pages ? src[idx] : null; const has = isCard(x); const isD = typeof x === 'string' && x.startsWith('D:'); const res = isRes(x) && !isD; const own = has && tot(owned[x]) > 0;
       const mv = ov && ov.moved && ov.moved[idx];
-      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && (has || (isD && decoPiece(b, x, j).decoCorner)), isAct: editable && (has ? this.state.actSlot === idx : isD ? actArt === x : x == null && this.state.actSlot === idx), draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
+      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && (has || (isD && decoPiece(b, x, j).decoCorner)), isAct: editable && (has ? this.state.actSlot === idx : isD ? actArt === x : x == null && this.state.actSlot === idx), draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, isOwned: !!own, hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
       if (editable) {
         s.onDragStart = e => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; this.setState({ drag: { type: 'slot', idx, cardId: x }, sel: null }); };
         s.onDragOver = e => { e.preventDefault(); if (this.state.over !== idx) this.setState({ over: idx }); };
         s.onDragLeave = () => { if (this.state.over === idx) this.setState({ over: null }); };
         s.onDrop = e => { e.preventDefault(); this.dropOn(idx); };
         s.onDragEnd = () => this.setState({ drag: null, over: null, sideOver: false });
-        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.setState(st => st.actSlot === idx ? { actSlot: null } : { actSlot: idx, sideTab: 'slot' }); } else if (res && !isD) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx })); };
+        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.setState(st => st.actSlot === idx ? { actSlot: null } : { actSlot: idx, sideTab: 'slot', decoSel: null }); } else if (res && !isD) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx, decoSel: null })); };
         s.onRemove = e => { e.stopPropagation(); this.removeSlot(b, idx); };
       }
       slots.push(s);
     }
-    return { cols: COLS[fmt], slots, label: 'PAGINA ' + (p + 1), align: p % 2 ? 'flex-end' : 'flex-start', radius: p % 2 ? '3px 10px 10px 3px' : '10px 3px 3px 10px' };
+    const deco = this.decoLayer(b, p, p % 2, editable && !ov); slots.forEach((x, j) => { x.isDropOver = deco.over.has(j); });
+    return { cols: COLS[fmt], slots, label: 'PAGINA ' + (p + 1), align: p % 2 ? 'flex-end' : 'flex-start', radius: p % 2 ? '3px 10px 10px 3px' : '10px 3px 3px 10px', deco };
   }
   shiftPlan(b, mode) {
     const ids = b.slots; let cand = null;
@@ -590,7 +622,7 @@ export class CardcaseStore {
     this.updDeco(dd => { const it = d.kind === 'stk' ? dd.stickers.find(s => s.id === d.id) : dd.images.find(i => i.id === d.id); if (it) Object.assign(it, upd); }); }
   decoVals() {
     const st = this.state; const { owned } = st; const b = this.curB(); const fmt = b.fmt, cols = COLS[fmt], rows = fmt / cols; const d = b.deco || EMPTYD;
-    const es = Math.min(st.edSpread, b.pages / 2 - 1); const pages = [2 * es, 2 * es + 1]; const ap = pages[st.decoPage] == null ? pages[0] : pages[st.decoPage];
+    const es = Math.min(st.edSpread, b.pages / 2 - 1); const pages = [2 * es, 2 * es + 1]; const side = st.wide ? st.decoPage : st.edSide || 0; const ap = pages[side] == null ? pages[0] : pages[side];
     const sel = st.decoSel; const G = 8;
     const segBtn = on => ({ bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : 'var(--ink)' });
     const chip = on => ({ bg: on ? '#9BBC0F' : 'var(--surface)', fg: on ? '#0F380F' : 'var(--ink)' });
@@ -659,7 +691,7 @@ export class CardcaseStore {
       removeSel: () => { this.updDeco(dd => { if (selImg) dd.images = dd.images.filter(i => i.id !== selImg.id); if (selStk) dd.stickers = dd.stickers.filter(s => s.id !== selStk.id); }); this.setState({ decoSel: null }); },
       rotL: () => this.updDeco(dd => { const s = dd.stickers.find(x => sel && x.id === sel.id); if (s) s.rot = (s.rot || 0) - 15; }),
       rotR: () => this.updDeco(dd => { const s = dd.stickers.find(x => sel && x.id === sel.id); if (s) s.rot = (s.rot || 0) + 15; }),
-      goPrint: () => this.go('print'), goEditorDeco: () => this.go('editor', { edMode: 'deco' }), isPrint: st.screen === 'print', isCrop: st.screen === 'crop',
+      goPrint: () => this.go('print'), goEditorDeco: () => this.go('editor', { toolTab: 'art' }), isPrint: st.screen === 'print', isCrop: st.screen === 'crop',
       cropv: { fill: resolveFill(cr.fill), name: cr.name, aspect: (cr.w * 63 + (cr.w - 1) * 6) + ' / ' + (cr.h * 88 + (cr.h - 1) * 6), maxW: Math.min(620, 230 * cr.w) + 'px', maxH: Math.round(Math.min(620, 230 * cr.w) * (cr.h * 88 + (cr.h - 1) * 6) / (cr.w * 63 + (cr.w - 1) * 6)) + 'px', cols: cr.w, rows: cr.h, pos: cr.x + '% ' + cr.y + '%', zoom: cr.zoom, zoomVal: Math.round(cr.zoom * 100), target: 'PAGINA ' + (ap + 1) + ' · ' + cr.w + '×' + cr.h + ' SLOTS', title: cr.editId ? 'Uitsnede aanpassen' : 'Plaats je afbeelding over de slots' },
       cropCells: range(0, cr.w * cr.h).map(i => ({ key: i })),
       cropSizes: sizeKeys.map(([k, l]) => { const sz = this.sizeOf(k, cols, rows); return { key: k, label: l, ...chip(cr.w === sz[0] && cr.h === sz[1]), select: () => setCrop({ w: sz[0], h: sz[1] }) }; }),
@@ -1038,7 +1070,16 @@ export class CardcaseStore {
       addPages: () => { this.updB(eb.id, nb => { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); return nb; }); this.toast("2 pagina's toegevoegd"); },
       exportImg: () => this.toast(`Pagina ${2 * es + 1}–${2 * es + 2} geëxporteerd als PNG`),
       openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }),
-      side: screen === 'editor' ? this.sidePanel(eb) : null, dragTurn: (e, dir) => this.dragTurn(e, dir), dragTurnLeave: () => this.dragTurnLeave(),
+      side: screen === 'editor' ? this.sidePanel(eb) : null,
+      // The editor's panel: cards, art (pictures, backgrounds, templates) or stickers; and the ⋯ menu.
+      toolCards: st.toolTab === 'cards', toolArt: st.toolTab === 'art', toolStickers: st.toolTab === 'stickers',
+      toolTabs: [['cards', 'Kaarten', 'style'], ['art', 'Art', 'image'], ['stickers', 'Stickers', 'star']].map(([k, l, icon]) => ({ key: k, label: l, icon, on: st.toolTab === k, select: () => this.setState({ toolTab: k }) })),
+      edMenu: st.edMenu, toggleEdMenu: () => this.setState(x => ({ edMenu: !x.edMenu, fillMenu: false })),
+      // The selected card or empty slot, for the bar under the binder (art and stickers: hasImgSel / hasStkSel).
+      edSel: (() => { const a = st.actSlot; if (a == null || st.decoSel) return null; const x = eb.slots[a]; const p = Math.floor(a / eb.fmt) + 1, sl = a % eb.fmt + 1;
+        if (isCard(x)) return { isCard: true, name: CARDS[x].names[CARDS[x].avail[0]], where: 'PAGINA ' + p + ' · VAK ' + sl, canSwap: !!eb.recipe, swap: () => this.setState({ verSheet: { idx: a } }), remove: () => this.removeSlot(eb, a), deselect: () => this.setState({ actSlot: null }) };
+        if (x == null) return { isCard: false, name: 'Leeg vak', where: 'PAGINA ' + p + ' · VAK ' + sl, canSwap: false, swap: () => {}, remove: () => {}, deselect: () => this.setState({ actSlot: null }) };
+        return null; })(), dragTurn: (e, dir) => this.dragTurn(e, dir), dragTurnLeave: () => this.dragTurnLeave(),
       sideItems, sideCount: sideItems.length >= 60 ? 'eerste 60 · zoek om te filteren' : sideItems.length + ' kaarten', sideQ: st.sideQ, onSideQ: e => this.setState({ sideQ: e.target.value }), clearSideQ: () => this.setState({ sideQ: '' }), sideSet: st.sideSet, onSideSet: e => this.setState({ sideSet: e.target.value }),
       isDraggingSlot, sideZoneBg: st.sideOver ? 'rgba(227,53,13,.22)' : 'rgba(227,53,13,.10)',
       sideDragOver: e => { if (this.state.drag && this.state.drag.type === 'slot') { e.preventDefault(); if (!this.state.sideOver) this.setState({ sideOver: true }); } },
