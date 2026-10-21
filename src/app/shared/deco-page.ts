@@ -23,6 +23,7 @@ const DEMO = {
   template: `
     <div
       data-page="1"
+      [attr.data-pn]="p().pn"
       class="relative w-full h-full border-2 border-line overflow-hidden bg-page outline-offset-[3px]"
       [style.border-radius]="p().radius"
       [style.outline]="p().outline"

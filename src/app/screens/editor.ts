@@ -36,26 +36,32 @@ import { EditorDeco } from './editor-deco';
           <button (click)="menu.set(true)" title="Meer acties" class="btn-icon"><span class="icon text-[22px]">more_horiz</span></button>
         }
       </div>
-      <div class="flex flex-wrap items-center gap-x-[14px] gap-y-[10px]">
-        <div class="grid grid-cols-2 gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden shadow-hard-md">
-          <button
-            (click)="s.setCardsMode()"
-            class="flex items-center gap-[7px] border-0 px-4 py-[9px] font-pixel font-semibold text-[15px] leading-none"
-            [style.background]="s.modeCards.bg"
-            [style.color]="s.modeCards.fg"
-          >
-            <span class="icon text-[18px]">style</span>Kaarten
-          </button>
-          <button
-            (click)="s.setDecoMode()"
-            class="flex items-center gap-[7px] border-0 px-4 py-[9px] font-pixel font-semibold text-[15px] leading-none"
-            [style.background]="s.modeDeco.bg"
-            [style.color]="s.modeDeco.fg"
-          >
-            <span class="icon text-[18px]">palette</span>Decoreren
-          </button>
-        </div>
-        <span class="text-[13px] font-bold text-muted text-pretty">{{ s.modeHint }}</span>
+      <!-- The two ways to work on a binder, as big tabs so decorating isn't overlooked. -->
+      <div class="grid grid-cols-2 gap-[2px] bg-line border-2 border-line rounded-[12px] overflow-hidden shadow-hard-md md:max-w-[620px]">
+        <button
+          (click)="s.setCardsMode()"
+          class="flex items-center gap-3 border-0 px-4 py-3 text-left"
+          [style.background]="s.modeCards.bg"
+          [style.color]="s.modeCards.fg"
+        >
+          <span class="icon text-[26px]">style</span>
+          <span class="flex flex-col gap-[3px] min-w-0">
+            <span class="font-pixel font-semibold text-[16px] leading-none">Kaarten</span>
+            <span class="text-[12px] font-bold leading-[1.25] opacity-85">Welke kaart in welk slot</span>
+          </span>
+        </button>
+        <button
+          (click)="s.setDecoMode()"
+          class="flex items-center gap-3 border-0 px-4 py-3 text-left"
+          [style.background]="s.modeDeco.bg"
+          [style.color]="s.modeDeco.fg"
+        >
+          <span class="icon text-[26px]">palette</span>
+          <span class="flex flex-col gap-[3px] min-w-0">
+            <span class="font-pixel font-semibold text-[16px] leading-none">Decoreren</span>
+            <span class="text-[12px] font-bold leading-[1.25] opacity-85">Achtergrond, afbeeldingen, stickers</span>
+          </span>
+        </button>
       </div>
 
       @if (s.isCardsMode) {
@@ -207,6 +213,9 @@ import { EditorDeco } from './editor-deco';
                 <div class="flex items-center justify-center gap-[10px]">
                   <button
                     (click)="s.edPrev()"
+                  data-turn="-1"
+                  (dragover)="s.dragTurn($event, -1)"
+                  (dragleave)="s.dragTurnLeave()"
                     title="Vorige pagina"
                     class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
                     [style.opacity]="s.edPrevOp"
@@ -218,6 +227,9 @@ import { EditorDeco } from './editor-deco';
                   </div>
                   <button
                     (click)="s.edNext()"
+                  data-turn="1"
+                  (dragover)="s.dragTurn($event, 1)"
+                  (dragleave)="s.dragTurnLeave()"
                     title="Volgende pagina"
                     class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
                     [style.opacity]="s.edNextOp"
@@ -243,6 +255,9 @@ import { EditorDeco } from './editor-deco';
                 <div class="flex items-center justify-center gap-[10px]">
                   <button
                     (click)="s.edTurnPrev()"
+                  data-turn="-1"
+                  (dragover)="s.dragTurn($event, -1)"
+                  (dragleave)="s.dragTurnLeave()"
                     title="Vorige pagina"
                     class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
                     [style.opacity]="s.edTurnPrevOp"
@@ -254,6 +269,9 @@ import { EditorDeco } from './editor-deco';
                   </div>
                   <button
                     (click)="s.edTurnNext()"
+                  data-turn="1"
+                  (dragover)="s.dragTurn($event, 1)"
+                  (dragleave)="s.dragTurnLeave()"
                     title="Volgende pagina"
                     class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
                     [style.opacity]="s.edTurnNextOp"

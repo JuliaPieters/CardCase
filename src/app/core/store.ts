@@ -99,7 +99,7 @@ export class CardcaseStore {
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', e => { if (this.state.screen !== 'viewer') return; const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (d) this.state.wide ? this.flip(d) : this.turn('v', d); });
     window.addEventListener('pointermove', e => this.onPD(e));
-    window.addEventListener('pointerup', () => { this.pd = null; });
+    window.addEventListener('pointerup', () => { if (this.pd) clearTimeout(this.pd.turnT); this.pd = null; });
     // iOS freezes a home-screen app as soon as it goes to the background: send a pending change before that happens,
     // or other devices won't see it until the app is opened again.
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') this.flushSave(); });
@@ -435,13 +435,42 @@ export class CardcaseStore {
     return [{ key: 'grad', name: 'Kleurverloop', fill: 'linear-gradient(160deg, ' + c1 + ', ' + c2 + ')' }, { key: 'pix', name: 'Pixelpatroon', fill: 'repeating-linear-gradient(0deg, ' + a(c1, 0.5) + ' 0 4px, transparent 4px 12px), repeating-linear-gradient(90deg, ' + a(c1, 0.5) + ' 0 4px, transparent 4px 12px), linear-gradient(' + a(c2, 0.35) + ', ' + a(c2, 0.35) + ')' }, { key: 'theme', name: TYPES[t1][0] + '-thema', fill: 'repeating-linear-gradient(135deg, ' + a(c1, 0.55) + ' 0 12px, ' + a(c1, 0.2) + ' 12px 24px)' }, { key: 'label', name: 'Tekstvak met setnaam', fill: 'linear-gradient(180deg, ' + a(c2, 0.3) + ', ' + a(c1, 0.6) + ')', label: setName.toUpperCase() }]; }
   applyTemplate(t, name) { const b = this.curB(); const cols = COLS[b.fmt], rows = b.fmt / cols; const p = this.activeP(); const fills = this.genBgs(b, p).map(g => g.fill); this.updDeco(dd => { dd.images = dd.images.filter(i => i.page !== p); if (t === 'full') dd.bg[p] = { fill: fills[0], label: '' }; else tplAreas(t, cols, rows).forEach((ar, i) => dd.images.push(Object.assign({ id: this.newId('i') + i, page: p, fill: t === 'checker' ? fills[i % 2] : (t === 'banner' ? IMGS[2].fill : IMGS[0].fill), x: 50, y: 50, zoom: 1, buffer: t === 'checker' }, ar))); }); this.setState({ decoSel: null }); this.toast('Template ' + name + ' toegepast op pagina ' + (p + 1)); }
   decoDown(e, kind, item, k, sx, sy) { e.stopPropagation(); if (e.button) return; const b = this.curB(); const cols = COLS[b.fmt], rows = b.fmt / cols; const grid = e.currentTarget.closest('[data-grid]'); const page = e.currentTarget.closest('[data-page]'); const gr = grid ? grid.getBoundingClientRect() : null; const pr = page ? page.getBoundingClientRect() : null;
-    this.pd = { kind, id: item.id, x0: e.clientX, y0: e.clientY, col: item.col, row: item.row, w: item.w, h: item.h, sx: sx || 1, sy: sy || 1, ix: item.x, iy: item.y, cols, rows, pw: gr ? (gr.width + 8) / cols : 1, ph: gr ? (gr.height + 8) / rows : 1, pgw: pr ? pr.width : 1, pgh: pr ? pr.height : 1, last: '' };
+    const pw = gr ? (gr.width + 8) / cols : 1, ph = gr ? (gr.height + 8) / rows : 1;
+    this.pd = { kind, id: item.id, x0: e.clientX, y0: e.clientY, col: item.col, row: item.row, w: item.w, h: item.h, sx: sx || 1, sy: sy || 1, ix: item.x, iy: item.y, cols, rows, pw, ph, pgw: pr ? pr.width : 1, pgh: pr ? pr.height : 1, last: '',
+      offC: gr ? Math.floor((e.clientX - gr.left) / pw) - item.col : 0, offR: gr ? Math.floor((e.clientY - gr.top) / ph) - item.row : 0, turnT: null, turnDir: 0 };
     this.setState({ decoSel: { type: kind === 'stk' ? 'stk' : 'img', id: item.id }, decoPage: k }); }
+  /** Turns the editor one spread while a decoration is being dragged, and puts it on the nearest page there. */
+  carryTo(d, dir) {
+    const b = this.curB(); const es = Math.min(this.state.edSpread, b.pages / 2 - 1); const to = es + dir;
+    if (to < 0 || to > b.pages / 2 - 1) return;
+    const page = dir > 0 ? 2 * to : 2 * to + 1;
+    this.updDeco(dd => { const it = d.kind === 'stk' ? dd.stickers.find(x => x.id === d.id) : dd.images.find(x => x.id === d.id); if (it) it.page = page; });
+    this.setState({ edSpread: to, decoPage: dir > 0 ? 0 : 1 }); d.turnDir = 0; d.turnT = null; d.last = '';
+  }
+  /** Dragging a card or image (HTML drag and drop) onto a page arrow turns the page after a moment. */
+  dragTurn(e, dir) {
+    e.preventDefault();
+    if (this.dragTurnT) return;
+    this.dragTurnT = setTimeout(() => { this.dragTurnT = null; if (this.state.wide) { const b = this.curB(); const es = Math.min(this.state.edSpread, b.pages / 2 - 1); const to = es + dir; if (to >= 0 && to <= b.pages / 2 - 1) this.setState({ edSpread: to, edSide: 0 }); } else this.turn('ed', dir); }, 500);
+  }
+  dragTurnLeave() { clearTimeout(this.dragTurnT); this.dragTurnT = null; }
+  dragTurnT: any = null;
   onPD(e) { const d = this.pd; if (!d) return; const dx = e.clientX - d.x0, dy = e.clientY - d.y0; const cl = (v, a, z) => Math.max(a, Math.min(z, v)); let upd;
     if (d.kind === 'crop') { const x = cl(d.ix - dx / d.pgw * 100, 0, 100), y = cl(d.iy - dy / d.pgh * 100, 0, 100); this.setState(s => ({ crop: Object.assign({}, s.crop || DEFCROP, { x, y }) })); return; }
-    if (d.kind === 'move') upd = { col: cl(d.col + Math.round(dx / d.pw), 0, d.cols - d.w), row: cl(d.row + Math.round(dy / d.ph), 0, d.rows - d.h) };
+    if (d.kind === 'move' || d.kind === 'stk') {
+      // Held on a page arrow: turn the spread and take the piece along.
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const dir = Number(el && el.closest('[data-turn]') && el.closest('[data-turn]').getAttribute('data-turn')) || 0;
+      if (dir !== d.turnDir) { clearTimeout(d.turnT); d.turnDir = dir; d.turnT = dir ? setTimeout(() => this.carryTo(d, dir), 450) : null; }
+      // Over the other page of the spread: the piece moves onto that page.
+      const pgEl = el && el.closest('[data-pn]'); const pn = pgEl ? Number(pgEl.getAttribute('data-pn')) : null;
+      if (d.kind === 'move' && pgEl) {
+        const gr = pgEl.querySelector('[data-grid]').getBoundingClientRect();
+        upd = { page: pn, col: cl(Math.floor((e.clientX - gr.left) / d.pw) - d.offC, 0, d.cols - d.w), row: cl(Math.floor((e.clientY - gr.top) / d.ph) - d.offR, 0, d.rows - d.h) };
+      } else if (d.kind === 'stk' && pgEl) { const r = pgEl.getBoundingClientRect(); upd = { page: pn, x: cl((e.clientX - r.left) / r.width * 100, 3, 97), y: cl((e.clientY - r.top) / r.height * 100, 3, 97) }; }
+      else return;
+    }
     else if (d.kind === 'resize') { const dc = Math.round(dx / d.pw), dr = Math.round(dy / d.ph); let col = d.col, w = d.w, row = d.row, h = d.h; if (d.sx < 0) { const nc = cl(d.col + dc, 0, d.col + d.w - 1); w = d.w + d.col - nc; col = nc; } else w = cl(d.w + dc, 1, d.cols - d.col); if (d.sy < 0) { const nr = cl(d.row + dr, 0, d.row + d.h - 1); h = d.h + d.row - nr; row = nr; } else h = cl(d.h + dr, 1, d.rows - d.row); upd = { col, row, w, h }; }
-    else if (d.kind === 'stk') upd = { x: cl(d.ix + dx / d.pgw * 100, 3, 97), y: cl(d.iy + dy / d.pgh * 100, 3, 97) };
     const key = JSON.stringify(upd); if (key === d.last) return; d.last = key;
     this.updDeco(dd => { const it = d.kind === 'stk' ? dd.stickers.find(s => s.id === d.id) : dd.images.find(i => i.id === d.id); if (it) Object.assign(it, upd); }); }
   decoVals() {
@@ -457,7 +486,7 @@ export class CardcaseStore {
       const cells = range(0, fmt).map(j => { const idx = p * fmt + j; const x = b.slots[idx]; const has = isCard(x); const own = has && tot(owned[x]) > 0; const isD = typeof x === 'string' && x.startsWith('D:'); const c = j % cols, r = Math.floor(j / cols); const ov = !!(editable && o && o.p === p && c >= o.col && c < o.col + o.w && r >= o.row && r < o.row + o.h); return { key: idx, hasCard: has, cv: has ? { ...this.cv(CARDS[x], 'EN', !own), dim: !own } : null, border: has || isD ? '0' : '1.5px dashed rgba(106,101,88,.55)', pocket: has || isD ? 'transparent' : 'rgba(255,255,255,.22)', isOver: ov }; });
       const images = d.images.filter(im => im.page === p).map(im => { const on = !!(editable && sel && sel.type === 'img' && sel.id === im.id); const n = im.w * im.h; return { key: im.id, l: posC(cols, im.col), t: posC(rows, im.row), w: spanC(cols, im.w), h: spanC(rows, im.h), fill: im.fill, pos: im.x + '% ' + im.y + '%', zoom: im.zoom, selected: on, outline: on ? '3px solid #9BBC0F' : 'none', cursor: editable ? 'move' : 'default', buffer: !!im.buffer, sizeLabel: im.w + '×' + im.h + ' · ' + n + (n > 1 ? ' SLOTS' : ' SLOT'), onDown: editable ? e => this.decoDown(e, 'move', im, k) : undefined, hTL: e => this.decoDown(e, 'resize', im, k, -1, -1), hTR: e => this.decoDown(e, 'resize', im, k, 1, -1), hBL: e => this.decoDown(e, 'resize', im, k, -1, 1), hBR: e => this.decoDown(e, 'resize', im, k, 1, 1) }; });
       const stickers = d.stickers.filter(s => s.page === p).map(s => { const on = !!(editable && sel && sel.type === 'stk' && sel.id === s.id); return { key: s.id, x: s.x, y: s.y, rot: s.rot || 0, isPixel: s.kind === 'icon', isText: s.kind === 'text', shadow: s.kind === 'icon' ? pixShadow(s.icon, s.color) : 'none', text: s.text || '', bg: s.bg || '#FFFDF6', fg: s.fg || '#1A1C22', selected: on, outline: on ? '2px dashed #306230' : 'none', pe: editable ? 'auto' : 'none', cursor: editable ? 'grab' : 'default', onDown: editable ? e => this.decoDown(e, 'stk', s, k) : undefined, onRemove: e => { e.stopPropagation(); this.updDeco(dd => { dd.stickers = dd.stickers.filter(x => x.id !== s.id); }); this.setState({ decoSel: null }); } }; });
-      return { cols, bg: bgv ? bgv.fill : 'none', hasLabel: !!(bgv && bgv.label), label: bgv && bgv.label ? bgv.label : '', radius: p % 2 ? '3px 10px 10px 3px' : '10px 3px 3px 10px', outline: editable && st.decoPage === k ? '3px dashed #9BBC0F' : 'none', align: p % 2 ? 'flex-end' : 'flex-start', num: 'PAGINA ' + (p + 1), watermark: !!wm, cells, images, stickers,
+      return { pn: p, cols, bg: bgv ? bgv.fill : 'none', hasLabel: !!(bgv && bgv.label), label: bgv && bgv.label ? bgv.label : '', radius: p % 2 ? '3px 10px 10px 3px' : '10px 3px 3px 10px', outline: editable && st.decoPage === k ? '3px dashed #9BBC0F' : 'none', align: p % 2 ? 'flex-end' : 'flex-start', num: 'PAGINA ' + (p + 1), watermark: !!wm, cells, images, stickers,
         onPageDown: editable ? () => this.setState({ decoPage: k, decoSel: null }) : undefined,
         onPageDragOver: editable ? e => e.preventDefault() : undefined,
         onPageDrop: editable ? e => { e.preventDefault(); this.dropOnPage(e, p, k); } : undefined,
@@ -488,7 +517,6 @@ export class CardcaseStore {
     const sheets = []; for (let s = 0; s < pieces.length; s += per) sheets.push(pieces.slice(s, s + per));
     return {
       isCardsMode: st.edMode !== 'deco', isDecoMode: st.edMode === 'deco', modeCards: segBtn(st.edMode !== 'deco'), modeDeco: segBtn(st.edMode === 'deco'),
-      modeHint: st.edMode === 'deco' ? 'Maak van je pagina een display: afbeeldingen tussen de kaarten, bewuste lege ruimte, stickers.' : 'Plan welke kaart in welk slot komt.',
       setCardsMode: () => this.setState({ edMode: 'cards', decoSel: null }), setDecoMode: () => this.setState({ edMode: 'deco', sel: null }),
       dLeft: mkPage(pages[0], 0, true), dRight: mkPage(pages[1], 1, true),
       decoSpreadLabel: 'PAGINA ' + (pages[0] + 1) + '–' + (pages[1] + 1) + ' / ' + b.pages, activePageLabel: 'Actief: pagina ' + (ap + 1) + ' · klik een afbeelding of sticker om te bewerken',
@@ -895,7 +923,7 @@ export class CardcaseStore {
       addPages: () => { this.updB(eb.id, nb => { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); return nb; }); this.toast("2 pagina's toegevoegd"); },
       exportImg: () => this.toast(`Pagina ${2 * es + 1}–${2 * es + 2} geëxporteerd als PNG`),
       openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }),
-      side: screen === 'editor' ? this.sidePanel(eb) : null,
+      side: screen === 'editor' ? this.sidePanel(eb) : null, dragTurn: (e, dir) => this.dragTurn(e, dir), dragTurnLeave: () => this.dragTurnLeave(),
       sideItems, sideCount: sideItems.length >= 60 ? 'eerste 60 · zoek om te filteren' : sideItems.length + ' kaarten', sideQ: st.sideQ, onSideQ: e => this.setState({ sideQ: e.target.value }), sideSet: st.sideSet, onSideSet: e => this.setState({ sideSet: e.target.value }),
       isDraggingSlot, sideZoneBg: st.sideOver ? 'rgba(227,53,13,.22)' : 'rgba(227,53,13,.10)',
       sideDragOver: e => { if (this.state.drag && this.state.drag.type === 'slot') { e.preventDefault(); if (!this.state.sideOver) this.setState({ sideOver: true }); } },

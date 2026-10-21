@@ -16,6 +16,9 @@ import { Pix } from '../shared/bits';
         <div class="flex items-center gap-[6px]">
           <button
             (click)="s.edPrev()"
+                  data-turn="-1"
+                  (dragover)="s.dragTurn($event, -1)"
+                  (dragleave)="s.dragTurnLeave()"
             class="w-[34px] h-[34px] bg-bg border-2 border-line rounded-[9px] flex items-center justify-center"
             [style.opacity]="s.edPrevOp"
           >
@@ -26,6 +29,9 @@ import { Pix } from '../shared/bits';
           </div>
           <button
             (click)="s.edNext()"
+                  data-turn="1"
+                  (dragover)="s.dragTurn($event, 1)"
+                  (dragleave)="s.dragTurnLeave()"
             class="w-[34px] h-[34px] bg-bg border-2 border-line rounded-[9px] flex items-center justify-center"
             [style.opacity]="s.edNextOp"
           >
