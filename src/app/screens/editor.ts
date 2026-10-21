@@ -293,6 +293,23 @@ import { EditorDeco } from './editor-deco';
               class="panel relative flex-[1_1_300px] md:max-w-[440px] min-w-0 p-[14px] flex flex-col gap-[10px] max-h-[75vh] md:max-h-[calc(100dvh-60px)] md:sticky md:top-4"
             >
               @if (s.side; as sp) {
+                <!-- Search every card, always in view: typing shows the results below. -->
+                <label class="flex items-center gap-2 bg-bg border-2 border-line rounded-[10px] px-[10px] flex-none focus-within:shadow-[0_0_0_3px_#9BBC0F]">
+                  <span class="icon text-[20px] text-muted">search</span>
+                  <input
+                    type="search"
+                    [value]="s.sideQ"
+                    (input)="s.onSideQ($event)"
+                    placeholder="Zoek een kaart, bv. Pikachu"
+                    aria-label="Zoek een kaart"
+                    class="flex-1 min-w-0 border-0 outline-none bg-transparent py-[9px] font-bold text-[14px] [&::-webkit-search-cancel-button]:hidden"
+                  />
+                  @if (s.sideQ) {
+                    <button (click)="s.clearSideQ()" title="Wissen" class="w-6 h-6 rounded-full bg-surface border-2 border-line flex items-center justify-center">
+                      <span class="icon text-[15px]">close</span>
+                    </button>
+                  }
+                </label>
                 <!-- About the open binder: what's missing, what you own that fits, what to choose, or search everything. -->
                 <div class="grid gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden flex-none" [style.grid-template-columns]="'repeat(' + sp.cols + ', minmax(0,1fr))'">
                   @for (t of sp.tabs; track t.key) {
@@ -426,12 +443,6 @@ import { EditorDeco } from './editor-deco';
                   <div class="flex items-baseline justify-end flex-none">
                     <span class="text-[12px] font-extrabold text-muted">{{ s.sideCount }}</span>
                   </div>
-                  <input
-                    [value]="s.sideQ"
-                    (input)="s.onSideQ($event)"
-                    placeholder="Zoek kaart…"
-                    class="border-2 border-line rounded-[9px] bg-bg px-[10px] py-2 font-bold text-[14px] outline-none"
-                  />
                   <select
                     [value]="s.sideSet"
                     (change)="s.onSideSet($event)"
