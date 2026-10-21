@@ -9,10 +9,7 @@
         <cc-leds />
       </div>
       <div class="bg-device border-2 border-coal rounded-lg p-[6px]">
-        <div class="lcd rounded px-3 py-[10px] shadow-[inset_0_0_0_2px_#8BAC0F]">
-          <div class="font-bold text-[24px] leading-none tracking-[.04em]">CARDCASE</div>
-          <div class="text-[11px] leading-[1.4] mt-1">VERZAMEL · PLAN · DEEL</div>
-        </div>
+        <img src="icons/logo-header.png" alt="CardCase" class="block w-full h-auto rounded" />
       </div>
       <button
         (click)="s.goScan()"
@@ -66,11 +63,11 @@
   <div class="flex-1 min-w-0 flex flex-col">
     @if (s.narrow) {
       <header class="bg-red border-b-2 border-line px-[14px] pb-[10px] pt-[calc(10px+env(safe-area-inset-top))] flex items-center gap-[10px] flex-none">
-        <div
-          class="w-8 h-8 rounded-full border-2 border-cream shadow-[0_0_0_2px_#1A1C22] bg-[radial-gradient(circle_at_34%_32%,#E6F3FF_0_12%,#6FB2EE_30%,#2C63A8_72%)]"
-        ></div>
-        <cc-leds [gap]="5" />
-        <div class="font-pixel font-bold text-[20px] leading-none text-cream tracking-[.04em] ml-1">CARDCASE</div>
+        <img
+          src="icons/logo-header.png"
+          alt="CardCase"
+          class="h-[38px] w-auto rounded-lg border-2 border-coal shadow-[0_3px_0_#1A1C22]"
+        />
         <button
           (click)="openAccount()"
           [title]="user() ? 'Account' : 'Inloggen'"
