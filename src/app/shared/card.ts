@@ -32,8 +32,8 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
     <div
       class="relative w-full aspect-[63/88] [container-type:inline-size] border-2 border-line rounded-[7px] overflow-hidden"
       [style.background]="c().bg"
-      [style.filter]="c().dim ? 'grayscale(1)' : 'none'"
-      [style.opacity]="c().dim ? 0.38 : 1"
+      [style.filter]="c().dim ? 'grayscale(1) contrast(.85)' : 'none'"
+      [style.opacity]="c().dim ? 0.72 : 1"
     >
       <div class="absolute inset-0 p-[6cqw] flex flex-col gap-[4cqw]">
         <div class="flex items-center justify-between gap-[3cqw]">

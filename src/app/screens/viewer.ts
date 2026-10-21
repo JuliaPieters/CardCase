@@ -36,10 +36,11 @@ import { BinderPage } from '../shared/binder-page';
           class="w-full max-w-[1000px] border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[6px_6px_0_var(--line)]"
           [style.background]="s.v.cover"
         >
-          <div class="relative flex items-stretch [perspective:2400px]">
+          <!-- Phone: the pages one above the other, without the page-flip leaf. -->
+          <div class="relative flex flex-col md:flex-row items-stretch gap-[10px] md:gap-0 [perspective:2400px]">
             <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.vLeft" /></div>
             <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.vRight" /></div>
-            @if (s.flipping) {
+            @if (s.flipping && s.wide) {
               <div
                 class="absolute top-0 bottom-0 w-1/2 z-[3] [transform-style:preserve-3d] transition-transform duration-[750ms] ease-[cubic-bezier(.35,.1,.25,1)]"
                 [style.left]="s.leafLeft"
@@ -55,7 +56,7 @@ import { BinderPage } from '../shared/binder-page';
               </div>
             }
             <div
-              class="absolute left-1/2 top-[6%] bottom-[6%] -translate-x-1/2 w-[clamp(10px,1.8vw,22px)] flex flex-col justify-evenly z-[5] pointer-events-none"
+              class="hidden md:flex absolute left-1/2 top-[6%] bottom-[6%] -translate-x-1/2 w-[clamp(10px,1.8vw,22px)] flex-col justify-evenly z-[5] pointer-events-none"
             >
               @for (r of rings; track r) {
                 <div class="h-6 rounded-[7px] border-2 border-coal bg-[linear-gradient(90deg,#8E949C,#EEF1F3_50%,#8E949C)]"></div>
@@ -82,7 +83,15 @@ import { BinderPage } from '../shared/binder-page';
             <span class="icon text-[28px]">chevron_right</span>
           </button>
         </div>
-        <div class="text-[12.5px] font-bold text-muted">Gebruik ← → om te bladeren</div>
+        @if (s.v.warns) {
+          <div class="flex items-center gap-2 text-[13px] font-bold text-muted text-pretty max-w-[560px]">
+            <span class="flex-none bg-amber text-coal border-[1.5px] border-line rounded-[4px] px-[5px] py-[3px] font-pixel text-[10px] leading-none">{{ s.v.warnLabel }}</span
+            >Van die Pokémon bestaat deze versie niet, daar staat hun gewone kaart.
+          </div>
+        }
+        @if (s.wide) {
+          <div class="text-[12.5px] font-bold text-muted">Gebruik ← → om te bladeren</div>
+        }
       </div>
     </div>
   `,

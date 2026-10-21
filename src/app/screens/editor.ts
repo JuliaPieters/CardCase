@@ -153,8 +153,26 @@ import { EditorDeco } from './editor-deco';
               Toon waarde
             </button>
           </div>
-          <div class="flex flex-wrap items-center gap-x-[18px] gap-y-2 text-[12.5px] font-extrabold text-muted">
-            <span class="font-pixel font-normal text-[11px] leading-none tracking-[.1em]">LEGENDA</span>
+          @if (s.edSum.has) {
+            <div class="panel flex flex-col gap-2 px-[14px] py-3">
+              <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <span class="font-black text-[15px]">{{ s.edSum.owned }}</span>
+                <span class="text-[13px] font-extrabold text-muted">{{ s.edSum.need }}</span>
+              </div>
+              <div class="h-[10px] rounded-full border-2 border-line bg-bg overflow-hidden">
+                <div class="h-full bg-lcd-mid" [style.width]="s.edSum.pct"></div>
+              </div>
+              @if (s.edSum.warns) {
+                <div class="flex items-center gap-2 text-[12.5px] font-bold text-muted">
+                  <span class="flex-none bg-amber text-coal border-[1.5px] border-line rounded-[4px] px-[5px] py-[3px] font-pixel text-[10px] leading-none">{{ s.edSum.warnLabel }}</span
+                  >{{ s.edSum.warns }} Pokémon hebben die versie niet · daar staat hun gewone kaart
+                </div>
+              }
+            </div>
+          }
+          <details class="text-[12.5px] font-extrabold text-muted">
+            <summary class="cursor-pointer font-pixel font-normal text-[11px] leading-none tracking-[.1em] py-1">LEGENDA</summary>
+            <div class="flex flex-wrap items-center gap-x-[18px] gap-y-2 pt-2">
             <span class="flex items-center gap-[7px]"><span class="w-4 h-[22px] border-2 border-line rounded-[3px] bg-[oklch(0.80_0.11_40)]"></span>In bezit</span>
             <span class="flex items-center gap-[7px]"><span class="w-4 h-[22px] border-2 border-line rounded-[3px] bg-[#bdb9b0] opacity-45"></span>Gepland · mist nog</span>
             <span class="flex items-center gap-[7px]"
@@ -168,16 +186,14 @@ import { EditorDeco } from './editor-deco';
             >
             <span class="flex items-center gap-[7px]"><span class="w-4 h-[22px] border-2 border-dashed border-muted rounded-[3px] opacity-55"></span>Leeg</span>
             <span class="flex items-center gap-[7px]"
+              ><span class="flex-none bg-amber text-coal border-[1.5px] border-line rounded-[4px] px-[5px] py-[3px] font-pixel text-[10px] leading-none">GEEN IR</span
+                  >Andere versie · de gekozen versie bestaat niet</span
+            >
+            <span class="flex items-center gap-[7px]"
               ><span class="w-4 h-[22px] border-2 border-lcd rounded-[3px] bg-[rgba(155,188,15,.35)] shadow-[0_0_0_2px_#306230]"></span>Drop-doel</span
             >
-          </div>
-          <div class="flex flex-wrap gap-2">
-            @for (n of s.edNeed; track n.key) {
-              <div class="flex items-center gap-2 bg-surface border-2 border-dashed border-line rounded-[9px] px-[10px] py-[6px] text-[13px] font-extrabold">
-                <span class="icon text-[17px]">shopping_cart</span>{{ n.text }}
-              </div>
-            }
-          </div>
+            </div>
+          </details>
           @if (s.hasSel) {
             <div class="lcd flex items-center gap-[10px] border-2 border-line rounded-[10px] px-3 py-[9px] text-[14px] leading-[1.3]">
               <span class="flex-1">TIK OP EEN SLOT OM {{ s.selName }} TE PLAATSEN</span>
@@ -205,12 +221,13 @@ import { EditorDeco } from './editor-deco';
                   <span class="icon text-[22px]">chevron_right</span>
                 </button>
               </div>
+              <!-- On a phone the two pages sit one above the other, so the cards are big enough to recognize. -->
               <div
-                class="flex items-stretch border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[5px_5px_0_var(--line)]"
+                class="flex flex-col md:flex-row items-stretch gap-[10px] md:gap-0 border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[5px_5px_0_var(--line)]"
                 [style.background]="s.ed.cover"
               >
                 <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.edLeft" /></div>
-                <div class="flex-none w-[clamp(14px,2.4vw,30px)] flex flex-col justify-evenly items-center">
+                <div class="hidden md:flex flex-none w-[clamp(14px,2.4vw,30px)] flex-col justify-evenly items-center">
                   @for (r of rings; track r) {
                     <div class="w-4/5 h-[26px] rounded-[7px] border-2 border-coal bg-[linear-gradient(90deg,#8E949C,#EEF1F3_50%,#8E949C)]"></div>
                   }

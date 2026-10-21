@@ -10,6 +10,8 @@ import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR
  * `state` mirrors the prototype's component state; `vals` recomputes every view model on change.
  */
 /** Cost of buying these cards; prices are fetched lazily, so say so when some are still unknown. */
+/** Label on a binder slot whose recipe version doesn't exist for that Pokémon (see pickVersion). */
+const warnShort = (w: string) => /^Geen IR/.test(w) ? 'GEEN IR' : /^Geen full art/.test(w) ? 'GEEN FULL ART' : /^Niet in /.test(w) ? 'ANDERE SET' : 'ANDERE VERSIE';
 const costLabel = cards => { const known = cards.filter(c => c.trend != null); if (!known.length) return 'prijs nog onbekend'; return (known.length < cards.length ? 'minstens ' : '') + eur(known.reduce((a, c) => a + c.trend, 0)); };
 
 /** Pixel sprite of the card's Pokémon (PokéAPI, ~1 kB), drawn in the placeholder when TCGdex has no photo of the card. */
@@ -63,7 +65,7 @@ export class CardcaseStore {
     q: '', fLangs: [], fSet: '', fRar: '',
     view: 'grid', sort: 'set', collSet: '', missingOnly: false,
     binders: u.binders, edId: u.binders[0].id, edSpread: 0, autoSet: 'set:' + SETS[0].code, sideQ: '', sideSet: '',
-    drag: null, over: null, sel: null, sideOver: false,
+    drag: null, over: null, sel: null, actSlot: null, sideOver: false,
     vId: u.binders[0].id, vSpread: 0, flip: null,
     scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: ['fire', 'dragon'], langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
@@ -208,7 +210,7 @@ export class CardcaseStore {
   go(screen, extra = {}) {
     if (screen === 'decorate') { screen = 'editor'; extra = Object.assign({ edId: 'b5', edMode: 'deco', edSpread: 0 }, extra); }
     if (screen === 'scan') this.startScan(); else this.clearScan();
-    this.setState(s => ({ screen, prev: s.screen === 'detail' ? s.prev : s.screen, drag: null, over: null, sel: null, flip: null, ...extra }));
+    this.setState(s => ({ screen, prev: s.screen === 'detail' ? s.prev : s.screen, drag: null, over: null, sel: null, actSlot: null, flip: null, ...extra }));
     this.scrollTick.update(n => n + 1);
   }
   clearScan() { clearTimeout(this.t1); }
@@ -267,15 +269,15 @@ export class CardcaseStore {
     for (let j = 0; j < fmt; j++) {
       const idx = p * fmt + j; const x = p < b.pages ? src[idx] : null; const has = isCard(x); const isD = typeof x === 'string' && x.startsWith('D:'); const res = isRes(x) && !isD; const own = has && tot(owned[x]) > 0;
       const mv = ov && ov.moved && ov.moved[idx];
-      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isMissing: has && !own, missLabel: has ? '#' + pad(CARDS[x].num) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && has, draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], 'EN', !own), dim: !own } : null, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!((editable || b.showWarn) && has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && (this.state.showPrice || !own), priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
+      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && has, isAct: editable && has && this.state.actSlot === idx, draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], 'EN', !own), dim: !own } : null, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
       if (editable) {
         s.onDragStart = e => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; this.setState({ drag: { type: 'slot', idx, cardId: x }, sel: null }); };
         s.onDragOver = e => { e.preventDefault(); if (this.state.over !== idx) this.setState({ over: idx }); };
         s.onDragLeave = () => { if (this.state.over === idx) this.setState({ over: null }); };
         s.onDrop = e => { e.preventDefault(); this.dropOn(idx); };
         s.onDragEnd = () => this.setState({ drag: null, over: null, sideOver: false });
-        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.updB(b.id, nb => { nb.slots[idx] = 'B'; return nb; }); } else if (res) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } };
-        s.onRemove = e => { e.stopPropagation(); this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); };
+        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.updB(b.id, nb => { nb.slots[idx] = 'B'; return nb; }); } else if (res) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx })); };
+        s.onRemove = e => { e.stopPropagation(); this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); this.setState({ actSlot: null }); };
       }
       slots.push(s);
     }
@@ -456,12 +458,12 @@ export class CardcaseStore {
     const t = (this.state.rcText || '').toLowerCase(); if (!t.trim()) return; const p = {}; let type = null;
     const reg = REGIONS.find(x => t.includes(x[1].toLowerCase())); if (reg) { type = 'dex'; Object.assign(p, { region: reg[0], custom: false, from: reg[2], to: reg[3] }); }
     const m = t.match(/#?(\d{1,4})\s*[-–]\s*#?(\d{1,4})/); if (m) { type = 'dex'; Object.assign(p, { custom: true, from: +m[1], to: +m[2] }); }
-    const il = ILLUS.find(n => t.includes(n.toLowerCase()) || t.includes(n.split(' ')[1].toLowerCase())); if (il && !type) { type = 'illus'; p.illus = il; }
+    const il = ILLUS.find(n => { const last = n.split(' ')[1]; return t.includes(n.toLowerCase()) || (last?.length > 3 && t.includes(last.toLowerCase())); }); if (il && !type) { type = 'illus'; p.illus = il; }
     const ty = Object.entries(TYPES).find(([k, v]) => t.includes(v[0].toLowerCase())); if (ty && !type) { type = 'type'; p.ptype = ty[0]; }
-    const se = SETS.find(s => t.includes(s.name.toLowerCase())); if (se && (!type || t.includes('master'))) { type = 'master'; p.set = se.code; }
+    const se = SETS.find(s => s.name && t.includes(s.name.toLowerCase())); if (se && (!type || t.includes('master'))) { type = 'master'; p.set = se.code; }
     if (!type) { for (let d = 1; d <= 1025; d++) if (t.includes(SP[d].name.EN.toLowerCase())) { type = 'single'; p.sp = d; break; } }
     if (/(één|een|1) (per|kaart)/.test(t)) p.per = 'one'; if (/alle versies|elke versie/.test(t)) p.per = 'all';
-    if (/full ?art|illustration|illustratie/.test(t)) p.pref = 'fullart'; else if (/goedkoo|al heb|in bezit/.test(t)) p.pref = 'owned'; else if (/oudste|origineel/.test(t)) p.pref = 'oldest'; else if (/waardevol|duurste/.test(t)) p.pref = 'value';
+    if (/\bs?irs?\b|illustration rare|illustratie/.test(t)) p.pref = 'illus'; else if (/full ?art|illustration/.test(t)) p.pref = 'fullart'; else if (/goedkoo|al heb|in bezit/.test(t)) p.pref = 'owned'; else if (/oudste|origineel/.test(t)) p.pref = 'oldest'; else if (/waardevol|duurste/.test(t)) p.pref = 'value';
     if (/vorm/.test(t)) p.forms = true; if (/japans/.test(t)) p.lang = 'JA'; else if (/duits/.test(t)) p.lang = 'DE'; else if (/chinees/.test(t)) p.lang = 'ZH';
     if (/leeg|vrij/.test(t) && !type) type = 'empty';
     if (!type) { this.toast('Geen recept herkend · kies hieronder een tegel'); return; }
@@ -476,7 +478,7 @@ export class CardcaseStore {
     const steps = RSTEPS[r.type].filter(k => k !== 'pref' || r.per === 'one'); const step = Math.min(st.rcStep, steps.length); const cur = steps[Math.max(0, step - 1)];
     const onR = st.screen === 'recipe' && step > 0;
     const res = onR ? buildRecipe(r, owned) : { fmt: r.fmt, pages: 2, slots: Array(2 * r.fmt).fill(null), warn: {}, n: 0, ownedN: 0, cost: 0, formsN: 0 };
-    const lay = { fmt: r.fmt, pages: res.pages, slots: res.slots, warn: res.warn, showWarn: true };
+    const lay = { fmt: r.fmt, pages: res.pages, slots: res.slots, warn: res.warn };
     const pokeNoun = (r.type === 'dex' || r.type === 'type' || r.type === 'illus') && r.per === 'one';
     const main = r.type === 'empty' ? 'Lege binder' : pokeNoun ? (res.n - res.formsN) + ' Pokémon' + (res.formsN ? ' + ' + res.formsN + ' vormen' : '') : res.n + ' kaarten';
     const tile = RECIPES.find(x => x[0] === r.type);
@@ -541,7 +543,7 @@ export class CardcaseStore {
     const hp = items => { const mx = Math.max(...items.map(i => i.v), 0.01); return items.map(i => { const n = i.v > 0 ? Math.max(1, Math.round(i.v / mx * 20)) : 0; return { key: i.key, label: i.label, value: eur(i.v), segs: range(0, 20).map(k => ({ key: k, bg: k < n ? '#9BBC0F' : '#3A3E47' })) }; }); };
     const dc = CARDS[st.detailId]; const dp = priceInfo(dc); const dn = tot(owned[dc.id]);
     const missC = CARDS.filter(c => !tot(owned[c.id]) && (!st.collSet || c.set === st.collSet)); const setNm = st.collSet ? SETS.find(s => s.code === st.collSet).name : '';
-    const eb = this.curB(); const setsIn = [...new Set(eb.slots.filter(isCard).map(i => CARDS[i].set))];
+    const eb = this.curB();
     return {
       isValue: st.screen === 'value', goValue: () => this.go('value'), priceSource: 'Prijzen via Cardmarket · bijgewerkt op ' + UPDATED,
       vTotal: eur(v0), vCount: own.reduce((a, c) => a + tot(owned[c.id]), 0) + ' KAARTEN · ' + own.length + ' UNIEK',
@@ -559,7 +561,8 @@ export class CardcaseStore {
       fSort: st.fSort, onFSort: e => this.setState({ fSort: e.target.value }),
       hasCollNeed: st.missingOnly && missC.length > 0, collNeedText: (st.collSet ? 'Nog nodig om ' + setNm + ' compleet te maken: ' : 'Nog nodig om alle sets compleet te maken: ') + costLabel(missC),
       toggleShowPrice: () => this.setState(s => ({ showPrice: !s.showPrice })), spTrack: st.showPrice ? '#9BBC0F' : 'var(--soft)', spKnob: st.showPrice ? '22px' : '2px',
-      edNeed: setsIn.map(code => { const s = SETS.find(x => x.code === code); const m = (BYSET[code] || []).filter(c => !tot(owned[c.id])); return { key: code, text: m.length ? 'Nog nodig om ' + s.name + ' compleet te maken: ' + costLabel(m) : s.name + ' is compleet' }; }),
+      edSum: (() => { const ids = [...new Set(eb.slots.filter(isCard))]; const miss = ids.filter(i => !tot(owned[i])).map(i => CARDS[i]); const n = ids.length - miss.length;
+        return { has: ids.length > 0, owned: n + ' van ' + ids.length + ' in bezit', pct: ids.length ? Math.round(n / ids.length * 100) + '%' : '0%', need: miss.length ? 'Nog nodig: ' + costLabel(miss) : 'Compleet!', warns: Object.keys(eb.warn || {}).length, warnLabel: warnShort(Object.values(eb.warn || {})[0] as string || '') }; })(),
     };
   }
   extraVals() {
@@ -790,7 +793,7 @@ export class CardcaseStore {
       sideDragLeave: () => this.state.sideOver && this.setState({ sideOver: false }),
       sideDrop: e => { const dr = this.state.drag; if (dr && dr.type === 'slot') { e.preventDefault(); this.updB(this.state.edId, nb => { nb.slots[dr.idx] = null; return nb; }); } this.setState({ drag: null, over: null, sideOver: false }); },
       hasSel: st.sel != null, selName: st.sel != null ? CARDS[st.sel].names.EN.toUpperCase() : '', clearSel: () => this.setState({ sel: null }),
-      v: { name: vb.name, cover: vb.cover, fmt: vb.fmt + '-POCKET', link: `cardcase.app/b/${vb.id}-7kq2`, label: `PAGINA ${2 * vs + 1}–${2 * vs + 2} / ${vb.pages}` },
+      v: { name: vb.name, cover: vb.cover, fmt: vb.fmt + '-POCKET', link: `cardcase.app/b/${vb.id}-7kq2`, label: `PAGINA ${2 * vs + 1}–${2 * vs + 2} / ${vb.pages}`, warns: Object.keys(vb.warn || {}).length, warnLabel: warnShort(Object.values(vb.warn || {})[0] as string || '') },
       vLeft, vRight, leafFront, leafBack, flipping: !!f, leafLeft: f && f.dir > 0 ? '50%' : '0%', leafOrigin: f && f.dir > 0 ? 'left center' : 'right center', leafAngle: f ? f.angle : 0,
       vPrev: () => this.flip(-1), vNext: () => this.flip(1), vPrevOp: vs > 0 ? 1 : 0.35, vNextOp: vs < vb.pages / 2 - 1 ? 1 : 0.35,
       copyLink: () => { try { navigator.clipboard && navigator.clipboard.writeText('https://' + `cardcase.app/b/${vb.id}-7kq2`); } catch (e) {} this.toast('Link gekopieerd'); },

@@ -23,7 +23,7 @@ const DEMO = {
       <div class="grid gap-[clamp(4px,0.9vw,10px)]" [style.grid-template-columns]="'repeat(' + p().cols + ', minmax(0,1fr))'">
         @for (s of p().slots; track s.key) {
           <div
-            class="relative aspect-[63/88] rounded-[7px] bg-pocket shadow-[inset_0_2px_0_rgba(0,0,0,.08)] [container-type:inline-size]"
+            class="group relative aspect-[63/88] rounded-[7px] bg-pocket shadow-[inset_0_2px_0_rgba(0,0,0,.08)] [container-type:inline-size]"
             [attr.draggable]="s.draggable ? 'true' : null"
             [style.cursor]="s.cursor"
             (dragstart)="s.onDragStart?.($event)"
@@ -42,6 +42,9 @@ const DEMO = {
             }
             @if (s.hasCard) {
               <div class="absolute inset-0 pointer-events-none"><cc-card [card]="s.card" /></div>
+            }
+            @if (s.isAct) {
+              <div class="absolute -inset-[3px] border-[3px] border-red rounded-[9px] pointer-events-none"></div>
             }
             @if (s.isDeco) {
               <div
@@ -68,11 +71,6 @@ const DEMO = {
                 [style.border-style]="s.priceBorder"
               >
                 {{ s.priceLabel }}
-              </div>
-            }
-            @if (s.isMissing) {
-              <div class="absolute left-1/2 bottom-[8%] -translate-x-1/2 bg-ink text-bg font-pixel text-[9.5cqw] leading-none px-[5cqw] py-[3cqw] rounded-[3px] whitespace-nowrap pointer-events-none">
-                MIST {{ s.missLabel }}
               </div>
             }
             @if (s.isReserved) {
@@ -112,27 +110,30 @@ const DEMO = {
               <div class="absolute inset-0 rounded-[7px] pointer-events-none bg-[repeating-linear-gradient(135deg,rgba(0,0,0,.18)_0_5px,transparent_5px_10px)]"></div>
             }
             @if (s.hasWarn) {
+              <!-- The recipe's version doesn't exist for this Pokémon (e.g. no IR): its regular card stands in. -->
               <div
                 [title]="s.warnText"
-                class="absolute -top-[7px] -left-[7px] z-[3] w-5 h-5 rounded-[5px] bg-amber border-2 border-line text-coal flex items-center justify-center font-pixel font-bold text-[12px] leading-none"
+                class="absolute top-[4%] left-1/2 -translate-x-1/2 z-[3] bg-amber text-coal border-[1.5px] border-line rounded-[4px] px-[5cqw] py-[3cqw] font-pixel text-[max(9px,9cqw)] leading-none whitespace-nowrap shadow-[0_2px_0_var(--line)] pointer-events-none"
               >
-                !
+                {{ s.warnShort }}
               </div>
             }
             @if (s.canSwap) {
               <button
                 (click)="s.onSwap($event)"
                 title="Andere versie"
-                class="absolute -right-[7px] -bottom-[7px] z-[3] w-[22px] h-[22px] rounded-full border-2 border-line bg-lcd text-lcd-ink p-0 flex items-center justify-center"
+                class="absolute -right-[7px] -bottom-[7px] z-[3] w-7 h-7 rounded-full border-2 border-line bg-lcd text-lcd-ink p-0 hidden group-hover:flex items-center justify-center"
+                [style.display]="s.isAct ? 'flex' : null"
               >
-                <span class="icon text-[15px]">swap_horiz</span>
+                <span class="icon text-[17px]">swap_horiz</span>
               </button>
             }
             @if (s.canRemove) {
               <button
                 (click)="s.onRemove($event)"
                 title="Uit slot halen"
-                class="absolute -top-[6px] -right-[6px] w-5 h-5 rounded-full border-2 border-line bg-surface text-ink font-sans font-bold text-[12px] leading-none p-0 flex items-center justify-center"
+                class="absolute -top-[6px] -right-[6px] w-7 h-7 z-[3] rounded-full border-2 border-line bg-surface text-ink font-sans font-bold text-[15px] leading-none p-0 hidden group-hover:flex items-center justify-center"
+                [style.display]="s.isAct ? 'flex' : null"
               >
                 ×
               </button>
