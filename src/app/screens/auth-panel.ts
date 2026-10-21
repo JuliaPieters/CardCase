@@ -5,16 +5,32 @@ import { Leds } from '../shared/bits';
 
 type Mode = 'login' | 'register' | 'reset' | 'account';
 
-/** Account overlay: log in, create an account, reset a password, account details and the first-login import question. */
+const GUEST_KEY = 'cc-guest';
+
+/**
+ * Account overlay: log in, create an account, reset a password, account details and the first-login import question.
+ * Someone who is neither logged in nor chose to continue as guest gets it as a full-screen welcome page instead.
+ */
 @Component({
   selector: 'cc-auth-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Leds],
   template: `
-    @let mode = store.state.authPanel;
+    @let gate = welcome();
+    @let mode = store.state.authPanel || (gate ? 'login' : null);
     @let offer = store.state.importOffer;
     @if (mode || offer) {
-      <div class="fixed inset-0 z-[80] bg-[rgba(0,0,0,.5)] flex items-center justify-center p-4" (click)="close()">
+      <div
+        class="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-5 p-4 overflow-auto"
+        [class]="gate ? 'bg-bg pt-[calc(16px+env(safe-area-inset-top))] pb-[calc(16px+env(safe-area-inset-bottom))]' : 'bg-[rgba(0,0,0,.5)]'"
+        (click)="close()"
+      >
+        @if (gate) {
+          <img [src]="store.state.dark ? 'icons/logo-dark.png' : 'icons/logo-light.png'" alt="CardCase" class="w-[min(70vw,320px)] h-auto block" />
+          <p class="m-0 -mt-2 max-w-[420px] text-center text-[15px] font-extrabold text-muted text-pretty">
+            Log in of maak een account om je collectie en binders op al je apparaten bij te houden.
+          </p>
+        }
         <div
           class="w-full max-w-[420px] max-h-[92vh] overflow-auto bg-bg text-ink border-2 border-line rounded-2xl shadow-[6px_6px_0_var(--line)]"
           (click)="$event.stopPropagation()"
@@ -24,7 +40,7 @@ type Mode = 'login' | 'register' | 'reset' | 'account';
             <div class="ml-auto bg-device border-2 border-coal rounded-lg p-1">
               <div class="lcd rounded px-3 py-[6px] text-[14px] leading-none tracking-[.06em]">{{ title() }}</div>
             </div>
-            @if (!offer) {
+            @if (!offer && !gate) {
               <button (click)="close()" title="Sluiten" class="w-9 h-9 rounded-full bg-device text-[#F7F3E8] border-2 border-coal flex items-center justify-center">
                 <span class="icon text-[20px]">close</span>
               </button>
@@ -129,12 +145,20 @@ type Mode = 'login' | 'register' | 'reset' | 'account';
               }
               @if (mode === 'reset') {
                 <button (click)="setMode('login')" class="self-center bg-transparent border-0 text-red font-extrabold text-[13px]">← Terug naar inloggen</button>
-              } @else {
+              } @else if (!gate) {
                 <p class="m-0 text-[12.5px] font-bold text-muted text-center text-pretty">Zonder account blijft je collectie alleen in deze browser bewaard.</p>
               }
             }
           </div>
         </div>
+        @if (gate && !offer) {
+          <div class="w-full max-w-[420px] flex flex-col gap-2">
+            <button (click)="continueAsGuest()" class="btn justify-center"><span class="icon text-[19px]">travel_explore</span>Doorgaan als gast</button>
+            <p class="m-0 text-[12.5px] font-bold text-muted text-center text-pretty">
+              Als gast kun je rondkijken; wat je toevoegt wordt niet in een account bewaard. Inloggen kan later altijd nog.
+            </p>
+          </div>
+        }
       </div>
     }
   `,
@@ -162,13 +186,17 @@ export class AuthPanel {
   protected readonly email = signal('');
   protected readonly password = signal('');
   protected readonly busy = signal(false);
+  /** Chose "continue as guest" on this device (remembered until logging out). */
+  private readonly guest = signal(readGuest());
+  /** Not logged in and no guest choice yet: show the welcome page. */
+  protected readonly welcome = computed(() => this.auth.enabled && this.auth.ready() && !this.user() && !this.guest());
   protected readonly error = signal('');
   protected readonly info = signal('');
 
   protected readonly initial = computed(() => (this.user()?.displayName || this.user()?.email || '?').charAt(0).toUpperCase());
   protected readonly title = computed(() => {
     if (this.store.state.importOffer) return 'WELKOM';
-    const m = this.store.state.authPanel as Mode;
+    const m = (this.store.state.authPanel || 'login') as Mode;
     return m === 'account' ? 'ACCOUNT' : m === 'register' ? 'NIEUW ACCOUNT' : m === 'reset' ? 'RESET' : 'INLOGGEN';
   });
   protected readonly syncText = computed(
@@ -196,12 +224,18 @@ export class AuthPanel {
   }
 
   protected close() {
-    if (this.store.state.importOffer) return;
+    if (this.store.state.importOffer || this.welcome()) return;
+    this.store.setState({ authPanel: null });
+  }
+
+  protected continueAsGuest() {
+    writeGuest(true);
+    this.guest.set(true);
     this.store.setState({ authPanel: null });
   }
 
   protected async submit() {
-    const mode = this.store.state.authPanel as Mode;
+    const mode = (this.store.state.authPanel || 'login') as Mode;
     await this.run(async () => {
       if (mode === 'reset') {
         await this.auth.resetPassword(this.email());
@@ -218,6 +252,9 @@ export class AuthPanel {
   protected logout() {
     return this.run(async () => {
       await this.auth.logout();
+      // Back to the welcome page, as on a first visit.
+      writeGuest(false);
+      this.guest.set(false);
       this.store.setState({ authPanel: null });
     });
   }
@@ -234,4 +271,19 @@ export class AuthPanel {
       this.busy.set(false);
     }
   }
+}
+
+function readGuest() {
+  try {
+    return localStorage.getItem(GUEST_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeGuest(on: boolean) {
+  try {
+    if (on) localStorage.setItem(GUEST_KEY, '1');
+    else localStorage.removeItem(GUEST_KEY);
+  } catch {}
 }
