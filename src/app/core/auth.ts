@@ -80,10 +80,13 @@ export class AuthService {
     );
   }
 
-  /** Writes the Cardcase data into users/{uid}, leaving any other fields in that document alone. */
+  /**
+   * Writes the Cardcase data into users/{uid}, leaving any other fields in that document alone. `cardcase` is replaced
+   * as a whole: with `merge: true` its maps would be merged, so a removed card would stay in the account.
+   */
   async saveRemote(uid: string, data: Record<string, unknown>) {
     const { fsMod } = await this.requireSdk();
-    await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid), { cardcase: data, updatedAt: fsMod.serverTimestamp() }, { merge: true });
+    await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid), { cardcase: data, updatedAt: fsMod.serverTimestamp() }, { mergeFields: ['cardcase', 'updatedAt'] });
   }
 
   private async requireSdk() {
