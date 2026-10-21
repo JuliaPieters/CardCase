@@ -32,6 +32,9 @@ import { PageTurn } from '../shared/page-turn';
         <div class="text-center flex flex-col gap-[6px]">
           <div class="kicker">GEDEELDE BINDER · {{ s.v.fmt }}</div>
           <h1 class="m-0 text-[clamp(26px,4vw,36px)] font-black">{{ s.v.name }}</h1>
+          @if (s.v.note) {
+            <p class="m-0 text-[15px] font-bold text-muted text-pretty max-w-[560px]">{{ s.v.note }}</p>
+          }
         </div>
         @if (s.wide) {
           <div

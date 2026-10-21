@@ -18,7 +18,13 @@ import { Pix, Switch } from '../shared/bits';
         <button (click)="s.goBinders()" title="Terug" class="btn-icon"><span class="icon text-[20px]">arrow_back</span></button>
         <div class="flex flex-col gap-[3px] min-w-0 mr-auto">
           <div class="kicker">BINDER</div>
-          <div class="font-black text-[22px] leading-[1.1] truncate">{{ s.ed.name }}</div>
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="font-black text-[22px] leading-[1.1] truncate">{{ s.ed.name }}</div>
+            <button (click)="s.toggleEdMenu()" title="Naam en beschrijving aanpassen" class="flex-none w-7 h-7 rounded-md bg-surface border-2 border-line flex items-center justify-center"><span class="icon text-[16px]">edit</span></button>
+          </div>
+          @if (s.edNote) {
+            <div class="text-[13px] font-bold text-muted truncate max-w-[520px]">{{ s.edNote }}</div>
+          }
         </div>
         @if (s.edSum.has) {
           <div class="hidden sm:flex flex-col gap-[5px] min-w-[180px]">
@@ -520,6 +526,21 @@ import { Pix, Switch } from '../shared/bits';
             <span class="kicker">{{ s.ed.name }}</span>
             <button (click)="s.toggleEdMenu()" title="Sluiten" class="w-8 h-8 rounded-full bg-surface border-2 border-line flex items-center justify-center"><span class="icon text-[18px]">close</span></button>
           </div>
+          <label class="flex flex-col gap-[6px]">
+            <span class="text-[13px] font-extrabold text-muted">Naam</span>
+            <input [value]="s.ed.name" (change)="s.onEdName($event)" maxlength="40" class="border-2 border-line rounded-[9px] bg-surface px-3 py-2 font-extrabold text-[15px] outline-none focus:shadow-[0_0_0_3px_#9BBC0F]" />
+          </label>
+          <label class="flex flex-col gap-[6px]">
+            <span class="text-[13px] font-extrabold text-muted">Beschrijving</span>
+            <textarea
+              [value]="s.edNote"
+              (change)="s.onEdNote($event)"
+              maxlength="140"
+              rows="2"
+              placeholder="Waar gaat deze binder over? Bv. mijn favoriete Kanto-IR's, op dex-volgorde"
+              class="border-2 border-line rounded-[9px] bg-surface px-3 py-2 font-bold text-[14px] outline-none resize-none focus:shadow-[0_0_0_3px_#9BBC0F]"
+            ></textarea>
+          </label>
           @if (s.hasRecipe) {
             <div class="panel flex flex-col gap-3 px-[14px] py-3">
               <div class="flex items-center gap-3 min-w-0">

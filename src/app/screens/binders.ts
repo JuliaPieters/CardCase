@@ -60,6 +60,9 @@ import { Card } from '../shared/card';
               <div class="absolute left-[34px] right-[14px] bottom-[14px] bg-paper border-2 border-coal rounded-lg px-[10px] py-[9px] text-left text-coal">
                 <div class="font-pixel text-[10px] leading-[1.2] text-[#6A6558] tracking-[.06em] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.kindLabel }}</div>
                 <div class="font-black text-[15px] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.name }}</div>
+                @if (b.note) {
+                  <div class="text-[11.5px] font-bold text-[#6A6558] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.note }}</div>
+                }
                 <div class="text-[11.5px] font-bold text-[#6A6558]">{{ b.stats }}</div>
               </div>
             </button>
