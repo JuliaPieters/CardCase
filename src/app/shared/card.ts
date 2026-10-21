@@ -80,6 +80,9 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
         ></div>
         <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(115deg,transparent_35%,rgba(255,255,255,.55)_45%,transparent_55%)]"></div>
       }
+      @if (glare()) {
+        <div class="cc-glare" [class.cc-glare-loop]="glare() === 'loop'"></div>
+      }
       @if (c().badge) {
         <div class="absolute left-[4cqw] bottom-[4cqw] bg-coal text-paper border-[1.5px] border-paper rounded-[3cqw] px-[3cqw] py-[1.5cqw] font-pixel text-[max(8px,8cqw)] leading-none pointer-events-none">
           {{ c().badge }}
@@ -90,6 +93,8 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
 })
 export class Card {
   readonly card = input<CardView | null | undefined>(null);
+  /** Light sweep over the card: 'hover' plays once when a `.glare-trigger` ancestor is hovered, 'loop' repeats (styles.css). */
+  readonly glare = input<'hover' | 'loop' | null>(null);
   protected readonly c = computed(() => this.card() ?? DEMO);
 
   /** A failed image falls back to `img2` once, then to the drawn placeholder underneath. */

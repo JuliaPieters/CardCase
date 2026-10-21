@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
@@ -6,7 +7,7 @@ import { Switch } from '../shared/bits';
 @Component({
   selector: 'cc-collection',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Switch],
+  imports: [Card, Switch, NgTemplateOutlet],
   template: `
     @let s = v();
     <div class="flex flex-col gap-[18px]">
@@ -31,6 +32,8 @@ import { Switch } from '../shared/bits';
           <option value="num">Sorteer: nummer ▾</option>
           <option value="date">Sorteer: datum toegevoegd ▾</option>
           <option value="value">Sorteer: waarde ▾</option>
+          <option value="new">Sorteer: nieuwste release ▾</option>
+          <option value="old">Sorteer: oudste release ▾</option>
         </select>
         <select class="select" [value]="s.collSet" (change)="s.onCollSet($event)">
           <option value="">Alle sets ▾</option>
@@ -57,13 +60,18 @@ import { Switch } from '../shared/bits';
       @if (s.isGrid) {
         <div class="grid grid-cols-[repeat(auto-fill,minmax(108px,1fr))] gap-x-[14px] gap-y-[18px]">
           @for (r of s.collShown; track r.key) {
-            <button (click)="r.open()" class="lift flex flex-col gap-[6px] bg-transparent border-0 p-0 text-left min-w-0">
-              <div class="aspect-[63/88] w-full rounded-lg" [style.box-shadow]="r.shadow"><cc-card [card]="r.cv" /></div>
+            <button (click)="r.open()" class="lift glare-trigger flex flex-col gap-[6px] bg-transparent border-0 p-0 text-left min-w-0">
+              <div class="aspect-[63/88] w-full rounded-lg" [style.box-shadow]="r.shadow"><cc-card [card]="r.cv" glare="hover" /></div>
               <div class="flex justify-between gap-[6px] text-[12px] font-extrabold">
                 <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ r.name }}</span
                 ><span class="font-pixel font-normal flex-none" [style.color]="r.qtyColor">{{ r.qtyLabel }}</span>
               </div>
-              <div class="font-pixel text-[12px] leading-none text-muted">{{ r.price }}</div>
+              <div class="group/price relative self-start font-pixel text-[12px] leading-none text-muted">
+                {{ r.price }}
+                @if (r.p30) {
+                  <ng-container *ngTemplateOutlet="p30tip; context: { $implicit: r.p30, above: true }" />
+                }
+              </div>
             </button>
           }
         </div>
@@ -73,20 +81,37 @@ import { Switch } from '../shared/bits';
           @for (r of s.collShown; track r.key) {
             <button
               (click)="r.open()"
-              class="w-full flex items-center gap-3 py-[10px] px-[14px] bg-transparent border-0 border-b-2 border-soft text-left hover:bg-soft"
+              class="glare-trigger w-full flex items-center gap-3 py-[10px] px-[14px] bg-transparent border-0 border-b-2 border-soft text-left hover:bg-soft"
             >
-              <div class="w-10 flex-none aspect-[63/88]"><cc-card [card]="r.cv" /></div>
+              <div class="w-10 flex-none aspect-[63/88]"><cc-card [card]="r.cv" glare="hover" /></div>
               <div class="flex-1 min-w-0 flex flex-col gap-[3px]">
                 <span class="font-black text-[15px] overflow-hidden text-ellipsis whitespace-nowrap">{{ r.name }}</span
-                ><span class="text-[12px] font-bold text-muted">{{ r.setNum }} · {{ r.typeLabel }}</span>
+                ><span class="text-[12px] font-bold text-muted overflow-hidden text-ellipsis whitespace-nowrap">{{ r.setNum }} · {{ r.typeLabel }}{{ r.released ? ' · ' + r.released : '' }}</span>
               </div>
               <span class="font-pixel text-[12px] leading-none text-muted text-right">{{ r.langs }}</span>
-              <span class="font-pixel text-[14px] leading-none w-[72px] text-right">{{ r.price }}</span>
+              <span class="group/price relative w-[72px] flex flex-col items-end gap-1">
+                <span class="font-pixel text-[14px] leading-none">{{ r.price }}</span>
+                @if (r.p30) {
+                  <span class="font-pixel text-[11px] leading-none rounded px-1 py-[2px]" [style.background]="r.p30.bg" [style.color]="r.p30.fg">{{ r.p30.chg }}</span>
+                  <ng-container *ngTemplateOutlet="p30tip; context: { $implicit: r.p30 }" />
+                }
+              </span>
               <span class="font-pixel font-semibold text-[16px] leading-none w-[50px] text-right" [style.color]="r.qtyColor">{{ r.qtyLabel }}</span>
             </button>
           }
         </div>
       }
+      <!-- Tooltip on a price (desktop hover): the 30-day average and how today's trend price compares. -->
+      <!-- Grid: above the price. List: to its left, since the list panel clips anything above its first row. -->
+      <ng-template #p30tip let-p let-above="above">
+        <span
+          [class]="above ? 'left-0 bottom-[calc(100%+6px)]' : 'right-[calc(100%+8px)] top-1/2 -translate-y-1/2'"
+          class="pointer-events-none absolute z-10 hidden group-hover/price:flex flex-col gap-1 whitespace-nowrap bg-ink text-bg rounded-lg py-[7px] px-[10px] font-sans text-[12px] font-bold leading-none text-left shadow-[3px_3px_0_var(--red)]"
+        >
+          <span>Gem. 30 dagen: <span class="font-pixel">{{ p.avg }}</span></span>
+          <span class="opacity-80">Nu {{ p.chg }} t.o.v. dat gemiddelde</span>
+        </span>
+      </ng-template>
       @if (s.hasMoreColl) {
         <button (click)="s.moreColl()" class="btn self-center"><span class="icon text-[19px]">expand_more</span>Toon meer</button>
       }

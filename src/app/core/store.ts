@@ -3,7 +3,7 @@ import { Injectable, computed, effect, inject, signal, untracked } from '@angula
 import { AuthService, authErrorMessage } from './auth';
 import { CatalogService } from './catalog';
 import { deserializeUser, freshUser, lastAccount, readLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
-import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel } from './data';
+import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
 /**
  * Central app state + all derived view values, ported from the Cardcase design prototype.
@@ -13,6 +13,8 @@ import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR
 const costLabel = cards => { const known = cards.filter(c => c.trend != null); if (!known.length) return 'prijs nog onbekend'; return (known.length < cards.length ? 'minstens ' : '') + eur(known.reduce((a, c) => a + c.trend, 0)); };
 
 /** Pixel sprite of the card's Pokémon (PokéAPI, ~1 kB), drawn in the placeholder when TCGdex has no photo of the card. */
+/** Day label under the price chart, e.g. '3 okt'. */
+const DAYF = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' });
 const spriteOf = c => c.sp >= 1 && c.sp <= 1025 ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.sp}.png` : null;
 
 @Injectable({ providedIn: 'root' })
@@ -60,7 +62,7 @@ export class CardcaseStore {
     scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: ['fire', 'dragon'], langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
     shiftMode: 'buffer', job: null, done: {}, tip: false, showPrice: false, fSort: '', valRange: 'month',
-    rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, newSheet: false, searchLimit: 60, collLimit: 60,
+    rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
     edMode: 'cards', decoTab: 'images', decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
   }; }
   seq = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any;
@@ -91,7 +93,7 @@ export class CardcaseStore {
       const st = this.state; const v = this.vals(); const ids = new Set<number>();
       for (const k in st.owned) if (tot(st.owned[k])) ids.add(+k);
       ids.add(st.detailId);
-      [v.resultsShown, v.collShown, v.sideItems, v.recent].forEach(list => (list || []).forEach(x => ids.add(x.key)));
+      [v.resultsShown, v.collShown, v.sideItems, v.recent, v.dSame].forEach(list => (list || []).forEach(x => ids.add(x.key)));
       const b = this.curB(); if (b) b.slots.forEach(x => { if (isCard(x)) ids.add(x); });
       this.catalog.ensurePrices(ids);
     });
@@ -187,7 +189,7 @@ export class CardcaseStore {
     this.startScan();
   }
   cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, img2: c.imgAlt || null, art: spriteOf(c) }; }
-  openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0] }); }
+  openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0], sameLimit: 20 }); }
   setOwn(id, l, delta) { this.setState(s => ({ owned: { ...s.owned, [id]: { ...s.owned[id], [l]: Math.max(0, (s.owned[id][l] || 0) + delta) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added })); }
 
   curB() { return this.state.binders.find(b => b.id === this.state.edId); }
@@ -508,7 +510,7 @@ export class CardcaseStore {
       byLang: hp(LANGS.map(l => ({ key: l, label: l + ' · ' + LNAME[l], v: own.reduce((a, c) => a + (owned[c.id][l] || 0) * c.trend, 0) }))),
       byBinder: hp(st.binders.map(b => ({ key: b.id, label: b.name, v: b.slots.filter(x => isCard(x) && tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0) }))),
       dv: { trend: eur(dp.trend), low: eur(dp.low), avg7: eur(dp.avg7), avg30: eur(dp.avg30), chg: pctf(dp.chg), up: dp.chg >= 0, down: dp.chg < 0, ...chgStyle(dp.chg, true), owned: dn ? dn + '× in bezit · ' + eur(dn * dp.trend) : 'Nog niet in bezit · vanaf ' + eur(dp.low) },
-      dBars: bars(dp.series), tip: st.tip, toggleTip: () => this.setState(s => ({ tip: !s.tip })),
+      dBars: bars(dp.series).map((b, i) => { const ago = dp.series.length - 1 - i; return { ...b, price: eur(dp.series[i]), when: ago ? DAYF.format(Date.now() - ago * 864e5).replace('.', '').toUpperCase() + ' · GESCHAT' : 'VANDAAG · TRENDPRIJS', approx: ago > 0 }; }), tip: st.tip, toggleTip: () => this.setState(s => ({ tip: !s.tip })),
       fSort: st.fSort, onFSort: e => this.setState({ fSort: e.target.value }),
       hasCollNeed: st.missingOnly && missC.length > 0, collNeedText: (st.collSet ? 'Nog nodig om ' + setNm + ' compleet te maken: ' : 'Nog nodig om alle sets compleet te maken: ') + costLabel(missC),
       toggleShowPrice: () => this.setState(s => ({ showPrice: !s.showPrice })), spTrack: st.showPrice ? '#9BBC0F' : 'var(--soft)', spKnob: st.showPrice ? '22px' : '2px',
@@ -647,7 +649,8 @@ export class CardcaseStore {
     const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && (!ql || c.numStr.includes(ql) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql))));
     const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || c.avail[0]; };
     const byValue = (a, b) => (b.trend ?? -1) - (a.trend ?? -1);
-    const results = st.fSort === 'value' ? [...resultsRaw].sort(byValue) : resultsRaw;
+    const byNew = (a, b) => relKey(b).localeCompare(relKey(a)) || a.id - b.id, byOld = (a, b) => relKey(a).localeCompare(relKey(b)) || a.id - b.id;
+    const results = st.fSort === 'value' ? [...resultsRaw].sort(byValue) : st.fSort === 'new' ? [...resultsRaw].sort(byNew) : st.fSort === 'old' ? [...resultsRaw].sort(byOld) : resultsRaw;
     // Only the visible slice is turned into view models (the full catalog has ~40k cards).
     const toResult = c => { const n = tot(owned[c.id]); const l = showLang(c); return { key: c.id, cv: this.cv(c, l), name: c.names[l], price: eur(c.trend), shadow: '3px 3px 0 var(--line)', open: () => this.openDetail(c.id, l) }; }; // browsing: no owned/missing marks
     const toggleLang = l => this.setState(s => ({ fLangs: s.fLangs.includes(l) ? s.fLangs.filter(x => x !== l) : [...s.fLangs, l] }));
@@ -656,8 +659,11 @@ export class CardcaseStore {
     // detail
     const dc = CARDS[st.detailId]; const dl = st.detailLang; const dAvail = dc.avail.includes(dl); const dOwn = owned[dc.id];
     const dBinders = []; st.binders.forEach(b => b.slots.forEach((x, i) => { if (x === dc.id) { const p = Math.floor(i / b.fmt); dBinders.push({ key: b.id + i, name: b.name, cover: b.cover, where: `Pagina ${p + 1} · slot ${i % b.fmt + 1} · ${b.fmt}-pocket`, open: () => this.go('editor', { edId: b.id, edSpread: Math.floor(p / 2) }) }); } }));
-    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: dc.typeName || TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: this.cv(dc, dl, !dAvail || !dOwn[dl]), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
+    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: dc.typeName || TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), released: relLabel(dc), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: this.cv(dc, dl, !dAvail || !dOwn[dl]), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
     const dTabs = LANGS.map(l => { const on = dl === l; const av = dc.avail.includes(l); return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : (av ? 'var(--ink)' : 'var(--muted)'), deco: av ? 'none' : 'line-through', sub: av ? (dOwn[l] ? '×' + dOwn[l] : '—') : 'n.v.t.', select: () => this.setState({ detailLang: l }) }; });
+    // Other cards of the same Pokémon (Trainers and Energy have no dex number): owned first, then newest.
+    const sameAll = dc.sp <= 1025 ? (BYSP[dc.sp] || []).filter(c => c.id !== dc.id).sort((a, b) => (tot(owned[b.id]) ? 1 : 0) - (tot(owned[a.id]) ? 1 : 0) || byNew(a, b)) : [];
+    const dSame = sameAll.slice(0, st.sameLimit).map(c => { const n = tot(owned[c.id]); return { key: c.id, cv: this.cv(c, c.avail[0], !n), name: c.names[c.avail[0]], meta: c.set + ' · ' + relLabel(c, true), price: eur(c.trend), qtyLabel: n ? '×' + n : '', open: () => this.openDetail(c.id) }; });
     const dOwnRows = dc.avail.map(l => ({ key: l, code: l, lname: LNAME[l], name: dc.names[l], n: dOwn[l] || 0, inc: () => this.setOwn(dc.id, l, 1), dec: () => this.setOwn(dc.id, l, -1) }));
 
     // collection
@@ -666,8 +672,10 @@ export class CardcaseStore {
     if (st.sort === 'num') cl = [...cl].sort((a, b) => (a.num - b.num) || (a.id - b.id));
     if (st.sort === 'date') cl = [...cl].sort((a, b) => (added[b.id] || 0) - (added[a.id] || 0));
     if (st.sort === 'value') cl = [...cl].sort(byValue);
+    if (st.sort === 'new') cl = [...cl].sort(byNew);
+    if (st.sort === 'old') cl = [...cl].sort(byOld);
     const collItems = cl;
-    const toCollItem = c => { const n = tot(owned[c.id]); return { key: c.id, cv: this.cv(c, 'EN', !n), name: c.names.EN, price: (n ? '' : '≈ ') + eur(c.trend), setNum: c.set + ' ' + c.numStr, typeLabel: TYPES[c.type][0], langs: LANGS.filter(l => owned[c.id][l]).map(l => owned[c.id][l] > 1 ? `${l}×${owned[c.id][l]}` : l).join(' '), qtyLabel: n ? '×' + n : 'mist', qtyColor: n ? 'var(--ink)' : 'var(--red)', shadow: n ? '3px 3px 0 var(--line)' : 'none', open: () => this.openDetail(c.id) }; };
+    const toCollItem = c => { const n = tot(owned[c.id]); const chg30 = c.trend != null && c.avg30 ? (c.trend - c.avg30) / c.avg30 * 100 : null; return { key: c.id, released: relLabel(c, true), p30: chg30 == null ? null : { avg: eur(c.avg30), chg: pctf(chg30), ...chgStyle(chg30) }, cv: this.cv(c, 'EN', !n), name: c.names.EN, price: (n ? '' : '≈ ') + eur(c.trend), setNum: c.set + ' ' + c.numStr, typeLabel: TYPES[c.type][0], langs: LANGS.filter(l => owned[c.id][l]).map(l => owned[c.id][l] > 1 ? `${l}×${owned[c.id][l]}` : l).join(' '), qtyLabel: n ? '×' + n : 'mist', qtyColor: n ? 'var(--ink)' : 'var(--red)', shadow: n ? '3px 3px 0 var(--line)' : 'none', open: () => this.openDetail(c.id) }; };
 
     // binders
     const binderCards = st.binders.map(b => { const filled = b.slots.filter(isCard); const miss = filled.filter(x => !tot(owned[x])).length; const pct = Math.round(filled.length / b.slots.length * 100); return { key: b.id, name: b.name, cover: b.cover, fmt: b.fmt + '-POCKET', pct, stats: `${filled.length}/${b.slots.length} slots · ${b.pages} pagina's`, missLabel: !filled.length ? 'nog leeg' : miss ? `${miss} ontbrekend` : 'alles in bezit', newCount: this.newSugs(b).length, hasNewSug: this.newSugs(b).length > 0, kindLabel: (b.kind === 'recipe' ? 'SLIMME BINDER' : (KINDS.find(k => k[0] === (b.kind || 'set')) || KINDS[0])[1].toUpperCase()) + (b.desc ? ' · ' + b.desc : ''), value: eur(filled.filter(x => tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0)), complete: filled.length > 0 && miss === 0, preview: filled.slice(0, 3).map((id, i) => ({ key: id, cv: this.cv(CARDS[id], 'EN', !tot(owned[id])), left: [0, 29, 58][i], rot: [-9, 0, 9][i] })), edit: () => this.go('editor', { edId: b.id, edSpread: 0 }), view: () => this.go('viewer', { vId: b.id, vSpread: 0 }) }; });
@@ -711,7 +719,7 @@ export class CardcaseStore {
       q: st.q, onQ: e => this.setState({ q: e.target.value }), fSet: st.fSet, onFSet: e => this.setState({ fSet: e.target.value }), fRar: st.fRar, onFRar: e => this.setState({ fRar: e.target.value }),
       langChips, results, resultsShown: results.slice(0, st.searchLimit).map(toResult), hasMoreResults: results.length > st.searchLimit, moreResults: () => this.setState(s => ({ searchLimit: s.searchLimit + 60 })), resultCount: `${results.length} ${results.length === 1 ? 'resultaat' : 'resultaten'}`,
       hasFilters: !!(st.q || st.fLangs.length || st.fSet || st.fRar), clearFilters: () => this.setState({ q: '', fLangs: [], fSet: '', fRar: '' }),
-      d, dTabs, dOwnRows, dBinders, noDBinders: !dBinders.length, back: () => this.go(st.prev || 'home'),
+      d, dTabs, dOwnRows, dBinders, dSame, hasDSame: dSame.length > 0, dSameName: (SP[dc.sp] || { name: { EN: dc.names.EN } }).name.EN, dSameCount: sameAll.length, hasMoreSame: sameAll.length > st.sameLimit, moreSame: () => this.setState(s => ({ sameLimit: s.sameLimit + 20 })), noDBinders: !dBinders.length, back: () => this.go(st.prev || 'home'),
       collItems, collShown: collItems.slice(0, st.collLimit).map(toCollItem), hasMoreColl: collItems.length > st.collLimit, moreColl: () => this.setState(s => ({ collLimit: s.collLimit + 60 })), collCount: st.missingOnly ? `${collItems.length} ontbrekend` : `${collItems.length} uniek · ${totalCards} totaal`,
       isGrid: st.view === 'grid', isList: st.view === 'list', setGrid: () => this.setState({ view: 'grid' }), setList: () => this.setState({ view: 'list' }),
       gridBg: st.view === 'grid' ? 'var(--ink)' : 'var(--surface)', gridFg: st.view === 'grid' ? 'var(--bg)' : 'var(--ink)', listBg: st.view === 'list' ? 'var(--ink)' : 'var(--surface)', listFg: st.view === 'list' ? 'var(--bg)' : 'var(--ink)',

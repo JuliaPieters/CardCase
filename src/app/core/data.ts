@@ -284,6 +284,12 @@ export const priceAt = (c, d) => {
 export const priceInfo = c => { const s = Array.from({ length: 30 }, (_, i) => priceAt(c, 29 - i)); const avg = n => s.slice(-n).reduce((a, b) => a + b, 0) / n; const p7 = priceAt(c, 7); return { trend: c.trend, low: c.low ?? Math.round(c.trend * 78) / 100, avg7: c.avg7 ?? avg(7), avg30: c.avg30 ?? avg(30), chg: p7 ? (c.trend - p7) / p7 * 100 : 0, series: s }; };
 export const EURF = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
 export const eur = n => n == null || Number.isNaN(n) ? '€ —' : EURF.format(n);
+/** Sort key for a card's release: the set's date, or just its year (mock catalog, unknown date). */
+export const relKey = c => c.released || (c.year ? c.year + '-00-00' : '');
+const RELF = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const RELF_SHORT = new Intl.DateTimeFormat('nl-NL', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+/** '12 mei 2023' (short: 'mei 2023'), or the year alone when the exact date is unknown. */
+export const relLabel = (c, short = false) => c.released ? (short ? RELF_SHORT : RELF).format(new Date(c.released + 'T00:00:00Z')) : c.year ? String(c.year) : '';
 export const pctf = n => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(1).replace('.', ',') + '%';
 /** Date shown next to prices ('Prijzen via Cardmarket · bijgewerkt op …'). */
 export let UPDATED = '20 oktober 2026';

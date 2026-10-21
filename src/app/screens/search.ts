@@ -56,6 +56,8 @@ import { Card } from '../shared/card';
           <select class="select w-full sm:w-auto" [value]="s.fSort" (change)="s.onFSort($event)">
             <option value="">Sorteer: set ▾</option>
             <option value="value">Sorteer: waarde ▾</option>
+            <option value="new">Sorteer: nieuwste release ▾</option>
+            <option value="old">Sorteer: oudste release ▾</option>
           </select>
         </div>
       </div>
@@ -67,8 +69,8 @@ import { Card } from '../shared/card';
       </div>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(108px,1fr))] gap-x-[14px] gap-y-[18px]">
         @for (r of s.resultsShown; track r.key) {
-          <button (click)="r.open()" class="lift flex flex-col gap-[6px] bg-transparent border-0 p-0 text-left min-w-0">
-            <div class="aspect-[63/88] w-full rounded-lg" [style.box-shadow]="r.shadow"><cc-card [card]="r.cv" /></div>
+          <button (click)="r.open()" class="lift glare-trigger flex flex-col gap-[6px] bg-transparent border-0 p-0 text-left min-w-0">
+            <div class="aspect-[63/88] w-full rounded-lg" [style.box-shadow]="r.shadow"><cc-card [card]="r.cv" glare="hover" /></div>
             <div class="text-[12px] font-extrabold overflow-hidden text-ellipsis whitespace-nowrap">{{ r.name }}</div>
             <div class="font-pixel text-[12px] leading-none text-muted">{{ r.price }}</div>
           </button>

@@ -138,6 +138,7 @@ async function main() {
         name: d.name ?? setList[i].name,
         serie: d.serie?.name ?? '',
         year: Number((d.releaseDate || '').slice(0, 4)) || null,
+        released: /^\d{4}-\d{2}-\d{2}$/.test(d.releaseDate || '') ? d.releaseDate : null,
         official: d.cardCount?.official ?? list.length,
         img: imageBase(list),
         imgDE: ed.lang === 'EN' ? imageBase(deList) : null,

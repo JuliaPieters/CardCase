@@ -129,6 +129,7 @@ export function buildCatalog(raw: any) {
     serie: x.serie,
     n: 0,
     year: x.year,
+    released: x.released ?? null,
     lang: x.lang,
     avail: x.lang === 'EN' ? (x.hasDE ? ['EN', 'DE'] : ['EN']) : [x.lang],
   }));
@@ -160,6 +161,8 @@ export function buildCatalog(raw: any) {
       avail,
       sp: dex || 5000 + i,
       year: set.year ?? 0,
+      /** Release date of the set (YYYY-MM-DD), or null when TCGdex doesn't know it. */
+      released: set.released ?? null,
       illus: s(illus) ?? '',
       img: {
         [lang]: imgFlags & 1 && set.img ? set.img + localId + '/low.webp' : altImage(altRef, true),
