@@ -82,6 +82,13 @@ export function writeLocal(account: string | null, saved: SavedUser) {
   }
 }
 
+/** Forgets the browser's copy of an account's data (after logging out). */
+export function removeLocal(account: string) {
+  try {
+    localStorage.removeItem(KEY + ':' + account);
+  } catch {}
+}
+
 /** The account that was signed in last time, so a reload shows its cached collection right away. */
 export function lastAccount(): string | null {
   try {

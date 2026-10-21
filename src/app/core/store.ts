@@ -2,7 +2,7 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService, authErrorMessage } from './auth';
 import { CatalogService } from './catalog';
-import { deserializeUser, freshUser, lastAccount, readLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
+import { deserializeUser, freshUser, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
 import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
 /**
@@ -146,10 +146,11 @@ export class CardcaseStore {
     this.unwatch?.(); this.unwatch = null; this.savePending = false;
     if (!uid) {
       const wasAccount = this.account;
-      this.account = null; setLastAccount(null); this.setState({ importOffer: null });
+      // The account's collection stays in the account: drop this device's copy and show the guest's instead.
+      this.account = null; setLastAccount(null); if (wasAccount) removeLocal(wasAccount); this.setState({ importOffer: null });
       if (wasAccount || !this.syncReady) this.applyUser(deserializeUser(readLocal(null)) ?? freshUser());
       this.syncReady = true; this.auth.syncStatus.set('guest');
-      if (wasAccount) this.toast('Uitgelogd · je ziet nu de collectie op dit apparaat');
+      if (wasAccount) this.toast('Uitgelogd · log weer in om je collectie te zien');
       return;
     }
     this.syncReady = false; this.account = uid; setLastAccount(uid); this.auth.syncStatus.set('loading');
