@@ -143,7 +143,8 @@ export function buildCatalog(raw: any) {
     return {
       uid: set.code + '/' + localId,
       api: set.api,
-      apiId: set.id + '-' + localId,
+      /** Card id at TCGdex, for prices; null for Japanese sets that only the official database has. */
+      apiId: set.api ? set.id + '-' + localId : null,
       set: set.code,
       setName: set.name,
       num: parseInt(localId, 10) || 0,
@@ -180,18 +181,20 @@ export function buildCatalog(raw: any) {
 }
 
 /**
- * Image from a source other than TCGdex (see scripts/sync-images.mjs): the official Japanese or Asian card database,
- * or pokemontcg.io. Those originals are 150–250 kB, so they go through a resizing proxy (≈15 kB, like TCGdex's).
+ * Image from a source other than TCGdex (see scripts/sync-images.mjs, sync-japanese.mjs): the official Japanese or
+ * Asian card database, or pokemontcg.io. Those originals are 150–250 kB, so they go through a resizing proxy (≈15 kB, like TCGdex's).
  */
 function altImage(ref: string | undefined, resized: boolean): string | null {
   if (!ref) return null;
   const path = ref.slice(2);
   const url =
-    ref[0] === 'j'
-      ? `https://www.pokemon-card.com/assets/images/card_images/large/${path}.jpg`
-      : ref[0] === 'c'
-        ? `https://asia.pokemon-card.com/tw/card-img/${path}.png`
-        : `https://images.pokemontcg.io/${path}.png`;
+    ref[0] === 'J'
+      ? `https://www.pokemon-card.com/assets/images/card_images/${path}`
+      : ref[0] === 'j'
+        ? `https://www.pokemon-card.com/assets/images/card_images/large/${path}.jpg`
+        : ref[0] === 'c'
+          ? `https://asia.pokemon-card.com/tw/card-img/${path}.png`
+          : `https://images.pokemontcg.io/${path}.png`;
   return resized ? `https://images.weserv.nl/?url=${encodeURIComponent(url.slice(8))}&w=250&output=webp&q=80` : url;
 }
 

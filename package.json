@@ -10,6 +10,7 @@
     "test": "ng test",
     "sync-catalog": "node --no-warnings scripts/sync-catalog.mjs",
     "sync-images": "node scripts/sync-images.mjs",
+    "sync-japanese": "node scripts/sync-japanese.mjs",
     "sync-hashes": "node --no-warnings scripts/sync-hashes.mjs",
     "icons": "node scripts/make-icons.mjs"
   },

@@ -31,11 +31,13 @@ function imageUrl(raw, row) {
   if (!ref) return null;
   const path = ref.slice(2);
   const url =
-    ref[0] === 'j'
-      ? `https://www.pokemon-card.com/assets/images/card_images/large/${path}.jpg`
-      : ref[0] === 'c'
-        ? `https://asia.pokemon-card.com/tw/card-img/${path}.png`
-        : `https://images.pokemontcg.io/${path}.png`;
+    ref[0] === 'J'
+      ? `https://www.pokemon-card.com/assets/images/card_images/${path}`
+      : ref[0] === 'j'
+        ? `https://www.pokemon-card.com/assets/images/card_images/large/${path}.jpg`
+        : ref[0] === 'c'
+          ? `https://asia.pokemon-card.com/tw/card-img/${path}.png`
+          : `https://images.pokemontcg.io/${path}.png`;
   return url;
 }
 

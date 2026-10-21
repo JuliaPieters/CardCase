@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Fills in card images that TCGdex doesn't have, in public/catalog.json:
-//  - Japanese cards: the official card database (pokemon-card.com), matched per set by card order and name.
 //  - English cards: pokemontcg.io, matched by set and card number, checked by name.
 //  - Taiwanese cards: the official Asian card database (asia.pokemon-card.com/tw), matched by order when the set has
 //    exactly as many cards there as in the catalog.
+// Japanese cards get theirs from the official card database (scripts/sync-japanese.mjs).
 // Chinese cards still without an image borrow the Japanese print of the same set at runtime (src/app/core/catalog.ts).
-// The image ref is stored as the 11th field of a card row: 'j:<folder>/<file>', 'p:<setId>/<number>' or 'c:<id>'.
+// The image ref is stored as the 11th field of a card row: 'J:<path>' (sync-japanese.mjs),
+// 'p:<setId>/<number>' or 'c:<id>'.
 //
 // Usage: npm run sync-images (also runs at the end of npm run sync-catalog)
 
@@ -13,7 +14,6 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const OUT = new URL('../public/catalog.json', import.meta.url);
-const JP_SEARCH = 'https://www.pokemon-card.com/card-search/resultAPI.php?regulation_sidebar_form=all&page=';
 const PTCG = 'https://api.pokemontcg.io/v2';
 const TW_LIST = 'https://asia.pokemon-card.com/tw/card-search/list/?expansionCodes=';
 const CONCURRENCY = 4;
@@ -108,48 +108,6 @@ function align(a, b) {
   return pairs;
 }
 
-async function japanese(raw, bySet) {
-  console.log('[ja] officiële kaartdatabase doorlopen…');
-  const first = await getJson(JP_SEARCH + 1);
-  const pages = Array.from({ length: first.maxPage - 1 }, (_, i) => i + 2);
-  let done = 1;
-  const rest = await mapLimit(pages, async (p) => {
-    const r = await getJson(JP_SEARCH + p);
-    if (++done % 50 === 0) console.log(`  ${done}/${first.maxPage} pagina's`);
-    return r;
-  });
-  // Folder in the image path is the set code for modern sets (".../large/SV2a/043585_P_HUSHIGIDANE.jpg").
-  const byFolder = new Map();
-  for (const page of [first, ...rest]) {
-    for (const c of page?.cardList ?? []) {
-      const m = /\/large\/([^/]+)\/([^/]+)\.jpg$/.exec(c.cardThumbFile);
-      if (!m) continue;
-      if (!byFolder.has(m[1])) byFolder.set(m[1], []);
-      byFolder.get(m[1]).push({ id: Number(c.cardID), name: key(c.cardNameAltText), ref: `j:${m[1]}/${m[2]}` });
-    }
-  }
-  let added = 0;
-  raw.sets.forEach((set, s) => {
-    if (set.lang !== 'JA') return;
-    const rows = bySet.get(s) ?? [];
-    if (!rows.some((r) => !hasImage(raw, raw.cards[r]))) return;
-    const entries = (byFolder.get(set.code.replace(/^JA-/, '')) ?? []).sort((a, b) => a.id - b.id);
-    if (!entries.length) return;
-    const pairs = align(
-      rows.map((r) => key(raw.cards[r][2])),
-      entries.map((e) => e.name),
-    );
-    for (const [i, j] of pairs) {
-      const row = raw.cards[rows[i]];
-      if (!hasImage(raw, row)) {
-        row[10] = entries[j].ref;
-        added++;
-      }
-    }
-  });
-  console.log(`[ja] ${added} afbeeldingen toegevoegd`);
-}
-
 async function english(raw, bySet) {
   console.log('[en] pokemontcg.io sets ophalen…');
   const ptcgSets = (await getJson(`${PTCG}/sets?pageSize=250&select=id,name`))?.data ?? [];
@@ -218,7 +176,6 @@ async function taiwanese(raw, bySet) {
 export async function addImages(raw) {
   const bySet = rowsBySet(raw);
   await english(raw, bySet);
-  await japanese(raw, bySet);
   await taiwanese(raw, bySet);
 }
 
