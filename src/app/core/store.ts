@@ -81,6 +81,10 @@ export class CardcaseStore {
     window.addEventListener('keydown', e => { if (this.state.screen !== 'viewer') return; if (e.key === 'ArrowRight') this.flip(1); if (e.key === 'ArrowLeft') this.flip(-1); });
     window.addEventListener('pointermove', e => this.onPD(e));
     window.addEventListener('pointerup', () => { this.pd = null; });
+    // iOS freezes a home-screen app as soon as it goes to the background: send a pending change before that happens,
+    // or other devices won't see it until the app is opened again.
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') this.flushSave(); });
+    window.addEventListener('pagehide', () => this.flushSave());
     // Save the user's collection and binders (debounced) whenever they change.
     effect(() => {
       const st = this.state; if (CATALOG_MOCK) return;
@@ -104,19 +108,36 @@ export class CardcaseStore {
       this.catalog.ensurePrices(ids);
     });
   }
-  saveT: any; remoteT: any;
+  saveT: any = null; remoteT: any = null;
 
   private scheduleSave(delay = 400) {
     clearTimeout(this.saveT);
     if (this.account) this.savePending = true;
-    this.saveT = setTimeout(() => {
-      const saved = serializeUser(this.state); const acc = this.account;
-      writeLocal(acc, saved);
-      if (!acc) return;
-      this.auth.syncStatus.set('saving');
-      clearTimeout(this.remoteT);
-      this.remoteT = setTimeout(() => this.auth.saveRemote(acc, { ...saved, by: DEVICE }).then(() => { if (this.account === acc) { this.savePending = false; this.auth.syncStatus.set('saved'); } }).catch(err => { console.warn('[sync]', err); this.auth.syncStatus.set('error'); }), 1200);
-    }, delay);
+    this.saveT = setTimeout(() => this.saveNow(1200), delay);
+  }
+
+  /** Sends a change that is still waiting to be saved (before going to the background or logging out). */
+  flushSave(): Promise<void> { return this.saveT || this.remoteT ? this.saveNow() : Promise.resolve(); }
+
+  /** Saves to this browser right away and to the account after `remoteDelay` ms (bundling quick changes). */
+  private saveNow(remoteDelay = 0): Promise<void> {
+    clearTimeout(this.saveT); this.saveT = null;
+    const saved = serializeUser(this.state); const acc = this.account;
+    writeLocal(acc, saved);
+    if (!acc) return Promise.resolve();
+    this.auth.syncStatus.set('saving');
+    clearTimeout(this.remoteT);
+    const send = () => {
+      this.remoteT = null;
+      return this.auth.saveRemote(acc, { ...saved, by: DEVICE }).then(() => {
+        if (this.account !== acc) return;
+        if (!this.saveT && !this.remoteT) this.savePending = false;
+        this.auth.syncStatus.set('saved');
+      }).catch(err => { console.warn('[sync]', err); this.auth.syncStatus.set('error'); });
+    };
+    if (!remoteDelay) return send();
+    this.remoteT = setTimeout(send, remoteDelay);
+    return Promise.resolve();
   }
 
   /** Follows the account's data on the server, so changes made on another device show up here without a reload. */

@@ -251,6 +251,7 @@ export class AuthPanel {
 
   protected logout() {
     return this.run(async () => {
+      await this.store.flushSave();
       await this.auth.logout();
       // Back to the welcome page, as on a first visit.
       writeGuest(false);
