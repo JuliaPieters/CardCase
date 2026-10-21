@@ -1,5 +1,6 @@
 // @ts-nocheck -- verbatim port of the untyped design-prototype logic; add types incrementally.
 // Mock data and pure helpers, ported from the Cardcase design prototype.
+import { resolveFill } from './images';
 
 export const RAW = `Flarekit|Funkfuchs|ヒノコン|火狐仔|fire
 Cindrake|Glutdrache|モエドラ|燃龙|fire
@@ -179,17 +180,18 @@ export function syncSlots(b) {
  */
 export function artPiece(im, dx, dy, g = '0px') {
   return {
-    fill: im.fill, pos: (im.x ?? 50) + '% ' + (im.y ?? 50) + '%', zoom: im.zoom || 1,
+    fill: resolveFill(im.fill), pos: (im.x ?? 50) + '% ' + (im.y ?? 50) + '%', zoom: im.zoom || 1,
     w: `calc(${im.w * 100}% + ${im.w - 1} * ${g})`, h: `calc(${im.h * 100}% + ${im.h - 1} * ${g})`,
     l: `calc(${-dx * 100}% - ${dx} * ${g})`, t: `calc(${-dy * 100}% - ${dy} * ${g})`,
   };
 }
 export function decoPiece(b, x, j) {
-  const none = { decoArt: null, decoBuf: false };
+  const none = { decoArt: null, decoBuf: false, decoCorner: false };
   if (!(typeof x === 'string' && x.startsWith('D:'))) return none;
   const im = ((b.deco && b.deco.images) || []).find(i => 'D:' + i.id === x); if (!im) return none;
   const cols = COLS[b.fmt]; const dx = j % cols - im.col, dy = Math.floor(j / cols) - im.row;
-  return { decoArt: artPiece(im, dx, dy, 'var(--g, 0px)'), decoBuf: !!im.buffer };
+  // The top right pocket carries the art's remove button.
+  return { decoArt: artPiece(im, dx, dy, 'var(--g, 0px)'), decoBuf: !!im.buffer, decoCorner: dx === im.w - 1 && dy === 0 };
 }
 export const isBufD = (b, x) => typeof x === 'string' && x.startsWith('D:') && !!(((b.deco && b.deco.images) || []).find(i => 'D:' + i.id === x) || {}).buffer;
 export function mkShowcase() {

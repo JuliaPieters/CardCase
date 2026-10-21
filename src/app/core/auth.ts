@@ -89,6 +89,19 @@ export class AuthService {
     await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid), { cardcase: data, updatedAt: fsMod.serverTimestamp() }, { mergeFields: ['cardcase', 'updatedAt'] });
   }
 
+  /** Stores an uploaded picture in its own document, users/{uid}/images/{id} (see core/images). */
+  async saveImage(uid: string, img: { id: string; name: string; data: string; added: number }) {
+    const { fsMod } = await this.requireSdk();
+    await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid, 'images', img.id), img);
+  }
+
+  /** An uploaded picture of this account, or null when there's none with that id. */
+  async loadImage(uid: string, id: string): Promise<{ id: string; name: string; data: string; added: number } | null> {
+    const { fsMod } = await this.requireSdk();
+    const snap = await fsMod.getDoc(fsMod.doc(this.db!, 'users', uid, 'images', id));
+    return (snap.data() as any) ?? null;
+  }
+
   private async requireSdk() {
     if (!this.sdk) throw new Error('Firebase is niet geconfigureerd (src/app/core/firebase.config.ts).');
     return this.sdk;
