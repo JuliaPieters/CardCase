@@ -82,7 +82,7 @@ export class CardcaseStore {
     owned: u.owned, added: u.added, detailId: 1, detailLang: CARDS[1].avail[0],
     q: '', fLangs: [], fSet: '', fRar: '',
     view: 'grid', sort: 'set', collSet: '', missingOnly: false,
-    binders: u.binders, edId: u.binders[0].id, edSpread: 0, edSide: 0, vSide: 0, pflip: null, autoSet: 'set:' + SETS[0].code, sideQ: '', sideSet: '',
+    binders: u.binders, edId: u.binders[0].id, edSpread: 0, edSide: 0, vSide: 0, pflip: null, autoSet: '', fillMenu: false, sideQ: '', sideSet: '',
     drag: null, over: null, sel: null, actSlot: null, sideOver: false,
     vId: u.binders[0].id, vSpread: 0, flip: null,
     scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
@@ -445,6 +445,7 @@ export class CardcaseStore {
   }
   autofill() {
     const code = this.state.autoSet; const b = this.curB(); const own = this.state.owned; let src;
+    if (!code) return; this.setState({ fillMenu: false });
     if (code.startsWith('set:')) src = (BYSET[code.slice(4)] || []);
     else if (code.startsWith('type:')) src = CARDS.filter(c => c.type === code.slice(5) && tot(own[c.id]));
     else if (code.startsWith('lang:')) src = CARDS.filter(c => (own[c.id][code.slice(5)] || 0) > 0);
@@ -1033,7 +1034,7 @@ export class CardcaseStore {
       edTurnPrev: () => this.turn('ed', -1), edTurnNext: () => this.turn('ed', 1), edTurnPrevOp: 2 * es + (st.edSide || 0) > 0 ? 1 : 0.35, edTurnNextOp: 2 * es + (st.edSide || 0) < eb.pages - 1 ? 1 : 0.35,
       edPrev: () => es > 0 && this.setState({ edSpread: es - 1 }), edNext: () => es < lastSpread && this.setState({ edSpread: es + 1 }), edPrevOp: es > 0 ? 1 : 0.35, edNextOp: es < lastSpread ? 1 : 0.35,
       fmtOptions: [4, 9, 12, 16].map(n => { const on = eb.fmt === n; return { key: n, label: n + '-pocket', bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : 'var(--ink)', select: () => this.setFmt(n) }; }),
-      autoSet: st.autoSet, onAutoSet: e => this.setState({ autoSet: e.target.value }), autofill: () => this.autofill(),
+      autoSet: st.autoSet, onAutoSet: e => this.setState({ autoSet: e.target.value }), autofill: () => this.autofill(), fillMenu: st.fillMenu, toggleFillMenu: () => this.setState(s => ({ fillMenu: !s.fillMenu })), isRecipeBinder: eb.kind === 'recipe',
       addPages: () => { this.updB(eb.id, nb => { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); return nb; }); this.toast("2 pagina's toegevoegd"); },
       exportImg: () => this.toast(`Pagina ${2 * es + 1}–${2 * es + 2} geëxporteerd als PNG`),
       openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }),

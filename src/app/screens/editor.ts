@@ -110,50 +110,66 @@ import { EditorDeco } from './editor-deco';
                 }
               </div>
             </div>
-            <div class="flex items-center gap-2 flex-wrap min-w-0 max-w-full">
-              <select
-                [value]="s.autoSet"
-                (change)="s.onAutoSet($event)"
-                class="appearance-none max-w-full min-w-0 text-ellipsis bg-bg border-2 border-line rounded-[9px] px-3 py-[9px] font-extrabold text-[13px] cursor-pointer"
-              >
-                @for (g of s.setGroups; track g.key) {
-                  <optgroup [label]="'Set · ' + g.label">
-                    @for (o of g.sets; track o.key) {
-                      <option [value]="'set:' + o.code" [selected]="'set:' + o.code === s.autoSet">Set: {{ o.name }} ▾</option>
-                    }
-                  </optgroup>
+            <!-- Rarely needed (a recipe fills its binder itself), so behind one button. -->
+            @if (!s.isRecipeBinder) {
+              <div class="relative">
+                <button (click)="s.toggleFillMenu()" class="flex items-center gap-[6px] bg-transparent border-2 border-line rounded-[9px] px-[11px] py-[8px] font-extrabold text-[13px]">
+                  <span class="icon text-[18px]">auto_awesome</span>Lege vakken vullen…
+                </button>
+                @if (s.fillMenu) {
+                  <div class="panel absolute left-0 top-full mt-2 z-[20] w-[min(320px,85vw)] p-3 flex flex-col gap-[10px]">
+                    <span class="text-[13px] font-bold text-muted text-pretty">Zet kaarten in de lege vakken, vanaf de pagina die nu open staat:</span>
+                    <select
+                      [value]="s.autoSet"
+                      (change)="s.onAutoSet($event)"
+                      class="appearance-none w-full min-w-0 text-ellipsis bg-bg border-2 border-line rounded-[9px] px-3 py-[9px] font-extrabold text-[13px] cursor-pointer"
+                    >
+                      <option value="" disabled [selected]="!s.autoSet">Kies waarmee… ▾</option>
+                      @for (g of s.setGroups; track g.key) {
+                        <optgroup [label]="'Set · ' + g.label">
+                          @for (o of g.sets; track o.key) {
+                            <option [value]="'set:' + o.code" [selected]="'set:' + o.code === s.autoSet">Set: {{ o.name }}</option>
+                          }
+                        </optgroup>
+                      }
+                      <optgroup label="Type">
+                        <option value="type:fire">Type: Fire (in bezit)</option>
+                        <option value="type:water">Type: Water (in bezit)</option>
+                        <option value="type:grass">Type: Grass (in bezit)</option>
+                        <option value="type:electric">Type: Lightning (in bezit)</option>
+                        <option value="type:psychic">Type: Psychic (in bezit)</option>
+                        <option value="type:fighting">Type: Fighting (in bezit)</option>
+                        <option value="type:dark">Type: Darkness (in bezit)</option>
+                        <option value="type:metal">Type: Metal (in bezit)</option>
+                        <option value="type:dragon">Type: Dragon (in bezit)</option>
+                        <option value="type:colorless">Type: Colorless (in bezit)</option>
+                      </optgroup>
+                      <optgroup label="Taal">
+                        <option value="lang:EN">Taal: Engels (in bezit)</option>
+                        <option value="lang:DE">Taal: Duits (in bezit)</option>
+                        <option value="lang:JA">Taal: Japans (in bezit)</option>
+                        <option value="lang:ZH">Taal: Chinees (in bezit)</option>
+                      </optgroup>
+                      <optgroup label="Overig">
+                        <option value="top">Meest waardevol (in bezit)</option>
+                        <option value="dupes">Dubbelen</option>
+                        <option value="want">Wantlist (mist nog)</option>
+                      </optgroup>
+                    </select>
+                    <div class="flex gap-2 justify-end">
+                      <button (click)="s.toggleFillMenu()" class="btn">Annuleer</button>
+                      <button
+                        (click)="s.autofill()"
+                        [disabled]="!s.autoSet"
+                        class="flex items-center gap-[6px] bg-lcd text-lcd-ink border-2 border-line rounded-[9px] shadow-[0_3px_0_var(--line)] px-3 py-[7px] font-black text-[13px] disabled:opacity-45"
+                      >
+                        <span class="icon text-[18px]">auto_awesome</span>Vullen
+                      </button>
+                    </div>
+                  </div>
                 }
-                <optgroup label="Type">
-                  <option value="type:fire">Type: Fire (in bezit)</option>
-                  <option value="type:water">Type: Water (in bezit)</option>
-                  <option value="type:grass">Type: Grass (in bezit)</option>
-                  <option value="type:electric">Type: Lightning (in bezit)</option>
-                  <option value="type:psychic">Type: Psychic (in bezit)</option>
-                  <option value="type:fighting">Type: Fighting (in bezit)</option>
-                  <option value="type:dark">Type: Darkness (in bezit)</option>
-                  <option value="type:metal">Type: Metal (in bezit)</option>
-                  <option value="type:dragon">Type: Dragon (in bezit)</option>
-                  <option value="type:colorless">Type: Colorless (in bezit)</option>
-                </optgroup>
-                <optgroup label="Taal">
-                  <option value="lang:EN">Taal: Engels (in bezit)</option>
-                  <option value="lang:DE">Taal: Duits (in bezit)</option>
-                  <option value="lang:JA">Taal: Japans (in bezit)</option>
-                  <option value="lang:ZH">Taal: Chinees (in bezit)</option>
-                </optgroup>
-                <optgroup label="Overig">
-                  <option value="top">Meest waardevol (in bezit)</option>
-                  <option value="dupes">Dubbelen</option>
-                  <option value="want">Wantlist (mist nog)</option>
-                </optgroup>
-              </select>
-              <button
-                (click)="s.autofill()"
-                class="flex items-center gap-[6px] bg-lcd text-lcd-ink border-2 border-line rounded-[9px] shadow-[0_3px_0_var(--line)] active:translate-y-[2px] active:shadow-[0_1px_0_var(--line)] px-3 py-[7px] font-black text-[13px]"
-              >
-                <span class="icon text-[18px]">auto_awesome</span>Vul automatisch
-              </button>
-            </div>
+              </div>
+            }
             <button (click)="s.addPages()" class="bg-transparent border-2 border-dashed border-line rounded-[9px] px-[11px] py-[9px] font-extrabold text-[13px]">+ 2 pagina's</button>
             <button (click)="s.toggleShowPrice()" class="flex items-center gap-[9px] bg-transparent border-0 py-2 px-[2px] font-extrabold text-[13px]">
               <cc-switch [on]="s.spKnob === '22px'" />
