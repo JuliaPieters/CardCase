@@ -15,6 +15,25 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="CardCase" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // iOS home-screen apps with a translucent status bar make the viewport shorter than the screen by the status
+      // bar's height, so even a fixed full-screen shell stops short at the bottom. When that happens, size the shell
+      // (app.html, --app-h) to the screen instead. Browsers and other platforms keep the normal 100%.
+      (function () {
+        var standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+        if (!standalone) return;
+        function fit() {
+          var landscape = matchMedia('(orientation: landscape)').matches;
+          var h = landscape ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+          var root = document.documentElement.style;
+          if (h - innerHeight > 1) root.setProperty('--app-h', h + 'px');
+          else root.removeProperty('--app-h');
+        }
+        fit();
+        addEventListener('resize', fit);
+        addEventListener('orientationchange', fit);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- crossorigin: CORS responses can be cached by the service worker, opaque ones can't. -->

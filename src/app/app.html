@@ -1,6 +1,6 @@
 @let s = v();
-<!-- fixed inset-0, not h-dvh: in an iOS home-screen app with a translucent status bar, 100dvh is short by the status bar height. -->
-<div class="fixed inset-0 flex bg-bg text-ink overflow-hidden">
+<!-- Fixed to the screen; --app-h (index.html) stretches it to the full screen where iOS makes the viewport too short. -->
+<div class="fixed inset-x-0 top-0 h-[var(--app-h,100%)] flex bg-bg text-ink overflow-hidden">
   @if (s.wide) {
     <aside class="w-[248px] flex-none bg-red border-r-2 border-line flex flex-col gap-5 px-4 py-5 overflow-auto">
       <div class="flex items-center gap-3">
