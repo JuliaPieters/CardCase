@@ -21,6 +21,8 @@ function onePage(b, p, pflip, where, model, leafModel) {
   const base = f ? (f.dir > 0 ? f.to : f.from) : p;
   return { page: model(base), leaf: f ? leafModel(f.dir > 0 ? f.from : f.to) : null, angle: f ? f.angle : 0, label: `PAGINA ${(f ? f.to : p) + 1} / ${b.pages}` };
 }
+/** Widest a two-page spread of this format can be while it still fits the screen's height (below the page arrows). */
+const spreadMaxW = fmt => { const cols = COLS[fmt], rows = fmt / cols; return `max(560px, calc((100dvh - 150px) * ${((2 * cols * 63) / (rows * 88) * 1.04).toFixed(3)}))`; };
 const costLabel = cards => { const known = cards.filter(c => c.trend != null); if (!known.length) return 'prijs nog onbekend'; return (known.length < cards.length ? 'minstens ' : '') + eur(known.reduce((a, c) => a + c.trend, 0)); };
 
 /** Pixel sprite of the card's Pokémon (PokéAPI, ~1 kB), drawn in the placeholder when TCGdex has no photo of the card. */
@@ -804,7 +806,7 @@ export class CardcaseStore {
       sort: st.sort, onSort: e => this.setState({ sort: e.target.value }), collSet: st.collSet, onCollSet: e => this.setState({ collSet: e.target.value }),
       toggleMissing: () => this.setState(s => ({ missingOnly: !s.missingOnly })), missTrack: st.missingOnly ? '#9BBC0F' : 'var(--soft)', missKnob: st.missingOnly ? '22px' : '2px',
       binderCards, newBinder: () => this.go('recipe', { rcStep: 0 }),
-      ed: { name: eb.name, cover: eb.cover, spreadLabel: `PAGINA ${2 * es + 1}–${2 * es + 2} / ${eb.pages}` },
+      ed: { name: eb.name, cover: eb.cover, spreadLabel: `PAGINA ${2 * es + 1}–${2 * es + 2} / ${eb.pages}`, maxW: spreadMaxW(eb.fmt) },
       edLeft: this.pageModel(eb, 2 * es, true), edRight: this.pageModel(eb, 2 * es + 1, true),
       edOne: onePage(eb, 2 * es + (st.edSide || 0), st.pflip, 'ed', p => this.pageModel(eb, p, true), p => this.pageModel(eb, p, false)),
       edTurnPrev: () => this.turn('ed', -1), edTurnNext: () => this.turn('ed', 1), edTurnPrevOp: 2 * es + (st.edSide || 0) > 0 ? 1 : 0.35, edTurnNextOp: 2 * es + (st.edSide || 0) < eb.pages - 1 ? 1 : 0.35,

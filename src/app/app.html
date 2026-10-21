@@ -92,7 +92,8 @@
     }
 
     <main #main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain">
-      <div class="max-w-[1180px] mx-auto pt-[22px] pb-10 px-[clamp(14px,3vw,36px)]">
+      <!-- The binder editor gets the full width: a bigger binder is easier to edit. -->
+      <div class="mx-auto pt-[22px] pb-10 px-[clamp(14px,3vw,36px)]" [style.max-width]="s.isEditor ? '1800px' : '1180px'">
         @if (s.isHome) {
           <cc-home />
         }

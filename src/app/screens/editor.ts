@@ -226,8 +226,9 @@ import { EditorDeco } from './editor-deco';
                   </button>
                 </div>
                 <div
-                  class="flex items-stretch border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[5px_5px_0_var(--line)]"
+                  class="w-full mx-auto flex items-stretch border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[5px_5px_0_var(--line)]"
                   [style.background]="s.ed.cover"
+                  [style.max-width]="s.ed.maxW"
                 >
                   <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.edLeft" /></div>
                   <div class="flex-none w-[clamp(14px,2.4vw,30px)] flex flex-col justify-evenly items-center">
@@ -271,7 +272,7 @@ import { EditorDeco } from './editor-deco';
               (dragover)="s.sideDragOver($event)"
               (dragleave)="s.sideDragLeave()"
               (drop)="s.sideDrop($event)"
-              class="panel relative flex-[1_1_270px] min-w-0 p-[14px] flex flex-col gap-[10px] max-h-[640px]"
+              class="panel relative flex-[1_1_300px] max-w-[440px] min-w-0 p-[14px] flex flex-col gap-[10px] max-h-[calc(100dvh-60px)] sticky top-4"
             >
               <div class="flex items-baseline justify-between">
                 <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">Collectie</h2>
