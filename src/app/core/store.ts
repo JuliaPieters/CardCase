@@ -348,14 +348,14 @@ export class CardcaseStore {
     have.sort((a, b) => { const ta = target(a), tb = target(b); return (ta != null && !own(eb.slots[ta]) ? 0 : 1) - (tb != null && !own(eb.slots[tb]) ? 0 : 1) || (ta ?? 0) - (tb ?? 0); });
     const haveItems = have.slice(0, 60).map(c => {
       const t = target(c); const cur = t != null ? CARDS[eb.slots[t]] : null;
-      return { key: c.id, cv: this.cv(c, lang), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, hasTarget: t != null, targetLabel: t != null ? (own(cur.id) ? 'Wissel met ' : 'Vult ') + nameOf(cur) + ' · ' + where(t) : 'Sleep naar een slot',
+      return { key: c.id, detail: () => this.openDetail(c.id, lang), cv: this.cv(c, lang), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, hasTarget: t != null, targetLabel: t != null ? (own(cur.id) ? 'Wissel met ' : 'Vult ') + nameOf(cur) + ' · ' + where(t) : 'Sleep naar een slot',
         replace: () => { this.updB(eb.id, nb => { nb.slots[t] = c.id; slotMeta(nb, t, null); return nb; }); jump(t); this.toast(nameOf(c) + ' in ' + where(t).toLowerCase() + ' gezet'); }, ...drag(c) };
     });
 
     const picks = [];
     eb.slots.forEach((x, idx) => {
       const a = eb.alts && eb.alts[idx] > 1; const w = eb.warn && eb.warn[idx]; if (!isCard(x) || (!a && !w)) return; const c = CARDS[x];
-      picks.push({ key: idx, cv: this.cv(c, lang, !own(x)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, label: a ? eb.alts[idx] + ' ' + altsNoun(r) : warnShort(w), isWarn: !a, where: where(idx), open: () => { jump(idx); this.setState({ verSheet: { idx } }); } });
+      picks.push({ key: idx, detail: () => this.openDetail(c.id, lang), cv: this.cv(c, lang, !own(x)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, label: a ? eb.alts[idx] + ' ' + altsNoun(r) : warnShort(w), isWarn: !a, where: where(idx), open: () => { jump(idx); this.setState({ verSheet: { idx } }); } });
     });
 
     // An empty slot is selected: cards that would fit there.
@@ -371,7 +371,7 @@ export class CardcaseStore {
       tabs: tabs.map(([k, l, n]) => ({ key: k, label: l, count: n == null ? '' : String(n), on: tab === k, select: () => this.setState({ sideTab: k, sideQ: '' }) })),
       isSlot: tab === 'slot', slot, isNeed: tab === 'need', isHave: tab === 'have', isPick: tab === 'pick', isSearch: tab === 'search',
       needHead: need.length ? need.length + ' kaarten · ' + costLabel(need.map(x => x.c)) : 'Je hebt alles voor deze binder!',
-      needItems: need.slice(0, 200).map(({ idx, c }) => ({ key: idx, cv: this.cv(c, lang, true), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, price: priceOf(c), where: where(idx), jump: () => jump(idx) })),
+      needItems: need.slice(0, 200).map(({ idx, c }) => ({ key: idx, detail: () => this.openDetail(c.id, lang), cv: this.cv(c, lang, true), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, price: priceOf(c), where: where(idx), jump: () => jump(idx) })),
       needMore: need.length > 200 ? 'en nog ' + (need.length - 200) + ' meer' : '',
       needSortBinder: st.needSort !== 'price', sortBinder: () => this.setState({ needSort: 'binder' }), sortPrice: () => this.setState({ needSort: 'price' }),
       copyNeed: () => { try { navigator.clipboard.writeText(eb.name + ' · nog nodig\n' + needList); this.toast('Lijst gekopieerd · ' + need.length + ' kaarten'); } catch { this.toast('Kopiëren lukte niet'); } },
@@ -403,7 +403,7 @@ export class CardcaseStore {
   slotSuggestions(eb, idx, { own, nameOf, where, inB, fits, keyOf, lang, drag }) {
     const r = eb.recipe; const st = this.state; const fmt = eb.fmt; const page = Math.floor(idx / fmt);
     const place = c => () => { this.updB(eb.id, nb => { nb.slots[idx] = c.id; slotMeta(nb, idx, null); return nb; }); this.setState({ actSlot: null }); this.toast(nameOf(c) + ' in ' + where(idx).toLowerCase() + ' gezet'); };
-    const item = (c, reason) => ({ key: c.id, cv: this.cv(c, lang, !own(c.id)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, reason, owned: own(c.id), price: c.trend != null ? eur(c.trend) : '–', place: place(c), ...drag(c) });
+    const item = (c, reason) => ({ key: c.id, detail: () => this.openDetail(c.id, lang), cv: this.cv(c, lang, !own(c.id)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, reason, owned: own(c.id), price: c.trend != null ? eur(c.trend) : '–', place: place(c), ...drag(c) });
     const groups = [];
     if (r && r.type !== 'empty' && r.type !== 'master' && r.per === 'one') {
       // The recipe's entries missing from the binder, nearest to the slot's position in the order first.

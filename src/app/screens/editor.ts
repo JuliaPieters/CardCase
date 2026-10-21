@@ -248,7 +248,7 @@ import { Pix, Switch } from '../shared/bits';
                               (dragend)="it.onDragEnd()"
                               class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] cursor-grab"
                             >
-                              <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                              <div (click)="it.detail(); $event.stopPropagation()" title="Bekijk kaart" class="w-[42px] flex-none aspect-[63/88] cursor-zoom-in hover:scale-105 transition-transform"><cc-card [card]="it.cv" /></div>
                               <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
                                 <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
                                 <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
@@ -279,7 +279,7 @@ import { Pix, Switch } from '../shared/bits';
                     <div class="flex flex-col gap-[6px] overflow-auto min-h-0 p-[2px]">
                       @for (it of sp.needItems; track it.key) {
                         <button (click)="it.jump()" title="Ga naar dit slot" class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] text-left">
-                          <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                          <div (click)="it.detail(); $event.stopPropagation()" title="Bekijk kaart" class="w-[42px] flex-none aspect-[63/88] cursor-zoom-in hover:scale-105 transition-transform"><cc-card [card]="it.cv" /></div>
                           <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
                             <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
                             <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
@@ -305,7 +305,7 @@ import { Pix, Switch } from '../shared/bits';
                           class="flex items-center gap-[10px] bg-bg border-2 rounded-[9px] p-[6px] cursor-grab"
                           [class]="it.picked ? 'border-lcd-mid' : 'border-line'"
                         >
-                          <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                          <div (click)="it.detail(); $event.stopPropagation()" title="Bekijk kaart" class="w-[42px] flex-none aspect-[63/88] cursor-zoom-in hover:scale-105 transition-transform"><cc-card [card]="it.cv" /></div>
                           <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
                             <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
                             <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
@@ -326,7 +326,7 @@ import { Pix, Switch } from '../shared/bits';
                           <div class="font-black text-[13.5px] leading-[1.25]">{{ g.title }}</div>
                           @for (it of g.items; track it.key) {
                             <button (click)="it.open()" class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] text-left">
-                              <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                              <div (click)="it.detail(); $event.stopPropagation()" title="Bekijk kaart" class="w-[42px] flex-none aspect-[63/88] cursor-zoom-in hover:scale-105 transition-transform"><cc-card [card]="it.cv" /></div>
                               <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
                                 <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
                                 <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
