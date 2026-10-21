@@ -123,6 +123,24 @@ import { Pix } from '../shared/bits';
                     </button>
                   </div>
                 }
+                @if (s.qLangs) {
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap gap-2">
+                      @for (o of s.rcLangChips; track o.key) {
+                        <button
+                          (click)="o.select()"
+                          class="flex flex-col items-start gap-[3px] border-2 border-line rounded-[10px] px-[11px] py-[7px] shadow-hard-sm"
+                          [style.background]="o.bg"
+                          [style.color]="o.fg"
+                        >
+                          <span class="font-black text-[14px]">{{ o.label }}</span>
+                          <span class="font-pixel text-[11px] leading-none opacity-80">{{ o.sub }}</span>
+                        </button>
+                      }
+                    </div>
+                    <span class="text-[13px] font-bold text-muted text-pretty">Kies er een of meer; alleen kaarten in die talen komen in de binder.</span>
+                  </div>
+                }
                 @if (s.qPer) {
                   <div class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-[10px]">
                     @for (k of s.perOpts; track k.key) {
@@ -223,7 +241,6 @@ import { Pix } from '../shared/bits';
                         class="border-2 border-line rounded-[9px] bg-bg px-[10px] py-2 font-extrabold text-[14px] outline-none"
                       />
                     </label>
-                    <ng-container *ngTemplateOutlet="seg; context: { label: 'Taal', opts: s.rcLangOpts, cols: 4 }" />
                     <ng-container *ngTemplateOutlet="seg; context: { label: 'Binderformaat', opts: s.rcFmtOpts, cols: 4 }" />
                     <ng-container *ngTemplateOutlet="seg; context: { label: 'Sortering', opts: s.rcSortOpts, cols: 4 }" />
                     <ng-container *ngTemplateOutlet="seg; context: { label: 'Buffer achteraan', opts: s.rcBufOpts, cols: 3 }" />

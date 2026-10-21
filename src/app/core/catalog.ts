@@ -158,6 +158,7 @@ export function buildCatalog(raw: any) {
       rarity: mapRarity(rarity),
       rarityName: rarity,
       variant: mapVariant(rarity),
+      form: formOf(name),
       category,
       avail,
       sp: dex || 5000 + i,
@@ -227,6 +228,16 @@ function mapRarity(r: string | null): string {
   if (x === 'uncommon' || x === 'two diamond') return 'U';
   if (x === 'rare' || x === 'promo' || x === 'three diamond') return 'R';
   return 'HR';
+}
+
+/** Regional form a card shows ("Alolan Vulpix", "アローラロコン", "阿羅拉 六尾"), or null. */
+function formOf(name: string | null): string | null {
+  const n = name || '';
+  if (/^alolan |^アローラ|^阿羅拉|^阿罗拉/i.test(n)) return 'alola';
+  if (/^galarian |^ガラル|^伽勒爾|^伽勒尔/i.test(n)) return 'galar';
+  if (/^hisuian |^ヒスイ|^洗翠/i.test(n)) return 'hisui';
+  if (/^paldean |^パルデア|^帕底亞|^帕底亚/i.test(n)) return 'paldea';
+  return null;
 }
 
 function mapVariant(r: string | null): string {

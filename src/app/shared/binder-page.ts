@@ -118,6 +118,18 @@ const DEMO = {
                 {{ s.warnShort }}
               </div>
             }
+            @if (s.hasAlts) {
+              <!-- Several cards fit the recipe (e.g. four IRs): tap to pick another one. -->
+              <button
+                (click)="s.onAlts($event)"
+                [title]="s.canPickAlt ? 'Kies een andere' : ''"
+                class="absolute bottom-[4%] right-[4%] z-[3] bg-lcd text-lcd-ink border-[1.5px] border-line rounded-[4px] px-[4cqw] py-[3cqw] font-pixel text-[max(9px,8.5cqw)] leading-none whitespace-nowrap shadow-[0_2px_0_var(--line)]"
+                [style.cursor]="s.canPickAlt ? 'pointer' : 'default'"
+                [style.pointer-events]="s.canPickAlt ? 'auto' : 'none'"
+              >
+                {{ s.altsLabel }}
+              </button>
+            }
             @if (s.canSwap) {
               <button
                 (click)="s.onSwap($event)"

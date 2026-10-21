@@ -23,6 +23,12 @@ function onePage(b, p, pflip, where, model, leafModel) {
 }
 /** Widest a two-page spread of this format can be while it still fits the screen's height (below the page arrows). */
 const spreadMaxW = fmt => { const cols = COLS[fmt], rows = fmt / cols; return `max(560px, calc((100dvh - 150px) * ${((2 * cols * 63) / (rows * 88) * 1.04).toFixed(3)}))`; };
+/** What the count on a slot with several fitting cards refers to ("4 IR'S"). */
+const altsNoun = r => r && r.pref === 'illus' ? "IR'S" : r && r.pref === 'fullart' ? "FULL ARTS" : 'OPTIES';
+/** Moves a slot's recipe labels (warn, alts) along with its card: swaps them with slot `j`, or clears them (j null). */
+function slotMeta(b, i, j) {
+  for (const k of ['warn', 'alts']) { if (!b[k]) continue; const m = { ...b[k] }; const a = m[i], c = j == null ? undefined : m[j]; delete m[i]; if (j != null) delete m[j]; if (c !== undefined) m[i] = c; if (j != null && a !== undefined) m[j] = a; b[k] = m; }
+}
 const costLabel = cards => { const known = cards.filter(c => c.trend != null); if (!known.length) return 'prijs nog onbekend'; return (known.length < cards.length ? 'minstens ' : '') + eur(known.reduce((a, c) => a + c.trend, 0)); };
 
 /** Pixel sprite of the card's Pokémon (PokéAPI, ~1 kB), drawn in the placeholder when TCGdex has no photo of the card. */
@@ -272,7 +278,7 @@ export class CardcaseStore {
   }
   dropOn(idx) {
     const d = this.state.drag; if (!d) return;
-    this.updB(this.state.edId, b => { if (d.type === 'side') b.slots[idx] = d.cardId; else if (d.idx !== idx) { const t = b.slots[idx]; b.slots[idx] = b.slots[d.idx]; b.slots[d.idx] = t; } return b; });
+    this.updB(this.state.edId, b => { if (d.type === 'side') { b.slots[idx] = d.cardId; slotMeta(b, idx, null); } else if (d.idx !== idx) { const t = b.slots[idx]; b.slots[idx] = b.slots[d.idx]; b.slots[d.idx] = t; slotMeta(b, idx, d.idx); } return b; });
     this.setState({ drag: null, over: null });
   }
   pageModel(b, p, editable, ov) {
@@ -280,7 +286,7 @@ export class CardcaseStore {
     for (let j = 0; j < fmt; j++) {
       const idx = p * fmt + j; const x = p < b.pages ? src[idx] : null; const has = isCard(x); const isD = typeof x === 'string' && x.startsWith('D:'); const res = isRes(x) && !isD; const own = has && tot(owned[x]) > 0;
       const mv = ov && ov.moved && ov.moved[idx];
-      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && has, isAct: editable && has && this.state.actSlot === idx, draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], 'EN', !own), dim: !own } : null, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
+      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && has, isAct: editable && has && this.state.actSlot === idx, draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
       if (editable) {
         s.onDragStart = e => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; this.setState({ drag: { type: 'slot', idx, cardId: x }, sel: null }); };
         s.onDragOver = e => { e.preventDefault(); if (this.state.over !== idx) this.setState({ over: idx }); };
@@ -288,7 +294,7 @@ export class CardcaseStore {
         s.onDrop = e => { e.preventDefault(); this.dropOn(idx); };
         s.onDragEnd = () => this.setState({ drag: null, over: null, sideOver: false });
         s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.updB(b.id, nb => { nb.slots[idx] = 'B'; return nb; }); } else if (res) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx })); };
-        s.onRemove = e => { e.stopPropagation(); this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); this.setState({ actSlot: null }); };
+        s.onRemove = e => { e.stopPropagation(); this.updB(b.id, nb => { nb.slots[idx] = null; slotMeta(nb, idx, null); return nb; }); this.setState({ actSlot: null }); };
       }
       slots.push(s);
     }
@@ -463,7 +469,7 @@ export class CardcaseStore {
   }
   newSugs(b) { if (!b.recipe || !b.suggestOn) return []; const r = b.recipe; const inScope = c => r.type === 'dex' ? (c.sp >= r.from && c.sp <= r.to) : r.type === 'type' ? SP[c.sp].type === r.ptype : r.type === 'illus' ? c.illus === r.illus : r.type === 'master' ? c.set === r.set : r.type === 'single' ? c.sp === r.sp : false; return CARDS.filter(c => c.isNew && inScope(c) && !b.slots.includes(c.id) && !(b.dismissed || []).includes(c.id)); }
   createFromRecipe() { const r = this.state.rc; const res = buildRecipe(r, this.state.owned); const t = RECIPES.find(x => x[0] === r.type); const id = 'b' + Date.now(); const name = (r.name || '').trim() || autoName(r);
-    this.setState(s => ({ binders: s.binders.concat([{ id, name, fmt: r.fmt, pages: res.pages, cover: t[4] === '#FFFDF6' ? '#2B2E36' : t[4], slots: res.slots, warn: res.warn, recipe: Object.assign({}, r), suggestOn: r.type !== 'empty', dismissed: [], kind: r.type === 'empty' ? 'free' : 'recipe', desc: r.type === 'empty' ? 'Vrije indeling' : recipeLabel(r).split(' · ').slice(1, 3).join(' · ').toLowerCase(), deco: { bg: {}, images: [], stickers: [] } }]) }));
+    this.setState(s => ({ binders: s.binders.concat([{ id, name, fmt: r.fmt, alts: res.alts, pages: res.pages, cover: t[4] === '#FFFDF6' ? '#2B2E36' : t[4], slots: res.slots, warn: res.warn, recipe: Object.assign({}, r), suggestOn: r.type !== 'empty', dismissed: [], kind: r.type === 'empty' ? 'free' : 'recipe', desc: r.type === 'empty' ? 'Vrije indeling' : recipeLabel(r).split(' · ').slice(1, 3).join(' · ').toLowerCase(), deco: { bg: {}, images: [], stickers: [] } }]) }));
     this.go('editor', { edId: id, edSpread: 0, edMode: r.type === 'empty' ? 'deco' : 'cards' }); this.toast(name + ' aangemaakt · ' + res.n + ' kaarten'); }
   parseRc() {
     const t = (this.state.rcText || '').toLowerCase(); if (!t.trim()) return; const p = {}; let type = null;
@@ -475,7 +481,7 @@ export class CardcaseStore {
     if (!type) { for (let d = 1; d <= 1025; d++) if (t.includes(SP[d].name.EN.toLowerCase())) { type = 'single'; p.sp = d; break; } }
     if (/(één|een|1) (per|kaart)/.test(t)) p.per = 'one'; if (/alle versies|elke versie/.test(t)) p.per = 'all';
     if (/\bs?irs?\b|illustration rare|illustratie/.test(t)) p.pref = 'illus'; else if (/full ?art|illustration/.test(t)) p.pref = 'fullart'; else if (/goedkoo|al heb|in bezit/.test(t)) p.pref = 'owned'; else if (/oudste|origineel/.test(t)) p.pref = 'oldest'; else if (/waardevol|duurste/.test(t)) p.pref = 'value';
-    if (/vorm/.test(t)) p.forms = true; if (/japans/.test(t)) p.lang = 'JA'; else if (/duits/.test(t)) p.lang = 'DE'; else if (/chinees/.test(t)) p.lang = 'ZH';
+    if (/vorm/.test(t)) p.forms = true; const ls = LANGS.filter(l => new RegExp({ EN: 'engels', DE: 'duits', JA: 'japans', ZH: 'chinees' }[l]).test(t)); if (ls.length) Object.assign(p, { langs: ls, lang: ls[0] });
     if (/leeg|vrij/.test(t) && !type) type = 'empty';
     if (!type) { this.toast('Geen recept herkend · kies hieronder een tegel'); return; }
     const nr = Object.assign({}, this.state.rc, { type, name: '' }, p); const steps = RSTEPS[type].filter(k => k !== 'pref' || nr.per === 'one');
@@ -488,8 +494,8 @@ export class CardcaseStore {
     const choice = on => ({ bg: on ? '#9BBC0F' : 'var(--surface)', fg: on ? '#0F380F' : 'var(--ink)', sh: on ? '3px 3px 0 var(--line)' : 'none' });
     const steps = RSTEPS[r.type].filter(k => k !== 'pref' || r.per === 'one'); const step = Math.min(st.rcStep, steps.length); const cur = steps[Math.max(0, step - 1)];
     const onR = st.screen === 'recipe' && step > 0;
-    const res = onR ? buildRecipe(r, owned) : { fmt: r.fmt, pages: 2, slots: Array(2 * r.fmt).fill(null), warn: {}, n: 0, ownedN: 0, cost: 0, formsN: 0 };
-    const lay = { fmt: r.fmt, pages: res.pages, slots: res.slots, warn: res.warn };
+    const res = onR ? buildRecipe(r, owned) : { fmt: r.fmt, pages: 2, slots: Array(2 * r.fmt).fill(null), warn: {}, alts: {}, n: 0, ownedN: 0, cost: 0, formsN: 0 };
+    const lay = { fmt: r.fmt, pages: res.pages, slots: res.slots, warn: res.warn, alts: res.alts };
     const pokeNoun = (r.type === 'dex' || r.type === 'type' || r.type === 'illus') && r.per === 'one';
     const main = r.type === 'empty' ? 'Lege binder' : pokeNoun ? (res.n - res.formsN) + ' Pokémon' + (res.formsN ? ' + ' + res.formsN + ' vormen' : '') : res.n + ' kaarten';
     const tile = RECIPES.find(x => x[0] === r.type);
@@ -498,7 +504,8 @@ export class CardcaseStore {
     const eb = this.curB(); const ns = this.newSugs(eb); const ebWarn = Object.keys(eb.warn || {}).length;
     const vsx = st.verSheet; let verList = [], verHead = { title: '', sub: '', warn: '', hasWarn: false };
     if (vsx && isCard(eb.slots[vsx.idx])) { const curC = CARDS[eb.slots[vsx.idx]]; const w = (eb.warn && eb.warn[vsx.idx]) || ''; verHead = { title: '#' + pad(curC.sp) + ' · ' + SP[curC.sp].name.EN, sub: 'PAGINA ' + (Math.floor(vsx.idx / eb.fmt) + 1) + ', SLOT ' + (vsx.idx % eb.fmt + 1), warn: w, hasWarn: !!w };
-      verList = (BYSP[curC.sp] || []).slice().sort((a, b) => a.year - b.year || a.id - b.id).map(c => { const n = tot(owned[c.id]); const isCur = c.id === curC.id; return { key: c.id, cv: this.cv(c, (eb.recipe && eb.recipe.lang) || 'EN', !n), set: c.setName + ' · ' + c.year, variant: VARL[c.variant] + (c.isNew ? ' · nieuw' : ''), price: eur(c.trend), langs: c.avail.join(' '), owned: n ? 'In bezit ×' + n : 'Niet in bezit', ownBg: n ? '#306230' : 'var(--soft)', ownFg: n ? '#F7F3E8' : 'var(--ink)', ownIcon: n ? 'check' : 'close', bd: isCur ? 'var(--red)' : 'var(--line)', sh: isCur ? '4px 4px 0 var(--red)' : '3px 3px 0 var(--line)', btn: isCur ? 'Huidige versie' : 'Kies deze', btnBg: isCur ? 'var(--bg)' : 'var(--red)', btnFg: isCur ? 'var(--muted)' : '#FFF8EE', choose: () => { if (isCur) return; this.updB(eb.id, nb => { nb.slots[vsx.idx] = c.id; if (nb.warn) { nb.warn = Object.assign({}, nb.warn); delete nb.warn[vsx.idx]; } return nb; }); this.setState({ verSheet: null }); this.toast(SP[c.sp].name.EN + ': ' + c.setName + ' gekozen'); } }; }); }
+      const rr = eb.recipe || {}; const rl = rr.langs || []; const isPref = c => rr.pref === 'illus' ? c.variant === 'illus' : rr.pref === 'fullart' ? c.variant === 'fullart' || c.variant === 'illus' : rr.pref === 'set' ? c.set === rr.prefSet : false;
+      verList = (BYSP[curC.sp] || []).filter(c => !rl.length || rl.some(l => c.avail.includes(l))).sort((a, b) => (isPref(b) ? 1 : 0) - (isPref(a) ? 1 : 0) || (a.trend ?? Infinity) - (b.trend ?? Infinity) || a.year - b.year).map(c => { const n = tot(owned[c.id]); const isCur = c.id === curC.id; return { key: c.id, cv: this.cv(c, (eb.recipe && eb.recipe.lang) || 'EN', !n), set: c.setName + ' · ' + c.year, variant: VARL[c.variant] + (c.isNew ? ' · nieuw' : ''), price: eur(c.trend), langs: c.avail.join(' '), owned: n ? 'In bezit ×' + n : 'Niet in bezit', ownBg: n ? '#306230' : 'var(--soft)', ownFg: n ? '#F7F3E8' : 'var(--ink)', ownIcon: n ? 'check' : 'close', bd: isCur ? 'var(--red)' : 'var(--line)', sh: isCur ? '4px 4px 0 var(--red)' : '3px 3px 0 var(--line)', btn: isCur ? 'Huidige versie' : 'Kies deze', btnBg: isCur ? 'var(--bg)' : 'var(--red)', btnFg: isCur ? 'var(--muted)' : '#FFF8EE', choose: () => { if (isCur) return; this.updB(eb.id, nb => { nb.slots[vsx.idx] = c.id; if (nb.warn) { nb.warn = Object.assign({}, nb.warn); delete nb.warn[vsx.idx]; } return nb; }); this.setState({ verSheet: null }); this.toast(SP[c.sp].name.EN + ': ' + c.setName + ' gekozen'); } }; }); }
     return {
       isRecipe: st.screen === 'recipe', rcChoose: step === 0, rcConfig: step > 0,
       rcTiles: RECIPES.map(([k, l, icon, desc, bg, fg]) => ({ key: k, label: l, desc, bg, fg, shadow: pixShadowU(icon, fg, 6), select: () => this.setState(s => ({ rc: Object.assign({}, s.rc, { type: k, name: '' }), rcStep: 1, rcMore: false })) })),
@@ -506,8 +513,10 @@ export class CardcaseStore {
       goManual: () => this.go('create'), rcBackTiles: () => this.setState({ rcStep: 0 }), rcTitle: tile[1], rcCover: tile[4],
       rcSteps: steps.map((k, i) => ({ key: k, label: (i + 1) + ' · ' + STEPT[k][0].toUpperCase(), ...chip(i + 1 === step), select: () => this.setState({ rcStep: i + 1 }) })),
       rcStepLabel: 'STAP ' + step + ' / ' + steps.length, rcQ: STEPT[cur][1],
-      qRegion: cur === 'region', qPer: cur === 'per', qPref: cur === 'pref', qSet: cur === 'set', qOrder: cur === 'order', qSpecies: cur === 'species', qIllus: cur === 'illus', qPtype: cur === 'ptype', qPages: cur === 'pages',
+      qRegion: cur === 'region', qLangs: cur === 'langs', qPer: cur === 'per', qPref: cur === 'pref', qSet: cur === 'set', qOrder: cur === 'order', qSpecies: cur === 'species', qIllus: cur === 'illus', qPtype: cur === 'ptype', qPages: cur === 'pages',
       regionChips: REGIONS.map(([k, l, a, z]) => ({ key: k, label: l, sub: '#' + pad(a) + '–#' + pad(z), ...chip(!r.custom && r.region === k), select: () => setR({ region: k, custom: false, from: a, to: z }) })).concat([{ key: 'custom', label: 'Eigen bereik', sub: '#' + pad(r.from) + '–#' + pad(r.to), ...chip(r.custom), select: () => setR({ custom: true }) }]),
+      // Languages: any, or one or more; the first chosen is the language the cards are shown in.
+      rcLangChips: [{ key: 'any', label: 'Maakt niet uit', sub: 'ALLE TALEN', ...chip(!(r.langs || []).length), select: () => setR({ langs: [], lang: 'EN' }) }].concat(LANGS.map(l => { const ls = r.langs || []; const on = ls.includes(l); return { key: l, label: LNAME[l], sub: l, ...chip(on), select: () => { const next = on ? ls.filter(x => x !== l) : [...ls, l]; setR({ langs: next, lang: next[0] || 'EN' }); } }; })),
       rcCustom: r.custom, rcFrom: r.from, rcTo: r.to,
       onRcFrom: e => setR({ from: Math.max(1, Math.min(1025, parseInt(e.target.value, 10) || 1)) }), onRcTo: e => setR({ to: Math.max(1, Math.min(1025, parseInt(e.target.value, 10) || 1)) }),
       toggleForms: () => setR({ forms: !r.forms }), formsTrack: r.forms ? '#9BBC0F' : 'var(--soft)', formsKnob: r.forms ? '22px' : '2px',
@@ -526,7 +535,6 @@ export class CardcaseStore {
       rcLeft: this.pageModel(lay, 0, false), rcRight: this.pageModel(lay, 1, false),
       rcMore: st.rcMore, toggleRcMore: () => this.setState(s => ({ rcMore: !s.rcMore })), rcMoreIcon: st.rcMore ? 'expand_less' : 'expand_more',
       rcName: r.name || autoName(r), onRcName: e => setR({ name: e.target.value }),
-      rcLangOpts: LANGS.map(l => ({ key: l, label: l, ...segBtn(r.lang === l), select: () => setR({ lang: l }) })),
       rcFmtOpts: [4, 9, 12, 16].map(n => ({ key: n, label: n + '-pocket', ...segBtn(r.fmt === n), select: () => setR({ fmt: n }) })),
       rcSortOpts: [['dex', 'Dex-nr.'], ['set', 'Set'], ['value', 'Waarde'], ['name', 'Naam']].map(([k, l]) => ({ key: k, label: l, ...segBtn(r.sort === k), select: () => setR({ sort: k }) })),
       rcBufOpts: [[0, 'Geen'], [1, '1 rij'], [2, '2 rijen']].map(([k, l]) => ({ key: k, label: l, ...segBtn(r.buffer === k), select: () => setR({ buffer: k }) })),
