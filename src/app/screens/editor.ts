@@ -272,50 +272,145 @@ import { EditorDeco } from './editor-deco';
               (dragover)="s.sideDragOver($event)"
               (dragleave)="s.sideDragLeave()"
               (drop)="s.sideDrop($event)"
-              class="panel relative flex-[1_1_300px] max-w-[440px] min-w-0 p-[14px] flex flex-col gap-[10px] max-h-[calc(100dvh-60px)] sticky top-4"
+              class="panel relative flex-[1_1_300px] md:max-w-[440px] min-w-0 p-[14px] flex flex-col gap-[10px] max-h-[75vh] md:max-h-[calc(100dvh-60px)] md:sticky md:top-4"
             >
-              <div class="flex items-baseline justify-between">
-                <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">Collectie</h2>
-                <span class="text-[12px] font-extrabold text-muted">{{ s.sideCount }}</span>
-              </div>
-              <input
-                [value]="s.sideQ"
-                (input)="s.onSideQ($event)"
-                placeholder="Zoek kaart…"
-                class="border-2 border-line rounded-[9px] bg-bg px-[10px] py-2 font-bold text-[14px] outline-none"
-              />
-              <select
-                [value]="s.sideSet"
-                (change)="s.onSideSet($event)"
-                class="appearance-none bg-bg border-2 border-line rounded-[9px] px-[10px] py-[7px] font-extrabold text-[13px] cursor-pointer"
-              >
-                <option value="">Alle sets ▾</option>
-                @for (g of s.setGroups; track g.key) {
-                  <optgroup [label]="g.label">
-                    @for (o of g.sets; track o.key) {
-                      <option [value]="o.code" [selected]="o.code === s.sideSet">{{ o.name }}</option>
+              @if (s.side; as sp) {
+                <!-- About the open binder: what's missing, what you own that fits, what to choose, or search everything. -->
+                <div class="grid grid-cols-4 gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden flex-none">
+                  @for (t of sp.tabs; track t.key) {
+                    <button
+                      (click)="t.select()"
+                      class="flex flex-col items-center gap-[3px] border-0 px-1 py-[7px] font-extrabold text-[12.5px] leading-none"
+                      [class]="t.on ? 'bg-red text-cream' : 'bg-surface text-ink'"
+                    >
+                      {{ t.label }}
+                      @if (t.count) {
+                        <span class="font-pixel text-[11px] leading-none" [class]="t.on ? 'text-cream' : 'text-muted'">{{ t.count }}</span>
+                      }
+                    </button>
+                  }
+                </div>
+                @if (sp.isNeed) {
+                  <div class="flex flex-col gap-2 flex-none">
+                    <div class="font-black text-[15px] leading-[1.25]">{{ sp.needHead }}</div>
+                    @if (sp.needItems.length) {
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <div class="grid grid-cols-2 gap-[2px] bg-line border-2 border-line rounded-[8px] overflow-hidden">
+                          <button (click)="sp.sortBinder()" class="border-0 px-[9px] py-[6px] font-extrabold text-[12px]" [class]="sp.needSortBinder ? 'bg-lcd text-lcd-ink' : 'bg-surface text-ink'">Binder-volgorde</button>
+                          <button (click)="sp.sortPrice()" class="border-0 px-[9px] py-[6px] font-extrabold text-[12px]" [class]="!sp.needSortBinder ? 'bg-lcd text-lcd-ink' : 'bg-surface text-ink'">Duurste eerst</button>
+                        </div>
+                        <button (click)="sp.copyNeed()" class="ml-auto flex items-center gap-[5px] bg-surface border-2 border-line rounded-[8px] shadow-hard-sm px-[9px] py-[5px] font-extrabold text-[12px]">
+                          <span class="icon text-[16px]">content_copy</span>Kopieer lijst
+                        </button>
+                      </div>
                     }
-                  </optgroup>
-                }
-              </select>
-              <div class="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-[10px] gap-y-3 overflow-auto p-1 pb-[6px]">
-                @for (it of s.sideItems; track it.key) {
-                  <div
-                    draggable="true"
-                    (dragstart)="it.onDragStart($event)"
-                    (dragend)="it.onDragEnd()"
-                    (click)="it.onClick()"
-                    class="flex flex-col gap-1 cursor-grab outline-[3px] outline-solid outline-offset-2 rounded-[7px]"
-                    [style.opacity]="it.op"
-                    [style.outline-color]="it.bd"
-                  >
-                    <div class="aspect-[63/88] pointer-events-none"><cc-card [card]="it.cv" /></div>
-                    <div class="flex justify-between gap-1 text-[10.5px] font-extrabold pointer-events-none">
-                      <span class="font-pixel font-normal">{{ it.num }}</span><span [style.color]="it.labelColor">{{ it.label }}</span>
-                    </div>
+                  </div>
+                  <div class="flex flex-col gap-[6px] overflow-auto min-h-0 p-[2px]">
+                    @for (it of sp.needItems; track it.key) {
+                      <button (click)="it.jump()" title="Ga naar dit slot" class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] text-left">
+                        <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                        <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
+                          <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
+                          <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
+                          <span class="font-pixel text-[10px] leading-none text-muted">{{ it.where }}</span>
+                        </span>
+                        <span class="font-pixel font-semibold text-[14px] leading-none flex-none">{{ it.price }}</span>
+                      </button>
+                    }
+                    @if (sp.needMore) {
+                      <div class="text-[12px] font-bold text-muted text-center py-1">{{ sp.needMore }}</div>
+                    }
                   </div>
                 }
-              </div>
+                @if (sp.isHave) {
+                  <div class="text-[13px] font-bold text-muted text-pretty flex-none">{{ sp.haveHead }}</div>
+                  <div class="flex flex-col gap-[6px] overflow-auto min-h-0 p-[2px]">
+                    @for (it of sp.haveItems; track it.key) {
+                      <div
+                        draggable="true"
+                        (dragstart)="it.onDragStart($event)"
+                        (dragend)="it.onDragEnd()"
+                        (click)="it.onPick()"
+                        class="flex items-center gap-[10px] bg-bg border-2 rounded-[9px] p-[6px] cursor-grab"
+                        [class]="it.picked ? 'border-lcd-mid' : 'border-line'"
+                      >
+                        <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                        <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
+                          <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
+                          <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
+                          <span class="text-[11px] font-extrabold text-muted truncate">{{ it.targetLabel }}</span>
+                        </span>
+                        @if (it.hasTarget) {
+                          <button (click)="it.replace(); $event.stopPropagation()" class="flex-none bg-lcd text-lcd-ink border-2 border-line rounded-[8px] shadow-hard-sm px-[9px] py-[6px] font-black text-[12px]">Zet erin</button>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+                @if (sp.isPick) {
+                  <div class="text-[13px] font-bold text-muted flex-none">{{ sp.pickHead }}</div>
+                  <div class="flex flex-col gap-[6px] overflow-auto min-h-0 p-[2px]">
+                    @for (it of sp.picks; track it.key) {
+                      <button (click)="it.open()" class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] text-left">
+                        <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                        <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
+                          <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
+                          <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
+                          <span class="font-pixel text-[10px] leading-none text-muted">{{ it.where }}</span>
+                        </span>
+                        <span
+                          class="flex-none border-[1.5px] border-line rounded-[4px] px-[5px] py-[3px] font-pixel text-[10px] leading-none"
+                          [class]="it.isWarn ? 'bg-amber text-coal' : 'bg-lcd text-lcd-ink'"
+                          >{{ it.label }}</span
+                        >
+                      </button>
+                    }
+                  </div>
+                }
+                @if (sp.isSearch) {
+                  <div class="flex items-baseline justify-end flex-none">
+                    <span class="text-[12px] font-extrabold text-muted">{{ s.sideCount }}</span>
+                  </div>
+                  <input
+                    [value]="s.sideQ"
+                    (input)="s.onSideQ($event)"
+                    placeholder="Zoek kaart…"
+                    class="border-2 border-line rounded-[9px] bg-bg px-[10px] py-2 font-bold text-[14px] outline-none"
+                  />
+                  <select
+                    [value]="s.sideSet"
+                    (change)="s.onSideSet($event)"
+                    class="appearance-none bg-bg border-2 border-line rounded-[9px] px-[10px] py-[7px] font-extrabold text-[13px] cursor-pointer"
+                  >
+                    <option value="">Alle sets ▾</option>
+                    @for (g of s.setGroups; track g.key) {
+                      <optgroup [label]="g.label">
+                        @for (o of g.sets; track o.key) {
+                          <option [value]="o.code" [selected]="o.code === s.sideSet">{{ o.name }}</option>
+                        }
+                      </optgroup>
+                    }
+                  </select>
+                  <div class="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-[10px] gap-y-3 overflow-auto p-1 pb-[6px]">
+                    @for (it of s.sideItems; track it.key) {
+                      <div
+                        draggable="true"
+                        (dragstart)="it.onDragStart($event)"
+                        (dragend)="it.onDragEnd()"
+                        (click)="it.onClick()"
+                        class="flex flex-col gap-1 cursor-grab outline-[3px] outline-solid outline-offset-2 rounded-[7px]"
+                        [style.opacity]="it.op"
+                        [style.outline-color]="it.bd"
+                      >
+                        <div class="aspect-[63/88] pointer-events-none"><cc-card [card]="it.cv" /></div>
+                        <div class="flex justify-between gap-1 text-[10.5px] font-extrabold pointer-events-none">
+                          <span class="font-pixel font-normal">{{ it.num }}</span><span [style.color]="it.labelColor">{{ it.label }}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
               @if (s.isDraggingSlot) {
                 <div
                   class="absolute inset-0 rounded-[10px] border-[3px] border-dashed border-red flex items-center justify-center text-center p-5 font-pixel text-[16px] leading-[1.4] text-ink pointer-events-none"

@@ -87,7 +87,7 @@ export class CardcaseStore {
     scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: ['fire', 'dragon'], langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
     shiftMode: 'buffer', job: null, done: {}, tip: false, showPrice: false, fSort: '', valRange: 'month',
-    rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, delAsk: null, newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
+    rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, delAsk: null, sideTab: 'need', needSort: 'binder', newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
     edMode: 'cards', decoTab: 'images', decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
   }; }
   seq = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any;
@@ -256,6 +256,64 @@ export class CardcaseStore {
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0], sameLimit: 20 }); }
   setOwn(id, l, delta) { this.setState(s => ({ owned: { ...s.owned, [id]: { ...s.owned[id], [l]: Math.max(0, (s.owned[id][l] || 0) + delta) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added })); }
 
+  /**
+   * The editor's side panel, about the open binder: the cards still missing (Nodig), cards you own that fit the
+   * recipe but aren't in it (Heb ik), slots with a choice to make (Keuzes). The catalog search is `sideItems`.
+   */
+  sidePanel(eb) {
+    const st = this.state; const { owned } = st; const r = eb.recipe; const lang = (r && r.lang) || 'EN';
+    const own = id => tot(owned[id]) > 0; const inB = new Set(eb.slots.filter(isCard));
+    const nameOf = c => c.names[c.avail.includes(lang) ? lang : c.avail[0]];
+    const where = idx => { const p = Math.floor(idx / eb.fmt); return 'P' + (p + 1) + ' · SLOT ' + (idx % eb.fmt + 1); };
+    // Turn to the slot's page and mark it.
+    const jump = idx => { const p = Math.floor(idx / eb.fmt); this.setState({ edSpread: Math.floor(p / 2), edSide: p % 2, actSlot: idx }); };
+    const drag = c => ({
+      onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); },
+      onDragEnd: () => this.setState({ drag: null, over: null }), onPick: () => this.setState(s => ({ sel: s.sel === c.id ? null : c.id })), picked: st.sel === c.id,
+    });
+
+    const seen = new Set(); const need = [];
+    eb.slots.forEach((x, idx) => { if (isCard(x) && !own(x) && !seen.has(x)) { seen.add(x); need.push({ idx, c: CARDS[x] }); } });
+    if (st.needSort === 'price') need.sort((a, b) => (b.c.trend ?? -1) - (a.c.trend ?? -1));
+    const priceOf = c => c.trend != null ? eur(c.trend) : '–';
+    const needList = need.map(({ c }) => `#${pad(c.sp)} ${nameOf(c)} · ${c.setName} ${c.numStr} · ${c.trend != null ? eur(c.trend) : 'prijs onbekend'}`).join('\n');
+
+    // Owned cards that fit: same Pokémon (and form) as a slot, in the binder's languages and preferred version.
+    const one = r && r.per === 'one' && r.type !== 'master';
+    const keyOf = c => c.sp + '|' + (c.form || '');
+    const slotOf = new Map(); if (one) eb.slots.forEach((x, idx) => { if (isCard(x) && !slotOf.has(keyOf(CARDS[x]))) slotOf.set(keyOf(CARDS[x]), idx); });
+    const langs = (r && r.langs) || [];
+    const fits = c => (!langs.length || langs.some(l => c.avail.includes(l))) && (!r || (r.type === 'master' ? c.set === r.set : r.pref === 'illus' ? c.variant === 'illus' : r.pref === 'fullart' ? c.variant === 'fullart' || c.variant === 'illus' : r.pref === 'set' ? c.set === r.prefSet : true));
+    const have = [];
+    for (const c of CARDS) if (own(c.id) && !inB.has(c.id) && fits(c) && (!one || slotOf.has(keyOf(c)))) have.push(c);
+    const target = c => one ? slotOf.get(keyOf(c)) : null;
+    // First the ones that would fill a slot of a card you don't have yet.
+    have.sort((a, b) => { const ta = target(a), tb = target(b); return (ta != null && !own(eb.slots[ta]) ? 0 : 1) - (tb != null && !own(eb.slots[tb]) ? 0 : 1) || (ta ?? 0) - (tb ?? 0); });
+    const haveItems = have.slice(0, 60).map(c => {
+      const t = target(c); const cur = t != null ? CARDS[eb.slots[t]] : null;
+      return { key: c.id, cv: this.cv(c, lang), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, hasTarget: t != null, targetLabel: t != null ? (own(cur.id) ? 'Wissel met ' : 'Vult ') + nameOf(cur) + ' · ' + where(t) : 'Sleep naar een slot',
+        replace: () => { this.updB(eb.id, nb => { nb.slots[t] = c.id; slotMeta(nb, t, null); return nb; }); jump(t); this.toast(nameOf(c) + ' in ' + where(t).toLowerCase() + ' gezet'); }, ...drag(c) };
+    });
+
+    const picks = [];
+    eb.slots.forEach((x, idx) => {
+      const a = eb.alts && eb.alts[idx] > 1; const w = eb.warn && eb.warn[idx]; if (!isCard(x) || (!a && !w)) return; const c = CARDS[x];
+      picks.push({ key: idx, cv: this.cv(c, lang, !own(x)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, label: a ? eb.alts[idx] + ' ' + altsNoun(r) : warnShort(w), isWarn: !a, where: where(idx), open: () => { jump(idx); this.setState({ verSheet: { idx } }); } });
+    });
+
+    const tab = st.sideTab; const tabs = [['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ['pick', 'Keuzes', picks.length], ['search', 'Zoeken', null]];
+    return {
+      tabs: tabs.map(([k, l, n]) => ({ key: k, label: l, count: n == null ? '' : String(n), on: tab === k, select: () => this.setState({ sideTab: k }) })),
+      isNeed: tab === 'need', isHave: tab === 'have', isPick: tab === 'pick', isSearch: tab === 'search',
+      needHead: need.length ? need.length + ' kaarten · ' + costLabel(need.map(x => x.c)) : 'Je hebt alles voor deze binder!',
+      needItems: need.slice(0, 200).map(({ idx, c }) => ({ key: idx, cv: this.cv(c, lang, true), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, price: priceOf(c), where: where(idx), jump: () => jump(idx) })),
+      needMore: need.length > 200 ? 'en nog ' + (need.length - 200) + ' meer' : '',
+      needSortBinder: st.needSort !== 'price', sortBinder: () => this.setState({ needSort: 'binder' }), sortPrice: () => this.setState({ needSort: 'price' }),
+      copyNeed: () => { try { navigator.clipboard.writeText(eb.name + ' · nog nodig\n' + needList); this.toast('Lijst gekopieerd · ' + need.length + ' kaarten'); } catch { this.toast('Kopiëren lukte niet'); } },
+      haveHead: have.length ? (one ? 'Uit je collectie, passend bij het recept' : 'Uit je collectie, nog niet in deze binder') + (have.length > 60 ? ' · eerste 60' : '') : one ? 'Geen andere passende kaarten in je collectie' : 'Al je kaarten zitten al in deze binder',
+      haveItems, picks, pickHead: picks.length ? picks.length + ' slots om naar te kijken' : 'Geen keuzes open',
+    };
+  }
   /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
   deleteBinder(id) {
     const b = this.state.binders.find(x => x.id === id); if (!b) return;
@@ -552,7 +610,7 @@ export class CardcaseStore {
       rcPrev: () => this.setState({ rcStep: Math.max(0, step - 1) }), rcPrevLabel: step > 1 ? 'Vorige' : 'Recepten',
       rcNext: () => step < steps.length ? this.setState({ rcStep: step + 1 }) : this.createFromRecipe(), rcNextLabel: step < steps.length ? 'Volgende' : 'Binder maken', rcNextIcon: step < steps.length ? 'arrow_forward' : 'auto_awesome',
       hasRecipe: !!(eb.recipe && eb.kind === 'recipe'),
-      rcCard: { shadow: pixShadowU((RECIPES.find(x => eb.recipe && x[0] === eb.recipe.type) || RECIPES[0])[2], '#0F380F', 4), label: eb.recipe ? recipeLabel(eb.recipe) : '', stats: eb.slots.filter(isCard).length + ' kaarten · ' + (ebWarn ? ebWarn + ' slots met alternatief (oranje !)' : 'alle regels gevonden'), hasNew: ns.length > 0, newCount: ns.length, newText: ns.length + (ns.length === 1 ? ' nieuwe kaart past' : ' nieuwe kaarten passen') + ' bij je ' + (eb.recipe ? autoName(eb.recipe) : '') + '-binder' },
+      rcCard: { shadow: pixShadowU((RECIPES.find(x => eb.recipe && x[0] === eb.recipe.type) || RECIPES[0])[2], '#0F380F', 4), label: eb.recipe ? recipeLabel(eb.recipe) : '', stats: eb.slots.filter(isCard).length + ' kaarten · ' + (ebWarn ? ebWarn + ' slots met een gewone kaart (oranje label)' : 'alle regels gevonden'), hasNew: ns.length > 0, newCount: ns.length, newText: ns.length + (ns.length === 1 ? ' nieuwe kaart past' : ' nieuwe kaarten passen') + ' bij je ' + (eb.recipe ? autoName(eb.recipe) : '') + '-binder' },
       toggleSuggest: () => this.updB(eb.id, nb => { nb.suggestOn = !nb.suggestOn; return nb; }), sgTrack: eb.suggestOn ? '#9BBC0F' : 'var(--soft)', sgKnob: eb.suggestOn ? '22px' : '2px',
       openNewSug: () => this.setState({ newSheet: true }), closeNewSheet: () => this.setState({ newSheet: false }), hasNewSheet: !!st.newSheet && ns.length > 0,
       newSugList: ns.map(c => { const slot = eb.slots.findIndex(x => isCard(x) && CARDS[x].sp === c.sp && CARDS[x].variant !== 'form'); const curC = slot >= 0 ? CARDS[eb.slots[slot]] : null; return { key: c.id, cv: this.cv(c, 'EN', !tot(owned[c.id])), name: '#' + pad(c.sp) + ' · ' + c.names.EN, meta: c.setName + ' · ' + VARL[c.variant] + ' · ' + eur(c.trend), reason: curC ? 'Nu in je binder: ' + curC.setName + ' (' + VARL[curC.variant] + ')' : 'Nog niet in je binder', actionLabel: curC ? 'Vervang huidige' : 'Toevoegen',
@@ -782,7 +840,7 @@ export class CardcaseStore {
     // editor
     const eb = this.curB(); const lastSpread = eb.pages / 2 - 1; const es = Math.min(st.edSpread, lastSpread);
     const inB = new Set(eb.slots.filter(x => x != null)); const sq = st.sideQ.trim().toLowerCase();
-    const sideItems = screen !== 'editor' ? [] : CARDS.filter(c => (!st.sideSet || c.set === st.sideSet) && (!sq || LANGS.some(l => c.names[l].toLowerCase().includes(sq)))).slice(0, 60).map(c => { const n = tot(owned[c.id]); const on = st.sel === c.id; return { key: c.id, cv: this.cv(c, 'EN', !n), num: c.set + ' ' + c.num, label: inB.has(c.id) ? '✓ geplaatst' : n ? '×' + n : 'mist', labelColor: n ? 'var(--muted)' : 'var(--red)', op: inB.has(c.id) ? 0.5 : 1, bd: on ? '#9BBC0F' : 'transparent', onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); }, onDragEnd: () => this.setState({ drag: null, over: null }), onClick: () => this.setState({ sel: on ? null : c.id }) }; });
+    const sideItems = screen !== 'editor' || st.sideTab !== 'search' ? [] : CARDS.filter(c => (!st.sideSet || c.set === st.sideSet) && (!sq || LANGS.some(l => c.names[l].toLowerCase().includes(sq)))).slice(0, 60).map(c => { const n = tot(owned[c.id]); const on = st.sel === c.id; return { key: c.id, cv: this.cv(c, 'EN', !n), num: c.set + ' ' + c.num, label: inB.has(c.id) ? '✓ geplaatst' : n ? '×' + n : 'mist', labelColor: n ? 'var(--muted)' : 'var(--red)', op: inB.has(c.id) ? 0.5 : 1, bd: on ? '#9BBC0F' : 'transparent', onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); }, onDragEnd: () => this.setState({ drag: null, over: null }), onClick: () => this.setState({ sel: on ? null : c.id }) }; });
     const isDraggingSlot = !!(st.drag && st.drag.type === 'slot');
 
     // viewer
@@ -837,6 +895,7 @@ export class CardcaseStore {
       addPages: () => { this.updB(eb.id, nb => { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); return nb; }); this.toast("2 pagina's toegevoegd"); },
       exportImg: () => this.toast(`Pagina ${2 * es + 1}–${2 * es + 2} geëxporteerd als PNG`),
       openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }),
+      side: screen === 'editor' ? this.sidePanel(eb) : null,
       sideItems, sideCount: sideItems.length >= 60 ? 'eerste 60 · zoek om te filteren' : sideItems.length + ' kaarten', sideQ: st.sideQ, onSideQ: e => this.setState({ sideQ: e.target.value }), sideSet: st.sideSet, onSideSet: e => this.setState({ sideSet: e.target.value }),
       isDraggingSlot, sideZoneBg: st.sideOver ? 'rgba(227,53,13,.22)' : 'rgba(227,53,13,.10)',
       sideDragOver: e => { if (this.state.drag && this.state.drag.type === 'slot') { e.preventDefault(); if (!this.state.sideOver) this.setState({ sideOver: true }); } },
