@@ -340,6 +340,12 @@ import { Pix, Switch } from '../shared/bits';
                     <div class="flex items-baseline justify-end flex-none">
                       <span class="text-[12px] font-extrabold text-muted">{{ s.sideCount }}</span>
                     </div>
+                    <!-- Language of the cards found; "pikachu" also finds ピカチュウ. -->
+                    <div class="grid grid-cols-5 gap-[2px] bg-line border-2 border-line rounded-[9px] overflow-hidden flex-none">
+                      @for (l of s.sideLangChips; track l.key) {
+                        <button (click)="l.select()" class="border-0 py-[6px] font-pixel font-semibold text-[13px] leading-none" [class]="l.on ? 'bg-red text-cream' : 'bg-surface text-ink'">{{ l.label }}</button>
+                      }
+                    </div>
                     <select
                       [value]="s.sideSet"
                       (change)="s.onSideSet($event)"
@@ -396,7 +402,11 @@ import { Pix, Switch } from '../shared/bits';
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-[10px]">
                   @for (i of s.imgThumbs; track i.key) {
                     <div draggable="true" (dragstart)="i.onDragStart($event)" (dragend)="i.onDragEnd()" (click)="i.onClick()" class="flex flex-col gap-1 cursor-grab">
-                      <div class="aspect-square border-2 border-line rounded-[7px] bg-cover bg-center shadow-hard-sm" [style.background-image]="i.fill"></div>
+                      <div class="relative aspect-square border-2 border-line rounded-[7px] bg-cover bg-center shadow-hard-sm" [style.background-image]="i.fill">
+                        @if (i.canDelete) {
+                          <button (click)="i.remove($event)" title="Verwijder uit je afbeeldingen" class="absolute -top-[7px] -right-[7px] w-6 h-6 rounded-full bg-surface border-2 border-line flex items-center justify-center"><span class="icon text-[14px]">close</span></button>
+                        }
+                      </div>
                       <span class="text-[11px] font-extrabold whitespace-nowrap overflow-hidden text-ellipsis">{{ i.name }}</span>
                     </div>
                   }

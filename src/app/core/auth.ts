@@ -95,6 +95,11 @@ export class AuthService {
     await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid, 'images', img.id), img);
   }
 
+  async deleteImage(uid: string, id: string) {
+    const { fsMod } = await this.requireSdk();
+    await fsMod.deleteDoc(fsMod.doc(this.db!, 'users', uid, 'images', id));
+  }
+
   /** An uploaded picture of this account, or null when there's none with that id. */
   async loadImage(uid: string, id: string): Promise<{ id: string; name: string; data: string; added: number } | null> {
     const { fsMod } = await this.requireSdk();

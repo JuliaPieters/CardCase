@@ -2,7 +2,7 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService, authErrorMessage } from './auth';
 import { CatalogService } from './catalog';
-import { IMG_DATA, compressImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
+import { IMG_DATA, compressImage, deleteLocalImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
 import { deserializeUser, freshUser, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
 import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
@@ -211,6 +211,13 @@ export class CardcaseStore {
   pushImages() {
     const acc = this.account; if (!acc) return; const have = IMG_DATA();
     for (const id of imageRefs(this.state.binders)) if (have[id]) this.auth.saveImage(acc, { id, name: ((this.state.uploads || []).find(u => u.id === id) || {}).name || '', data: have[id], added: Date.now() }).catch(err => console.warn('[images]', err));
+  }
+  /** Removes an uploaded picture from the library (this browser and the account), unless a binder still uses it. */
+  deleteUpload(id) {
+    const used = this.state.binders.filter(b => imageRefs([b]).includes(id));
+    if (used.length) { this.toast('Staat nog in ' + used.map(b => b.name).join(', ') + ' · haal hem daar eerst weg'); return; }
+    deleteLocalImage(id); if (this.account) this.auth.deleteImage(this.account, id).catch(err => console.warn('[images]', err));
+    this.setState(s => ({ uploads: (s.uploads || []).filter(u => u.id !== id) })); this.toast('Afbeelding verwijderd');
   }
   /** A new upload: made smaller, kept in this browser and the account, and opened for cropping. */
   async upload(file: File, w: number, h: number) {
@@ -428,6 +435,17 @@ export class CardcaseStore {
       reserve: () => { this.updB(eb.id, nb => { nb.slots[idx] = 'B'; return nb; }); this.setState({ actSlot: null }); this.toast(where(idx).toLowerCase() + ' gereserveerd als buffer'); },
       close: () => this.setState({ actSlot: null }),
     };
+  }
+  /**
+   * Whether a card matches a search (lowercase) in the given languages: its name or number, or the English or German
+   * name of its Pokémon, so "squirtle" also finds ゼニガメ without a Japanese keyboard.
+   */
+  searchMatch(ql, langs) {
+    if (!ql) return () => true;
+    const spHit = new Set<number>(); for (let d = 1; d <= 1025; d++) { const n = SP[d]?.name; if (n && (n.EN.toLowerCase().includes(ql) || n.DE.toLowerCase().includes(ql))) spHit.add(d); }
+    // Some Japanese and many Chinese cards have no dex number: match those on the Pokémon's name in that script.
+    const spNative = spHit.size > 30 ? [] : [...new Set([...spHit].flatMap(d => [SP[d].name.JA, SP[d].name.ZH]).filter(n => n && !/^[\x00-\x7f]*$/.test(n)))];
+    return c => c.numStr.includes(ql) || spHit.has(c.sp) || (c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n))) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql));
   }
   /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
   deleteBinder(id) {
@@ -673,7 +691,7 @@ export class CardcaseStore {
       decoTabs: [['images', 'Afbeeldingen', 'image'], ['bgs', 'Achtergronden', 'wallpaper'], ['stickers', 'Stickers', 'star'], ['templates', 'Templates', 'dashboard'], ['suggest', 'Suggesties', 'auto_awesome']].map(([k, l, icon]) => ({ key: k, label: l, icon, ...chip(st.decoTab === k), select: () => this.setState({ decoTab: k }) })),
       tabImages: st.decoTab === 'images', tabBgs: st.decoTab === 'bgs', tabStickers: st.decoTab === 'stickers', tabTemplates: st.decoTab === 'templates', tabSuggest: st.decoTab === 'suggest',
       sizeOpts: sizeKeys.map(([k, l]) => ({ key: k, label: l, ...chip(st.decoSize === k), select: () => this.setState({ decoSize: k }) })),
-      imgThumbs: IMGS.concat(st.uploads || []).map(im => ({ key: im.id, name: im.name, fill: resolveFill(im.fill), onDragStart: payload({ type: 'img', fill: im.fill }), onDragEnd: endDrag, onClick: () => this.placeImage(im.fill) })),
+      imgThumbs: IMGS.concat(st.uploads || []).map(im => ({ key: im.id, name: im.name, fill: resolveFill(im.fill), canDelete: (st.uploads || []).includes(im), remove: e => { e.stopPropagation(); this.deleteUpload(im.id); }, onDragStart: payload({ type: 'img', fill: im.fill }), onDragEnd: endDrag, onClick: () => this.placeImage(im.fill) })),
       onUpload: e => { const f = e.target.files && e.target.files[0]; if (!f) return; const sz = this.fitSize(cols, rows); this.upload(f, sz[0], sz[1]); e.target.value = ''; },
       sampleCrop: () => { const sz = this.fitSize(cols, rows); this.go('crop', { crop: { fill: IMGS[7].fill, name: 'Voorbeeldfoto.jpg', w: sz[0], h: sz[1], x: 50, y: 50, zoom: 1 } }); },
       bgBoth: chip(st.bgBoth), toggleBgBoth: () => this.setState(s => ({ bgBoth: !s.bgBoth })),
@@ -975,13 +993,8 @@ export class CardcaseStore {
     const recent = [...ownedCards].sort((a, b) => (added[b.id] || 0) - (added[a.id] || 0)).slice(0, 10).map(c => ({ key: c.id, cv: this.cv(c, 'EN'), when: when(added[c.id]), open: () => this.openDetail(c.id) }));
 
     // search
-    const ql = st.q.trim().toLowerCase(); const langs = st.fLangs.length ? st.fLangs : LANGS;
-    // Pokémon whose English or German name matches, so "squirtle" also finds ゼニガメ without a Japanese keyboard.
-    const spHit = new Set<number>(); if (ql) for (let d = 1; d <= 1025; d++) { const n = SP[d]?.name; if (n && (n.EN.toLowerCase().includes(ql) || n.DE.toLowerCase().includes(ql))) spHit.add(d); }
-    // Some Japanese and many Chinese cards have no dex number: match those on the Pokémon's name in that script.
-    const spNative = spHit.size > 30 ? [] : [...new Set([...spHit].flatMap(d => [SP[d].name.JA, SP[d].name.ZH]).filter(n => n && !/^[\x00-\x7f]*$/.test(n)))];
-    const nativeHit = c => c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n));
-    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && (!ql || c.numStr.includes(ql) || spHit.has(c.sp) || nativeHit(c) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql))));
+    const ql = st.q.trim().toLowerCase(); const langs = st.fLangs.length ? st.fLangs : LANGS; const qMatch = this.searchMatch(ql, langs);
+    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && qMatch(c));
     const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || c.avail[0]; };
     const byValue = (a, b) => (b.trend ?? -1) - (a.trend ?? -1);
     const byNew = (a, b) => relKey(b).localeCompare(relKey(a)) || a.id - b.id, byOld = (a, b) => relKey(a).localeCompare(relKey(b)) || a.id - b.id;
@@ -1018,7 +1031,8 @@ export class CardcaseStore {
     // editor
     const eb = this.curB(); const lastSpread = eb.pages / 2 - 1; const es = Math.min(st.edSpread, lastSpread);
     const inB = new Set(eb.slots.filter(x => x != null)); const sq = st.sideQ.trim().toLowerCase();
-    const sideItems = screen !== 'editor' || !st.sideQ.trim() ? [] : CARDS.filter(c => (!st.sideSet || c.set === st.sideSet) && (!sq || LANGS.some(l => c.names[l].toLowerCase().includes(sq)))).slice(0, 60).map(c => { const n = tot(owned[c.id]); const on = st.sel === c.id; return { key: c.id, cv: this.cv(c, 'EN', !n), num: c.set + ' ' + c.num, label: inB.has(c.id) ? '✓ geplaatst' : n ? '×' + n : 'mist', labelColor: n ? 'var(--muted)' : 'var(--red)', op: inB.has(c.id) ? 0.5 : 1, bd: on ? '#9BBC0F' : 'transparent', onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); }, onDragEnd: () => this.setState({ drag: null, over: null }), onClick: () => { const a = this.state.actSlot; if (a != null && this.curB().slots[a] == null) { this.updB(this.state.edId, nb => { nb.slots[a] = c.id; slotMeta(nb, a, null); return nb; }); this.setState({ actSlot: null }); this.toast(c.names.EN + ' in het vak gezet'); } else this.setState({ sel: on ? null : c.id }); } }; });
+    const sideLangs = st.sideLang ? [st.sideLang] : LANGS; const sideMatch = screen === 'editor' && sq ? this.searchMatch(sq, sideLangs) : null;
+    const sideItems = !sideMatch ? [] : CARDS.filter(c => (!st.sideSet || c.set === st.sideSet) && sideLangs.some(l => c.avail.includes(l)) && sideMatch(c)).slice(0, 60).map(c => { const n = tot(owned[c.id]); const on = st.sel === c.id; return { key: c.id, cv: this.cv(c, st.sideLang || 'EN', !n), num: c.set + ' ' + c.num, label: inB.has(c.id) ? '✓ geplaatst' : n ? '×' + n : 'mist', labelColor: n ? 'var(--muted)' : 'var(--red)', op: inB.has(c.id) ? 0.5 : 1, bd: on ? '#9BBC0F' : 'transparent', onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); }, onDragEnd: () => this.setState({ drag: null, over: null }), onClick: () => { const a = this.state.actSlot; if (a != null && this.curB().slots[a] == null) { this.updB(this.state.edId, nb => { nb.slots[a] = c.id; slotMeta(nb, a, null); return nb; }); this.setState({ actSlot: null }); this.toast(c.names.EN + ' in het vak gezet'); } else this.setState({ sel: on ? null : c.id }); } }; });
     const isDraggingSlot = !!(st.drag && st.drag.type === 'slot');
 
     // viewer
@@ -1085,7 +1099,7 @@ export class CardcaseStore {
         if (isCard(x)) return { isCard: true, name: CARDS[x].names[CARDS[x].avail[0]], where: 'PAGINA ' + p + ' · VAK ' + sl, canSwap: !!eb.recipe, swap: () => this.setState({ verSheet: { idx: a } }), remove: () => this.removeSlot(eb, a), deselect: () => this.setState({ actSlot: null }) };
         if (x == null) return { isCard: false, name: 'Leeg vak', where: 'PAGINA ' + p + ' · VAK ' + sl, canSwap: false, swap: () => {}, remove: () => {}, deselect: () => this.setState({ actSlot: null }) };
         return null; })(), dragTurn: (e, dir) => this.dragTurn(e, dir), dragTurnLeave: () => this.dragTurnLeave(),
-      sideItems, sideCount: sideItems.length >= 60 ? 'eerste 60 · zoek om te filteren' : sideItems.length + ' kaarten', sideQ: st.sideQ, onSideQ: e => this.setState({ sideQ: e.target.value }), clearSideQ: () => this.setState({ sideQ: '' }), sideSet: st.sideSet, onSideSet: e => this.setState({ sideSet: e.target.value }),
+      sideItems, sideCount: sideItems.length >= 60 ? 'eerste 60 · zoek om te filteren' : sideItems.length + ' kaarten', sideQ: st.sideQ, onSideQ: e => this.setState({ sideQ: e.target.value }), sideLangChips: [['', 'Alle'], ...LANGS.map(l => [l, l])].map(([k, l]) => ({ key: k || 'all', label: l, on: (st.sideLang || '') === k, select: () => this.setState({ sideLang: k }) })), clearSideQ: () => this.setState({ sideQ: '' }), sideSet: st.sideSet, onSideSet: e => this.setState({ sideSet: e.target.value }),
       isDraggingSlot, sideZoneBg: st.sideOver ? 'rgba(227,53,13,.22)' : 'rgba(227,53,13,.10)',
       sideDragOver: e => { if (this.state.drag && this.state.drag.type === 'slot') { e.preventDefault(); if (!this.state.sideOver) this.setState({ sideOver: true }); } },
       sideDragLeave: () => this.state.sideOver && this.setState({ sideOver: false }),

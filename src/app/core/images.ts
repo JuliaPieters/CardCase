@@ -77,6 +77,24 @@ export async function putLocalImage(img: StoredImage): Promise<void> {
   }
 }
 
+export async function deleteLocalImage(id: string): Promise<void> {
+  IMG_DATA.update((m) => {
+    const { [id]: _, ...rest } = m;
+    return rest;
+  });
+  try {
+    const db = await open();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('[images] lokaal verwijderen mislukt', err);
+  }
+}
+
 /** Every picture kept in this browser, oldest first; they're registered in `IMG_DATA` too. */
 export async function loadLocalImages(): Promise<StoredImage[]> {
   try {
