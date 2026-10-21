@@ -349,8 +349,9 @@ export class CardcaseStore {
     const slot = slotIdx == null ? null : this.slotSuggestions(eb, slotIdx, { own, nameOf, where, inB, fits, keyOf, lang, drag });
     // Typing in the search bar shows the results in place of the tab's content.
     const searching = !!st.sideQ.trim();
-    const tab = searching ? 'search' : st.sideTab === 'slot' && !slot ? 'need' : st.sideTab === 'search' ? 'need' : st.sideTab;
-    const tabs = [...(slot ? [['slot', 'Dit vak', null]] : []), ['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ['pick', 'Versies', picks.length]];
+    const tab = searching ? 'search' : (st.sideTab === 'slot' && !slot) || st.sideTab === 'search' || (st.sideTab === 'pick' && !(eb.recipe && eb.kind === 'recipe')) ? 'need' : st.sideTab;
+    // Keuzes only exist where a recipe picked the cards.
+    const tabs = [...(slot ? [['slot', 'Dit vak', null]] : []), ['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ...(eb.recipe && eb.kind === 'recipe' ? [['pick', 'Keuzes', picks.length]] : [])];
     return {
       cols: tabs.length,
       tabs: tabs.map(([k, l, n]) => ({ key: k, label: l, count: n == null ? '' : String(n), on: tab === k, select: () => this.setState({ sideTab: k, sideQ: '' }) })),
@@ -361,7 +362,7 @@ export class CardcaseStore {
       needSortBinder: st.needSort !== 'price', sortBinder: () => this.setState({ needSort: 'binder' }), sortPrice: () => this.setState({ needSort: 'price' }),
       copyNeed: () => { try { navigator.clipboard.writeText(eb.name + ' · nog nodig\n' + needList); this.toast('Lijst gekopieerd · ' + need.length + ' kaarten'); } catch { this.toast('Kopiëren lukte niet'); } },
       haveHead: have.length ? (one ? 'Uit je collectie, passend bij het recept' : 'Uit je collectie, nog niet in deze binder') + (have.length > 60 ? ' · eerste 60' : '') : one ? 'Geen andere passende kaarten in je collectie' : 'Al je kaarten zitten al in deze binder',
-      haveItems, picks, pickHead: picks.length ? 'Vakken waar het recept een versie heeft gekozen. Klik om een andere te nemen.' : 'Geen vakken met andere versies',
+      haveItems, picks, pickHead: picks.length ? 'Hier koos het recept een kaart voor je. Klik om een andere te nemen.' : 'Geen keuzes open: het recept vond overal precies één kaart',
       // Several fitting versions, and Pokémon without the preferred version (their regular card stands in).
       pickGroups: [['alts', 'Meerdere opties', picks.filter(x => !x.isWarn)], ['warn', 'Gewone kaart in plaats van de gekozen versie', picks.filter(x => x.isWarn)]].filter(g => g[2].length).map(([key, title, items]) => ({ key, title: title + ' · ' + items.length, items })),
     };
