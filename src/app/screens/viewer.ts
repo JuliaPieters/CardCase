@@ -9,7 +9,7 @@ import { BinderPage } from '../shared/binder-page';
   imports: [BinderPage],
   template: `
     @let s = v();
-    <div class="fixed inset-0 z-[45] bg-bg flex flex-col overflow-auto">
+    <div class="fixed inset-0 z-[45] bg-bg flex flex-col overflow-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div class="flex flex-wrap items-center gap-[10px] py-3 px-[clamp(14px,3vw,32px)] bg-red border-b-2 border-line text-cream">
         <button
           (click)="s.closeViewer()"

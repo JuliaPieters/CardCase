@@ -12,7 +12,7 @@ import { DecoPage } from '../shared/deco-page';
     @let s = v();
     @if (s.hasFix) {
       <div (click)="s.closeFix()" class="fixed inset-0 z-[60] bg-[rgba(0,0,0,.45)] flex items-end justify-center">
-        <div (click)="s.stop($event)" [class]="sheet + ' max-w-[560px] max-h-[84vh] pb-5 gap-[14px]'">
+        <div (click)="s.stop($event)" [class]="sheet + ' max-w-[560px] max-h-[84vh] pb-[calc(20px+env(safe-area-inset-bottom))] gap-[14px]'">
           <div class="w-11 h-[5px] rounded-[3px] bg-muted opacity-50 self-center"></div>
           <div class="flex items-end justify-between gap-[10px]">
             <div>
@@ -82,7 +82,7 @@ import { DecoPage } from '../shared/deco-page';
 
     @if (s.hasVerSheet) {
       <div (click)="s.closeVer()" class="fixed inset-0 z-[60] bg-[rgba(0,0,0,.45)] flex items-end justify-center">
-        <div (click)="s.stop($event)" [class]="sheet + ' max-w-[860px] max-h-[86vh] pb-[22px] gap-[14px]'">
+        <div (click)="s.stop($event)" [class]="sheet + ' max-w-[860px] max-h-[86vh] pb-[calc(22px+env(safe-area-inset-bottom))] gap-[14px]'">
           <div class="w-11 h-[5px] rounded-[3px] bg-muted opacity-50 self-center"></div>
           <div class="flex items-end justify-between gap-[10px]">
             <div>
@@ -123,7 +123,7 @@ import { DecoPage } from '../shared/deco-page';
 
     @if (s.hasNewSheet) {
       <div (click)="s.closeNewSheet()" class="fixed inset-0 z-[60] bg-[rgba(0,0,0,.45)] flex items-end justify-center">
-        <div (click)="s.stop($event)" [class]="sheet + ' max-w-[600px] max-h-[84vh] pb-[22px] gap-3'">
+        <div (click)="s.stop($event)" [class]="sheet + ' max-w-[600px] max-h-[84vh] pb-[calc(22px+env(safe-area-inset-bottom))] gap-3'">
           <div class="w-11 h-[5px] rounded-[3px] bg-muted opacity-50 self-center"></div>
           <div class="flex items-end justify-between gap-[10px]">
             <div>

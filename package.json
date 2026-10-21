@@ -10,7 +10,8 @@
     "test": "ng test",
     "sync-catalog": "node --no-warnings scripts/sync-catalog.mjs",
     "sync-images": "node scripts/sync-images.mjs",
-    "sync-hashes": "node --no-warnings scripts/sync-hashes.mjs"
+    "sync-hashes": "node --no-warnings scripts/sync-hashes.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.1",

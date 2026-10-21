@@ -13,7 +13,7 @@ import { Led } from '../shared/bits';
   imports: [Led],
   template: `
     @let s = v();
-    <div class="fixed inset-0 z-50 bg-[#0B0C0F] flex justify-center">
+    <div class="fixed inset-0 z-50 bg-[#0B0C0F] flex justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div class="relative w-full max-w-[560px] h-full flex flex-col gap-3 overflow-hidden bg-[#14161B] pb-4">
         <div class="flex items-center gap-3 px-[14px] pt-3 text-[#F7F3E8]">
           <button
