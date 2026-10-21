@@ -23,6 +23,7 @@ import { PageScanOverlay } from './screens/page-scan';
 import { Sheets } from './screens/sheets';
 import { AuthPanel } from './screens/auth-panel';
 import { AuthService } from './core/auth';
+import { AppUpdate } from './core/app-update';
 
 @Component({
   selector: 'app-root',
@@ -57,6 +58,7 @@ export class App {
   protected readonly v = this.store.vals;
   private readonly main = viewChild<ElementRef<HTMLElement>>('main');
   protected readonly user = inject(AuthService).user;
+  protected readonly update = inject(AppUpdate);
   protected readonly initial = computed(() => (this.user()?.displayName || this.user()?.email || '?').charAt(0).toUpperCase());
 
   protected openAccount() {

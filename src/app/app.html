@@ -169,6 +169,15 @@
   <cc-sheets />
   <cc-auth-panel />
 
+  @if (update.ready()) {
+    <button
+      (click)="update.apply()"
+      class="press-sm fixed left-1/2 -translate-x-1/2 bottom-[calc(92px+env(safe-area-inset-bottom))] z-[85] w-max max-w-[calc(100vw-32px)] flex items-center gap-2 bg-device text-cream border-2 border-black rounded-xl shadow-[0_4px_0_#000] px-4 py-3 font-pixel font-semibold text-[15px] leading-none"
+    >
+      <span class="icon text-[20px] text-lcd">system_update</span>Nieuwe versie · tik om te laden
+    </button>
+  }
+
   @if (s.hasToast) {
     <div
       class="fixed left-1/2 bottom-[calc(92px+env(safe-area-inset-bottom))] -translate-x-1/2 z-[90] bg-device border-2 border-black rounded-[10px] p-1 shadow-[3px_3px_0_#000] animate-pop max-w-[calc(100vw-32px)]"
