@@ -87,7 +87,7 @@ export class CardcaseStore {
     scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: ['fire', 'dragon'], langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
     shiftMode: 'buffer', job: null, done: {}, tip: false, showPrice: false, fSort: '', valRange: 'month',
-    rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
+    rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, delAsk: null, newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
     edMode: 'cards', decoTab: 'images', decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
   }; }
   seq = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any;
@@ -256,6 +256,17 @@ export class CardcaseStore {
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0], sameLimit: 20 }); }
   setOwn(id, l, delta) { this.setState(s => ({ owned: { ...s.owned, [id]: { ...s.owned[id], [l]: Math.max(0, (s.owned[id][l] || 0) + delta) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added })); }
 
+  /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
+  deleteBinder(id) {
+    const b = this.state.binders.find(x => x.id === id); if (!b) return;
+    this.setState(s => {
+      let binders = s.binders.filter(x => x.id !== id);
+      if (!binders.length) binders = [Object.assign(mkB('b' + Date.now(), 'Mijn eerste binder', 9, 2, '#E3350D', []), { kind: 'free', desc: 'Vrije indeling' })];
+      const keep = x => binders.some(y => y.id === x) ? x : binders[0].id;
+      return { binders, delAsk: null, edId: keep(s.edId), vId: keep(s.vId), ps: { ...s.ps, binderId: keep(s.ps.binderId) } };
+    });
+    this.toast(b.name + ' verwijderd · je kaarten blijven in je collectie');
+  }
   curB() { return this.state.binders.find(b => b.id === this.state.edId); }
   updB(id, fn) { this.setState(s => ({ binders: s.binders.map(b => b.id === id ? fn({ ...b, slots: [...b.slots] }) : b) })); }
   setFmt(fmt) {
@@ -766,7 +777,7 @@ export class CardcaseStore {
     const toCollItem = c => { const n = tot(owned[c.id]); const chg30 = c.trend != null && c.avg30 ? (c.trend - c.avg30) / c.avg30 * 100 : null; return { key: c.id, released: relLabel(c, true), p30: chg30 == null ? null : { avg: eur(c.avg30), chg: pctf(chg30), ...chgStyle(chg30) }, cv: this.cv(c, 'EN', !n), name: c.names.EN, price: (n ? '' : '≈ ') + eur(c.trend), setNum: c.set + ' ' + c.numStr, typeLabel: TYPES[c.type][0], langs: LANGS.filter(l => owned[c.id][l]).map(l => owned[c.id][l] > 1 ? `${l}×${owned[c.id][l]}` : l).join(' '), qtyLabel: n ? '×' + n : 'mist', qtyColor: n ? 'var(--ink)' : 'var(--red)', shadow: n ? '3px 3px 0 var(--line)' : 'none', open: () => this.openDetail(c.id) }; };
 
     // binders
-    const binderCards = st.binders.map(b => { const filled = b.slots.filter(isCard); const miss = filled.filter(x => !tot(owned[x])).length; const pct = Math.round(filled.length / b.slots.length * 100); return { key: b.id, name: b.name, cover: b.cover, fmt: b.fmt + '-POCKET', pct, stats: `${filled.length}/${b.slots.length} slots · ${b.pages} pagina's`, missLabel: !filled.length ? 'nog leeg' : miss ? `${miss} ontbrekend` : 'alles in bezit', newCount: this.newSugs(b).length, hasNewSug: this.newSugs(b).length > 0, kindLabel: (b.kind === 'recipe' ? 'SLIMME BINDER' : (KINDS.find(k => k[0] === (b.kind || 'set')) || KINDS[0])[1].toUpperCase()) + (b.desc ? ' · ' + b.desc : ''), value: eur(filled.filter(x => tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0)), complete: filled.length > 0 && miss === 0, preview: filled.slice(0, 3).map((id, i) => ({ key: id, cv: this.cv(CARDS[id], 'EN', !tot(owned[id])), left: [0, 29, 58][i], rot: [-9, 0, 9][i] })), edit: () => this.go('editor', { edId: b.id, edSpread: 0 }), view: () => this.go('viewer', { vId: b.id, vSpread: 0 }) }; });
+    const binderCards = st.binders.map(b => { const filled = b.slots.filter(isCard); const miss = filled.filter(x => !tot(owned[x])).length; const pct = Math.round(filled.length / b.slots.length * 100); return { key: b.id, name: b.name, cover: b.cover, fmt: b.fmt + '-POCKET', pct, stats: `${filled.length}/${b.slots.length} slots · ${b.pages} pagina's`, missLabel: !filled.length ? 'nog leeg' : miss ? `${miss} ontbrekend` : 'alles in bezit', newCount: this.newSugs(b).length, hasNewSug: this.newSugs(b).length > 0, kindLabel: (b.kind === 'recipe' ? 'SLIMME BINDER' : (KINDS.find(k => k[0] === (b.kind || 'set')) || KINDS[0])[1].toUpperCase()) + (b.desc ? ' · ' + b.desc : ''), value: eur(filled.filter(x => tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0)), complete: filled.length > 0 && miss === 0, preview: filled.slice(0, 3).map((id, i) => ({ key: id, cv: this.cv(CARDS[id], 'EN', !tot(owned[id])), left: [0, 29, 58][i], rot: [-9, 0, 9][i] })), edit: () => this.go('editor', { edId: b.id, edSpread: 0, edSide: 0 }), view: () => this.go('viewer', { vId: b.id, vSpread: 0, vSide: 0 }), del: () => this.setState({ delAsk: b.id }) }; });
 
     // editor
     const eb = this.curB(); const lastSpread = eb.pages / 2 - 1; const es = Math.min(st.edSpread, lastSpread);
@@ -814,6 +825,8 @@ export class CardcaseStore {
       sort: st.sort, onSort: e => this.setState({ sort: e.target.value }), collSet: st.collSet, onCollSet: e => this.setState({ collSet: e.target.value }),
       toggleMissing: () => this.setState(s => ({ missingOnly: !s.missingOnly })), missTrack: st.missingOnly ? '#9BBC0F' : 'var(--soft)', missKnob: st.missingOnly ? '22px' : '2px',
       binderCards, newBinder: () => this.go('recipe', { rcStep: 0 }),
+      delAsk: (() => { const b = st.binders.find(x => x.id === st.delAsk); return b ? { name: b.name, cards: b.slots.filter(isCard).length } : null; })(),
+      confirmDelete: () => this.deleteBinder(st.delAsk), cancelDelete: () => this.setState({ delAsk: null }),
       ed: { name: eb.name, cover: eb.cover, spreadLabel: `PAGINA ${2 * es + 1}–${2 * es + 2} / ${eb.pages}`, maxW: spreadMaxW(eb.fmt) },
       edLeft: this.pageModel(eb, 2 * es, true), edRight: this.pageModel(eb, 2 * es + 1, true),
       edOne: onePage(eb, 2 * es + (st.edSide || 0), st.pflip, 'ed', p => this.pageModel(eb, p, true), p => this.pageModel(eb, p, false)),

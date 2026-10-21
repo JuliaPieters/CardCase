@@ -77,12 +77,45 @@ import { Card } from '../shared/card';
               <div class="flex gap-[6px]">
                 <button (click)="b.edit()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-3 py-[10px] font-extrabold text-[13px]">Bewerk</button>
                 <button (click)="b.view()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-3 py-[10px] font-extrabold text-[13px]">Bekijk</button>
+                <button
+                  (click)="b.del()"
+                  title="Binder verwijderen"
+                  class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm w-[42px] flex items-center justify-center text-red"
+                >
+                  <span class="icon text-[19px]">delete</span>
+                </button>
               </div>
             </div>
           </div>
         }
       </div>
     </div>
+
+    @if (s.delAsk; as d) {
+      <div (click)="s.cancelDelete()" class="fixed inset-0 z-[60] bg-[rgba(0,0,0,.45)] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div
+          (click)="$event.stopPropagation()"
+          role="dialog"
+          aria-modal="true"
+          class="w-full max-w-[440px] bg-bg text-ink border-2 border-line rounded-t-[22px] sm:rounded-[18px] px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] flex flex-col gap-3 shadow-[5px_5px_0_var(--line)]"
+        >
+          <div class="kicker">BINDER VERWIJDEREN</div>
+          <div class="font-black text-[20px] leading-[1.2]">{{ d.name }} verwijderen?</div>
+          <div class="text-[14px] font-bold text-muted text-pretty">
+            De binder met zijn indeling en decoratie verdwijnt. De {{ d.cards }} kaarten erin blijven gewoon in je collectie.
+          </div>
+          <div class="flex gap-[10px] justify-end mt-1">
+            <button (click)="s.cancelDelete()" class="btn">Annuleer</button>
+            <button
+              (click)="s.confirmDelete()"
+              class="press-sm flex items-center gap-[6px] bg-red text-cream border-2 border-line rounded-[10px] shadow-[0_4px_0_var(--line)] px-4 py-2 font-black text-[14px]"
+            >
+              <span class="icon text-[19px]">delete</span>Verwijder
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class BindersScreen {
