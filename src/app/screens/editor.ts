@@ -39,6 +39,15 @@ import { Pix, Switch } from '../shared/bits';
       }
       <div class="flex flex-wrap gap-5 items-start">
         <div class="flex-[3_1_520px] min-w-0 flex flex-col gap-3">
+              <!-- Labels on the cards, switchable. -->
+              <div class="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 -mb-1">
+                <button (click)="s.toggleShowPrice()" class="flex items-center gap-[8px] bg-transparent border-0 p-0 font-extrabold text-[13px]">
+                  <cc-switch [on]="s.showPrice" />Toon prijs
+                </button>
+                <button (click)="s.toggleShowOwn()" class="flex items-center gap-[8px] bg-transparent border-0 p-0 font-extrabold text-[13px]">
+                  <cc-switch [on]="s.showOwn" />Toon bezit
+                </button>
+              </div>
               @if (s.wide) {
                 <div class="flex items-center justify-center gap-[10px]">
                   <button
@@ -304,21 +313,26 @@ import { Pix, Switch } from '../shared/bits';
                   }
                   @if (sp.isPick) {
                     <div class="text-[13px] font-bold text-muted flex-none">{{ sp.pickHead }}</div>
-                    <div class="flex flex-col gap-[6px] overflow-auto min-h-0 p-[2px]">
-                      @for (it of sp.picks; track it.key) {
-                        <button (click)="it.open()" class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] text-left">
-                          <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
-                          <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
-                            <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
-                            <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
-                            <span class="font-pixel text-[10px] leading-none text-muted">{{ it.where }}</span>
-                          </span>
-                          <span
-                            class="flex-none border-[1.5px] border-line rounded-[4px] px-[5px] py-[3px] font-pixel text-[10px] leading-none"
-                            [class]="it.isWarn ? 'bg-amber text-coal' : 'bg-lcd text-lcd-ink'"
-                            >{{ it.label }}</span
-                          >
-                        </button>
+                    <div class="flex flex-col gap-3 overflow-auto min-h-0 p-[2px]">
+                      @for (g of sp.pickGroups; track g.key) {
+                        <div class="flex flex-col gap-[6px]">
+                          <div class="font-black text-[13.5px] leading-[1.25]">{{ g.title }}</div>
+                          @for (it of g.items; track it.key) {
+                            <button (click)="it.open()" class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] text-left">
+                              <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                              <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
+                                <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
+                                <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
+                                <span class="font-pixel text-[10px] leading-none text-muted">{{ it.where }}</span>
+                              </span>
+                              <span
+                                class="flex-none border-[1.5px] border-line rounded-[4px] px-[5px] py-[3px] font-pixel text-[10px] leading-none"
+                                [class]="it.isWarn ? 'bg-amber text-coal' : 'bg-lcd text-lcd-ink'"
+                                >{{ it.label }}</span
+                              >
+                            </button>
+                          }
+                        </div>
                       }
                     </div>
                   }
@@ -541,9 +555,6 @@ import { Pix, Switch } from '../shared/bits';
           </div>
           <div class="flex flex-wrap gap-2">
             <button (click)="s.addPages()" class="btn"><span class="icon text-[19px]">note_add</span>2 pagina's erbij</button>
-            <button (click)="s.toggleShowPrice()" class="flex items-center gap-[9px] bg-transparent border-0 py-2 px-[2px] font-extrabold text-[13px]">
-              <cc-switch [on]="s.spKnob === '22px'" />Toon waarde
-            </button>
           </div>
           @if (!s.isRecipeBinder) {
             <div class="flex flex-col gap-2">

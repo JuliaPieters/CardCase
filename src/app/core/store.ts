@@ -350,7 +350,7 @@ export class CardcaseStore {
     // Typing in the search bar shows the results in place of the tab's content.
     const searching = !!st.sideQ.trim();
     const tab = searching ? 'search' : st.sideTab === 'slot' && !slot ? 'need' : st.sideTab === 'search' ? 'need' : st.sideTab;
-    const tabs = [...(slot ? [['slot', 'Dit vak', null]] : []), ['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ['pick', 'Keuzes', picks.length]];
+    const tabs = [...(slot ? [['slot', 'Dit vak', null]] : []), ['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ['pick', 'Versies', picks.length]];
     return {
       cols: tabs.length,
       tabs: tabs.map(([k, l, n]) => ({ key: k, label: l, count: n == null ? '' : String(n), on: tab === k, select: () => this.setState({ sideTab: k, sideQ: '' }) })),
@@ -361,7 +361,9 @@ export class CardcaseStore {
       needSortBinder: st.needSort !== 'price', sortBinder: () => this.setState({ needSort: 'binder' }), sortPrice: () => this.setState({ needSort: 'price' }),
       copyNeed: () => { try { navigator.clipboard.writeText(eb.name + ' · nog nodig\n' + needList); this.toast('Lijst gekopieerd · ' + need.length + ' kaarten'); } catch { this.toast('Kopiëren lukte niet'); } },
       haveHead: have.length ? (one ? 'Uit je collectie, passend bij het recept' : 'Uit je collectie, nog niet in deze binder') + (have.length > 60 ? ' · eerste 60' : '') : one ? 'Geen andere passende kaarten in je collectie' : 'Al je kaarten zitten al in deze binder',
-      haveItems, picks, pickHead: picks.length ? picks.length + ' slots om naar te kijken' : 'Geen keuzes open',
+      haveItems, picks, pickHead: picks.length ? 'Vakken waar het recept een versie heeft gekozen. Klik om een andere te nemen.' : 'Geen vakken met andere versies',
+      // Several fitting versions, and Pokémon without the preferred version (their regular card stands in).
+      pickGroups: [['alts', 'Meerdere opties', picks.filter(x => !x.isWarn)], ['warn', 'Gewone kaart in plaats van de gekozen versie', picks.filter(x => x.isWarn)]].filter(g => g[2].length).map(([key, title, items]) => ({ key, title: title + ' · ' + items.length, items })),
     };
   }
   /** Removes the selected decoration (decorate mode) or the card or art in the selected slot. False when nothing is selected. */
@@ -501,7 +503,7 @@ export class CardcaseStore {
     for (let j = 0; j < fmt; j++) {
       const idx = p * fmt + j; const x = p < b.pages ? src[idx] : null; const has = isCard(x); const isD = typeof x === 'string' && x.startsWith('D:'); const res = isRes(x) && !isD; const own = has && tot(owned[x]) > 0;
       const mv = ov && ov.moved && ov.moved[idx];
-      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && (has || (isD && decoPiece(b, x, j).decoCorner)), isAct: editable && (has ? this.state.actSlot === idx : isD ? actArt === x : x == null && this.state.actSlot === idx), draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, isOwned: !!own, isWanted: !!(editable && has && !own), hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
+      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && (has || (isD && decoPiece(b, x, j).decoCorner)), isAct: editable && (has ? this.state.actSlot === idx : isD ? actArt === x : x == null && this.state.actSlot === idx), draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, isOwned: !!own && this.state.showOwn !== false, isWanted: !!(editable && has && !own && this.state.showOwn !== false), hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
       if (editable) {
         s.onDragStart = e => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; this.setState({ drag: { type: 'slot', idx, cardId: x }, sel: null }); };
         s.onDragOver = e => { e.preventDefault(); if (this.state.over !== idx) this.setState({ over: idx }); };
@@ -1072,6 +1074,8 @@ export class CardcaseStore {
       openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }),
       side: screen === 'editor' ? this.sidePanel(eb) : null,
       // The editor's panel: cards, art (pictures, backgrounds, templates) or stickers; and the ⋯ menu.
+      // Labels on the binder that can be switched off: prices, and owned / NIET IN BEZIT.
+      showPrice: !!st.showPrice, showOwn: st.showOwn !== false, toggleShowOwn: () => this.setState(x => ({ showOwn: x.showOwn === false })),
       toolCards: st.toolTab === 'cards', toolArt: st.toolTab === 'art', toolStickers: st.toolTab === 'stickers',
       toolTabs: [['cards', 'Kaarten', 'style'], ['art', 'Art', 'image'], ['stickers', 'Stickers', 'star']].map(([k, l, icon]) => ({ key: k, label: l, icon, on: st.toolTab === k, select: () => this.setState({ toolTab: k }) })),
       edMenu: st.edMenu, toggleEdMenu: () => this.setState(x => ({ edMenu: !x.edMenu, fillMenu: false })),
