@@ -160,9 +160,6 @@ import { Pix, Switch } from '../shared/bits';
                 <span class="font-pixel text-[11px] leading-none bg-red text-cream px-[6px] py-[4px] rounded-[4px]">{{ es.where }}</span>
                 <span class="font-black text-[14px] mr-auto truncate">{{ es.name }}</span>
                 @if (es.isCard) {
-                  @if (es.canSwap) {
-                    <button (click)="es.swap()" class="chip bg-surface text-ink"><span class="icon text-[16px]">swap_horiz</span>Andere versie</button>
-                  }
                   <button (click)="es.remove()" class="chip bg-surface text-red"><span class="icon text-[16px]">delete</span>Uit de binder</button>
                 } @else {
                   <span class="text-[12.5px] font-bold text-muted">Kies rechts een voorstel, of sleep er iets op</span>
@@ -224,6 +221,39 @@ import { Pix, Switch } from '../shared/bits';
                       </button>
                     }
                   </div>
+                  @if (sp.isCard && sp.card; as cd) {
+                    <!-- A card in the binder is selected: the card, and the other versions to put in its place. -->
+                    <div class="flex gap-3 flex-none">
+                      <div (click)="cd.detail()" title="Bekijk kaart" class="w-[92px] flex-none aspect-[63/88] cursor-zoom-in"><cc-card [card]="cd.cv" /></div>
+                      <div class="flex-1 min-w-0 flex flex-col gap-[6px]">
+                        <span class="self-start font-pixel text-[11px] leading-none bg-red text-cream px-[6px] py-[4px] rounded-[4px]">{{ cd.where }}</span>
+                        <span class="font-black text-[16px] leading-[1.2]">{{ cd.name }}</span>
+                        <span class="text-[12.5px] font-bold text-muted">{{ cd.sub }} · {{ cd.price }}</span>
+                        <span class="text-[12.5px] font-extrabold" [class]="cd.isOwned ? 'text-lcd-mid' : 'text-muted'">{{ cd.owned }}</span>
+                        <div class="flex flex-wrap gap-[6px] mt-auto">
+                          <button (click)="cd.detail()" class="chip bg-surface text-ink"><span class="icon text-[16px]">open_in_full</span>Bekijk details</button>
+                          <button (click)="cd.remove()" class="chip bg-surface text-red"><span class="icon text-[16px]">delete</span>Uit de binder</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="font-black text-[13.5px] leading-[1.25] flex-none">{{ cd.title }}</div>
+                    <div class="flex flex-col gap-[6px] overflow-auto min-h-0 p-[2px]">
+                      @if (!cd.versions.length) {
+                        <div class="text-[13px] font-bold text-muted text-pretty">Geen andere versies. Zoek hierboven een kaart om deze te vervangen.</div>
+                      }
+                      @for (it of cd.versions; track it.key) {
+                        <div class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px]">
+                          <div (click)="it.detail()" title="Bekijk kaart" class="w-[42px] flex-none aspect-[63/88] cursor-zoom-in hover:scale-105 transition-transform"><cc-card [card]="it.cv" /></div>
+                          <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
+                            <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
+                            <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
+                            <span class="text-[11px] font-extrabold truncate" [class]="it.owned ? 'text-lcd-mid' : 'text-muted'">{{ it.label }}</span>
+                          </span>
+                          <button (click)="it.swap()" class="flex-none bg-lcd text-lcd-ink border-2 border-line rounded-[8px] shadow-hard-sm px-[9px] py-[6px] font-black text-[12px]">Vervang</button>
+                        </div>
+                      }
+                    </div>
+                  }
                   @if (sp.isSlot && sp.slot; as sl) {
                     <!-- An empty slot is selected: what could go there. -->
                     <div class="flex items-center gap-2 flex-none">

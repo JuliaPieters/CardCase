@@ -358,18 +358,33 @@ export class CardcaseStore {
       picks.push({ key: idx, detail: () => this.openDetail(c.id, lang), cv: this.cv(c, lang, !own(x)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, label: a ? eb.alts[idx] + ' ' + altsNoun(r) : warnShort(w), isWarn: !a, where: where(idx), open: () => { jump(idx); this.setState({ verSheet: { idx } }); } });
     });
 
+    // A card is selected: it, and the other versions of its Pokémon to swap it for.
+    const cardIdx = st.actSlot != null && isCard(eb.slots[st.actSlot]) ? st.actSlot : null;
+    const card = cardIdx == null ? null : (() => {
+      const c = CARDS[eb.slots[cardIdx]]; const langs2 = (r && r.langs) || [];
+      const isPref = x => !r ? false : r.pref === 'illus' ? x.variant === 'illus' : r.pref === 'fullart' ? x.variant === 'fullart' || x.variant === 'illus' : r.pref === 'set' ? x.set === r.prefSet : false;
+      const vers = (c.sp <= 1025 ? BYSP[c.sp] || [] : []).filter(x => x.id !== c.id && keyOf(x) === keyOf(c) && (!langs2.length || langs2.some(l => x.avail.includes(l))))
+        .sort((a, b) => (own(b.id) ? 1 : 0) - (own(a.id) ? 1 : 0) || (isPref(b) ? 1 : 0) - (isPref(a) ? 1 : 0) || (a.trend ?? Infinity) - (b.trend ?? Infinity)).slice(0, 40);
+      const swap = x => () => { this.updB(eb.id, nb => { nb.slots[cardIdx] = x.id; slotMeta(nb, cardIdx, null); return nb; }); this.toast(nameOf(x) + ' (' + x.setName + ') staat er nu in'); };
+      return {
+        where: where(cardIdx), cv: this.cv(c, lang, !own(c.id)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, price: c.trend != null ? eur(c.trend) : '–', owned: own(c.id) ? 'In bezit ×' + tot(st.owned[c.id]) : 'Niet in bezit', isOwned: own(c.id),
+        detail: () => this.openDetail(c.id, lang), remove: () => this.removeSlot(eb, cardIdx), close: () => this.setState({ actSlot: null }),
+        title: c.sp <= 1025 && SP[c.sp] ? 'Andere versies van ' + SP[c.sp].name.EN + ' · ' + vers.length : 'Andere versies',
+        versions: vers.map(x => ({ key: x.id, cv: this.cv(x, lang, !own(x.id)), name: nameOf(x), sub: x.setName + ' · ' + x.numStr, label: (own(x.id) ? 'In bezit · ' : (x.trend != null ? eur(x.trend) : '–') + ' · ') + (VARL[x.variant] || ''), owned: own(x.id), detail: () => this.openDetail(x.id, lang), swap: swap(x) })),
+      };
+    })();
     // An empty slot is selected: cards that would fit there.
     const slotIdx = st.actSlot != null && eb.slots[st.actSlot] == null ? st.actSlot : null;
     const slot = slotIdx == null ? null : this.slotSuggestions(eb, slotIdx, { own, nameOf, where, inB, fits, keyOf, lang, drag });
     // Typing in the search bar shows the results in place of the tab's content.
     const searching = !!st.sideQ.trim();
-    const tab = searching ? 'search' : (st.sideTab === 'slot' && !slot) || st.sideTab === 'search' || (st.sideTab === 'pick' && !(eb.recipe && eb.kind === 'recipe')) ? 'need' : st.sideTab;
+    const tab = searching ? 'search' : (st.sideTab === 'slot' && !slot) || (st.sideTab === 'card' && !card) || st.sideTab === 'search' || (st.sideTab === 'pick' && !(eb.recipe && eb.kind === 'recipe')) ? 'need' : st.sideTab;
     // Keuzes only exist where a recipe picked the cards.
-    const tabs = [...(slot ? [['slot', 'Dit vak', null]] : []), ['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ...(eb.recipe && eb.kind === 'recipe' ? [['pick', 'Keuzes', picks.length]] : [])];
+    const tabs = [...(card ? [['card', 'Deze kaart', null]] : []), ...(slot ? [['slot', 'Dit vak', null]] : []), ['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ...(eb.recipe && eb.kind === 'recipe' ? [['pick', 'Keuzes', picks.length]] : [])];
     return {
       cols: tabs.length,
       tabs: tabs.map(([k, l, n]) => ({ key: k, label: l, count: n == null ? '' : String(n), on: tab === k, select: () => this.setState({ sideTab: k, sideQ: '' }) })),
-      isSlot: tab === 'slot', slot, isNeed: tab === 'need', isHave: tab === 'have', isPick: tab === 'pick', isSearch: tab === 'search',
+      isCard: tab === 'card', card, isSlot: tab === 'slot', slot, isNeed: tab === 'need', isHave: tab === 'have', isPick: tab === 'pick', isSearch: tab === 'search',
       needHead: need.length ? need.length + ' kaarten · ' + costLabel(need.map(x => x.c)) : 'Je hebt alles voor deze binder!',
       needItems: need.slice(0, 200).map(({ idx, c }) => ({ key: idx, detail: () => this.openDetail(c.id, lang), cv: this.cv(c, lang, true), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, price: priceOf(c), where: where(idx), jump: () => jump(idx) })),
       needMore: need.length > 200 ? 'en nog ' + (need.length - 200) + ' meer' : '',
@@ -536,7 +551,7 @@ export class CardcaseStore {
         s.onDragLeave = () => { if (this.state.over === idx) this.setState({ over: null }); };
         s.onDrop = e => { e.preventDefault(); this.dropOn(idx); };
         s.onDragEnd = () => this.setState({ drag: null, over: null, sideOver: false });
-        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.setState(st => st.actSlot === idx ? { actSlot: null } : { actSlot: idx, sideTab: 'slot', decoSel: null }); } else if (res && !isD) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx, decoSel: null })); };
+        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.setState(st => st.actSlot === idx ? { actSlot: null } : { actSlot: idx, sideTab: 'slot', decoSel: null }); } else if (res && !isD) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => st.actSlot === idx ? { actSlot: null } : { actSlot: idx, decoSel: null, sideTab: 'card', sideQ: '' }); };
         s.onRemove = e => { e.stopPropagation(); this.removeSlot(b, idx); };
       }
       slots.push(s);
@@ -1039,7 +1054,7 @@ export class CardcaseStore {
     const eb = this.curB(); const lastSpread = eb.pages / 2 - 1; const es = Math.min(st.edSpread, lastSpread);
     const inB = new Set(eb.slots.filter(x => x != null)); const sq = st.sideQ.trim().toLowerCase();
     const sideLangs = st.sideLang ? [st.sideLang] : LANGS; const sideMatch = screen === 'editor' && sq ? this.searchMatch(sq, sideLangs) : null;
-    const sideItems = !sideMatch ? [] : CARDS.filter(c => (!st.sideSet || c.set === st.sideSet) && sideLangs.some(l => c.avail.includes(l)) && sideMatch(c)).slice(0, 60).map(c => { const n = tot(owned[c.id]); const on = st.sel === c.id; return { key: c.id, cv: this.cv(c, st.sideLang || 'EN', !n), num: c.set + ' ' + c.num, label: inB.has(c.id) ? '✓ geplaatst' : n ? '×' + n : 'mist', labelColor: n ? 'var(--muted)' : 'var(--red)', op: inB.has(c.id) ? 0.5 : 1, bd: on ? '#9BBC0F' : 'transparent', onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); }, onDragEnd: () => this.setState({ drag: null, over: null }), onClick: () => { const a = this.state.actSlot; if (a != null && this.curB().slots[a] == null) { this.updB(this.state.edId, nb => { nb.slots[a] = c.id; slotMeta(nb, a, null); return nb; }); this.setState({ actSlot: null }); this.toast(c.names.EN + ' in het vak gezet'); } else this.setState({ sel: on ? null : c.id }); } }; });
+    const sideItems = !sideMatch ? [] : CARDS.filter(c => (!st.sideSet || c.set === st.sideSet) && sideLangs.some(l => c.avail.includes(l)) && sideMatch(c)).slice(0, 60).map(c => { const n = tot(owned[c.id]); const on = st.sel === c.id; return { key: c.id, cv: this.cv(c, st.sideLang || 'EN', !n), num: c.set + ' ' + c.num, label: inB.has(c.id) ? '✓ geplaatst' : n ? '×' + n : 'mist', labelColor: n ? 'var(--muted)' : 'var(--red)', op: inB.has(c.id) ? 0.5 : 1, bd: on ? '#9BBC0F' : 'transparent', onDragStart: e => { e.dataTransfer.setData('text/plain', 'c' + c.id); e.dataTransfer.effectAllowed = 'copyMove'; this.setState({ drag: { type: 'side', cardId: c.id }, sel: null }); }, onDragEnd: () => this.setState({ drag: null, over: null }), onClick: () => { const a = this.state.actSlot; const cur = a != null ? this.curB().slots[a] : undefined; if (a != null && (cur == null || isCard(cur))) { this.updB(this.state.edId, nb => { nb.slots[a] = c.id; slotMeta(nb, a, null); return nb; }); this.setState({ sideQ: '' }); this.toast(c.names.EN + (cur == null ? ' in het vak gezet' : ' staat er nu in')); } else this.setState({ sel: on ? null : c.id }); } }; });
     const isDraggingSlot = !!(st.drag && st.drag.type === 'slot');
 
     // viewer
