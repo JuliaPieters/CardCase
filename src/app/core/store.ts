@@ -646,7 +646,12 @@ export class CardcaseStore {
 
     // search
     const ql = st.q.trim().toLowerCase(); const langs = st.fLangs.length ? st.fLangs : LANGS;
-    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && (!ql || c.numStr.includes(ql) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql))));
+    // Pokémon whose English or German name matches, so "squirtle" also finds ゼニガメ without a Japanese keyboard.
+    const spHit = new Set<number>(); if (ql) for (let d = 1; d <= 1025; d++) { const n = SP[d]?.name; if (n && (n.EN.toLowerCase().includes(ql) || n.DE.toLowerCase().includes(ql))) spHit.add(d); }
+    // Some Japanese and many Chinese cards have no dex number: match those on the Pokémon's name in that script.
+    const spNative = spHit.size > 30 ? [] : [...new Set([...spHit].flatMap(d => [SP[d].name.JA, SP[d].name.ZH]).filter(n => n && !/^[\x00-\x7f]*$/.test(n)))];
+    const nativeHit = c => c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n));
+    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && (!ql || c.numStr.includes(ql) || spHit.has(c.sp) || nativeHit(c) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql))));
     const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || c.avail[0]; };
     const byValue = (a, b) => (b.trend ?? -1) - (a.trend ?? -1);
     const byNew = (a, b) => relKey(b).localeCompare(relKey(a)) || a.id - b.id, byOld = (a, b) => relKey(a).localeCompare(relKey(b)) || a.id - b.id;
