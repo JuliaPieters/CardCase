@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideServiceWorker } from '@angular/service-worker';
 import { App } from './app';
 import { CardcaseStore } from './core/store';
 import { mockCatalog, setCatalog } from './core/data';
@@ -11,7 +12,7 @@ const SCREENS = ['home', 'search', 'detail', 'collection', 'value', 'binders', '
 
 describe('App', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [App] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [App], providers: [provideServiceWorker('ngsw-worker.js', { enabled: false })] }).compileComponents();
   });
 
   it('renders the dashboard', async () => {
