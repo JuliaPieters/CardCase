@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CardcaseStore } from '../core/store';
+import { ArtPiece } from '../shared/art-piece';
 
 /** Print sheet export of decoration pieces at real card size. */
 @Component({
   selector: 'cc-print',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ArtPiece],
   template: `
     @let s = v();
     <div class="flex flex-col gap-[18px]">
@@ -28,12 +30,7 @@ import { CardcaseStore } from '../core/store';
               <div class="relative w-full bg-white border-2 border-line shadow-[5px_5px_0_var(--line)]" [style.aspect-ratio]="s.pr.aspect">
                 @for (pc of sh.pieces; track pc.key) {
                   <div class="absolute" [style.left.%]="pc.l" [style.top.%]="pc.t" [style.width.%]="pc.w" [style.height.%]="pc.h">
-                    <div
-                      class="absolute inset-0"
-                      [style.background-image]="pc.fill"
-                      [style.background-size]="pc.size"
-                      [style.background-position]="pc.pos"
-                    ></div>
+                    <cc-art-piece [p]="pc.art" />
                     <div class="absolute border border-dashed border-[rgba(26,28,34,.85)]" [style.inset]="pc.inset">
                       <div class="absolute -left-[9px] -top-px w-[6px] h-px bg-coal" [style.opacity]="pc.tick"></div>
                       <div class="absolute -left-px -top-[9px] w-px h-[6px] bg-coal" [style.opacity]="pc.tick"></div>

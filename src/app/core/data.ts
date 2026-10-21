@@ -172,12 +172,24 @@ export function syncSlots(b) {
   }
   return { slots, pages, warn, alts };
 }
+/**
+ * One pocket's part (`dx`, `dy` pockets from the top left) of art spanning `im.w` × `im.h` pockets: the image covers
+ * the whole span at its crop position and zoom, without stretching, and the pocket shows its own part of it.
+ * `g` is the gap between pockets, as a CSS length.
+ */
+export function artPiece(im, dx, dy, g = '0px') {
+  return {
+    fill: im.fill, pos: (im.x ?? 50) + '% ' + (im.y ?? 50) + '%', zoom: im.zoom || 1,
+    w: `calc(${im.w * 100}% + ${im.w - 1} * ${g})`, h: `calc(${im.h * 100}% + ${im.h - 1} * ${g})`,
+    l: `calc(${-dx * 100}% - ${dx} * ${g})`, t: `calc(${-dy * 100}% - ${dy} * ${g})`,
+  };
+}
 export function decoPiece(b, x, j) {
-  const none = { decoFill: 'none', decoSize: 'cover', decoPos: 'center', decoBuf: false };
+  const none = { decoArt: null, decoBuf: false };
   if (!(typeof x === 'string' && x.startsWith('D:'))) return none;
   const im = ((b.deco && b.deco.images) || []).find(i => 'D:' + i.id === x); if (!im) return none;
   const cols = COLS[b.fmt]; const dx = j % cols - im.col, dy = Math.floor(j / cols) - im.row;
-  return { decoFill: im.fill, decoSize: (im.w * 100) + '% ' + (im.h * 100) + '%', decoPos: (im.w > 1 ? dx / (im.w - 1) * 100 : 50) + '% ' + (im.h > 1 ? dy / (im.h - 1) * 100 : 50) + '%', decoBuf: !!im.buffer };
+  return { decoArt: artPiece(im, dx, dy, 'var(--g, 0px)'), decoBuf: !!im.buffer };
 }
 export const isBufD = (b, x) => typeof x === 'string' && x.startsWith('D:') && !!(((b.deco && b.deco.images) || []).find(i => 'D:' + i.id === x) || {}).buffer;
 export function mkShowcase() {

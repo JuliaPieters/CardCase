@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ArtPiece } from './art-piece';
 import { Card } from './card';
 
 const DEMO = {
@@ -13,14 +14,14 @@ const DEMO = {
 @Component({
   selector: 'cc-binder-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card],
+  imports: [ArtPiece, Card],
   host: { class: 'flex flex-col flex-1' },
   template: `
     <div
       class="w-full h-full bg-page border-2 border-line p-[clamp(6px,1.4vw,14px)] flex flex-col gap-2"
       [style.border-radius]="p().radius"
     >
-      <div class="grid gap-[clamp(4px,0.9vw,10px)]" [style.grid-template-columns]="'repeat(' + p().cols + ', minmax(0,1fr))'">
+      <div class="grid [--g:clamp(4px,0.9vw,10px)] gap-[var(--g)]" [style.grid-template-columns]="'repeat(' + p().cols + ', minmax(0,1fr))'">
         @for (s of p().slots; track s.key) {
           <div
             class="group relative aspect-[63/88] rounded-[7px] bg-pocket shadow-[inset_0_2px_0_rgba(0,0,0,.08)] [container-type:inline-size]"
@@ -47,12 +48,7 @@ const DEMO = {
               <div class="absolute -inset-[3px] border-[3px] border-red rounded-[9px] pointer-events-none"></div>
             }
             @if (s.isDeco) {
-              <div
-                class="absolute inset-0 rounded-[7px] border-2 border-line pointer-events-none"
-                [style.background-image]="s.decoFill"
-                [style.background-size]="s.decoSize"
-                [style.background-position]="s.decoPos"
-              ></div>
+              <div class="absolute inset-0 rounded-[7px] border-2 border-line overflow-hidden pointer-events-none"><cc-art-piece [p]="s.decoArt" /></div>
               @if (s.decoBuf) {
                 <div
                   title="Wordt vervangen als er een nieuwe kaart bij komt."

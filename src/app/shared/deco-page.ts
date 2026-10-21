@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ArtPiece } from './art-piece';
 import { Card } from './card';
 import { Pix } from './bits';
 
@@ -18,7 +19,7 @@ const DEMO = {
 @Component({
   selector: 'cc-deco-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Pix],
+  imports: [ArtPiece, Card, Pix],
   host: { class: 'flex flex-col flex-1' },
   template: `
     <div
@@ -42,7 +43,7 @@ const DEMO = {
         >
           @for (im of p().images; track im.key) {
             <div
-              class="absolute z-[1] rounded-md border-2 border-line touch-none outline-offset-2"
+              class="absolute z-[1] rounded-md touch-none outline-offset-2"
               [style.left]="'calc(' + im.l + ')'"
               [style.top]="'calc(' + im.t + ')'"
               [style.width]="'calc(' + im.w + ')'"
@@ -51,14 +52,11 @@ const DEMO = {
               [style.outline]="im.outline"
               (pointerdown)="im.onDown?.($event)"
             >
-              <div class="absolute inset-0 rounded overflow-hidden pointer-events-none">
-                <div
-                  class="absolute inset-0 bg-cover"
-                  [style.background-image]="im.fill"
-                  [style.background-position]="im.pos"
-                  [style.transform]="'scale(' + im.zoom + ')'"
-                  [style.transform-origin]="im.pos"
-                ></div>
+              <!-- Cut into its pockets, like the printed inserts. -->
+              <div class="absolute inset-0 grid gap-2 pointer-events-none" [style.grid-template-columns]="'repeat(' + im.cw + ', minmax(0,1fr))'">
+                @for (pc of im.pieces; track $index) {
+                  <div class="relative rounded-md border-2 border-line overflow-hidden"><cc-art-piece [p]="pc" /></div>
+                }
               </div>
               @if (im.buffer) {
                 <div
