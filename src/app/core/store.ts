@@ -14,6 +14,8 @@ const costLabel = cards => { const known = cards.filter(c => c.trend != null); i
 
 /** Pixel sprite of the card's Pokémon (PokéAPI, ~1 kB), drawn in the placeholder when TCGdex has no photo of the card. */
 /** Day label under the price chart, e.g. '3 okt'. */
+/** Marks this device's saves, so it can tell its own writes from another device's when the account changes. */
+const DEVICE = Math.random().toString(36).slice(2, 10);
 const DAYF = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' });
 const spriteOf = c => c.sp >= 1 && c.sp <= 1025 ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.sp}.png` : null;
 
@@ -25,6 +27,10 @@ export class CardcaseStore {
   private account: string | null = null;
   /** False while an account's data is loading (or failed to load): nothing gets saved then. */
   private syncReady = false;
+  /** Stops listening for changes to the account made on other devices. */
+  private unwatch: (() => void) | null = null;
+  /** A change on this device that hasn't reached the server yet. */
+  private savePending = false;
   private lastSaved: any[] = [];
   private readonly _state = signal<any>(this.initialState());
   /** Bumped by go() so the shell can scroll the main area back to top. */
@@ -102,14 +108,30 @@ export class CardcaseStore {
 
   private scheduleSave(delay = 400) {
     clearTimeout(this.saveT);
+    if (this.account) this.savePending = true;
     this.saveT = setTimeout(() => {
       const saved = serializeUser(this.state); const acc = this.account;
       writeLocal(acc, saved);
       if (!acc) return;
       this.auth.syncStatus.set('saving');
       clearTimeout(this.remoteT);
-      this.remoteT = setTimeout(() => this.auth.saveRemote(acc, saved).then(() => { if (this.account === acc) this.auth.syncStatus.set('saved'); }).catch(err => { console.warn('[sync]', err); this.auth.syncStatus.set('error'); }), 1200);
+      this.remoteT = setTimeout(() => this.auth.saveRemote(acc, { ...saved, by: DEVICE }).then(() => { if (this.account === acc) { this.savePending = false; this.auth.syncStatus.set('saved'); } }).catch(err => { console.warn('[sync]', err); this.auth.syncStatus.set('error'); }), 1200);
     }, delay);
+  }
+
+  /** Follows the account's data on the server, so changes made on another device show up here without a reload. */
+  private watch(uid: string) {
+    this.unwatch?.(); this.unwatch = null;
+    this.auth.watchRemote(uid, remote => {
+      // Not for this account any more, still loading, our own write coming back, or a change of ours on its way
+      // (which is newer and will overwrite this one).
+      if (this.account !== uid || !this.syncReady || !remote || remote['by'] === DEVICE || this.savePending) return;
+      const u = deserializeUser(remote); if (!u) return;
+      writeLocal(uid, remote);
+      const ids = new Set(u.binders.map(b => b.id)); const keep = id => ids.has(id) ? id : u.binders[0].id;
+      this.setState(s => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, edId: keep(s.edId), vId: keep(s.vId), ps: { ...s.ps, binderId: keep(s.ps.binderId) } }));
+      const st = this.state; this.lastSaved = [st.owned, st.added, st.binders, st.dark];
+    }).then(stop => { if (this.account === uid) this.unwatch = stop; else stop(); }).catch(err => console.warn('[sync]', err));
   }
 
   /** Replaces the collection, binders and settings (after login, logout or import). */
@@ -121,6 +143,7 @@ export class CardcaseStore {
 
   private async onAuth(uid: string | null, user) {
     if (uid === this.account && this.syncReady) return;
+    this.unwatch?.(); this.unwatch = null; this.savePending = false;
     if (!uid) {
       const wasAccount = this.account;
       this.account = null; setLastAccount(null); this.setState({ importOffer: null });
@@ -141,14 +164,14 @@ export class CardcaseStore {
     if (this.account !== uid) return;
     if (remote) {
       this.applyUser(deserializeUser(remote) ?? freshUser()); writeLocal(uid, remote);
-      this.syncReady = true; this.auth.syncStatus.set('saved');
+      this.syncReady = true; this.auth.syncStatus.set('saved'); this.watch(uid);
       this.toast('Welkom ' + name + ' · ' + savedCardCount(remote) + ' kaarten geladen');
       return;
     }
     // New account: offer to bring along the collection made on this device as guest.
     const guest = readLocal(null); const n = savedCardCount(guest);
     if (n > 0) { this.setState({ importOffer: { count: n } }); return; }
-    this.applyUser(freshUser()); this.syncReady = true; this.scheduleSave(0);
+    this.applyUser(freshUser()); this.syncReady = true; this.scheduleSave(0); this.watch(uid);
     this.toast('Account klaar · je collectie wordt nu online bewaard');
   }
 
@@ -156,7 +179,7 @@ export class CardcaseStore {
   importGuest(yes: boolean) {
     const data = yes ? deserializeUser(readLocal(null)) ?? freshUser() : freshUser();
     this.setState({ importOffer: null }); this.applyUser(data);
-    this.syncReady = true; this.scheduleSave(0);
+    this.syncReady = true; this.scheduleSave(0); if (this.account) this.watch(this.account);
     this.toast(yes ? 'Collectie van dit apparaat in je account gezet' : 'Je begint met een lege collectie');
   }
   toast(msg) { clearTimeout(this.tt); this.setState({ toast: msg }); this.tt = setTimeout(() => this.setState({ toast: null }), 2600); }

@@ -65,6 +65,21 @@ export class AuthService {
     return (snap.data()?.['cardcase'] as Record<string, unknown> | undefined) ?? null;
   }
 
+  /**
+   * Calls `onChange` with the account's Cardcase data whenever it changes on the server (e.g. saved on another device),
+   * including once right away. This device's own unconfirmed writes are skipped. Returns a function that stops it.
+   */
+  async watchRemote(uid: string, onChange: (data: Record<string, unknown> | null) => void): Promise<() => void> {
+    const { fsMod } = await this.requireSdk();
+    return fsMod.onSnapshot(
+      fsMod.doc(this.db!, 'users', uid),
+      (snap) => {
+        if (!snap.metadata.hasPendingWrites) onChange((snap.data()?.['cardcase'] as Record<string, unknown> | undefined) ?? null);
+      },
+      (err) => console.warn('[sync] live bijwerken gestopt', err),
+    );
+  }
+
   /** Writes the Cardcase data into users/{uid}, leaving any other fields in that document alone. */
   async saveRemote(uid: string, data: Record<string, unknown>) {
     const { fsMod } = await this.requireSdk();
