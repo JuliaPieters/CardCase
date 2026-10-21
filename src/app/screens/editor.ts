@@ -283,7 +283,7 @@ import { EditorDeco } from './editor-deco';
               }
               <div class="text-[13px] text-muted font-bold text-pretty">
                 Sleep kaarten uit je collectie naar een slot. Sleep tussen slots om te wisselen, of terug naar de zijbalk om een kaart eruit te halen. Op
-                touch: tik een kaart aan en daarna een slot. Tik op een leeg slot om het als buffer te reserveren, nog eens tikken maakt het weer leeg. Klik een kaart of art aan en druk op Backspace (of de ×) om hem weg te halen.
+                touch: tik een kaart aan en daarna een slot. Klik op een leeg vak voor voorstellen in het paneel. Klik een kaart of art aan en druk op Backspace (of de ×) om hem weg te halen.
               </div>
             </div>
             <aside
@@ -294,7 +294,7 @@ import { EditorDeco } from './editor-deco';
             >
               @if (s.side; as sp) {
                 <!-- About the open binder: what's missing, what you own that fits, what to choose, or search everything. -->
-                <div class="grid grid-cols-4 gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden flex-none">
+                <div class="grid gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden flex-none" [style.grid-template-columns]="'repeat(' + sp.cols + ', minmax(0,1fr))'">
                   @for (t of sp.tabs; track t.key) {
                     <button
                       (click)="t.select()"
@@ -308,6 +308,43 @@ import { EditorDeco } from './editor-deco';
                     </button>
                   }
                 </div>
+                @if (sp.isSlot && sp.slot; as sl) {
+                  <!-- An empty slot is selected: what could go there. -->
+                  <div class="flex items-center gap-2 flex-none">
+                    <span class="font-pixel text-[11px] leading-none bg-red text-cream px-[6px] py-[4px] rounded-[4px]">{{ sl.where }}</span>
+                    <span class="text-[13px] font-bold text-muted mr-auto">Leeg vak</span>
+                    <button (click)="sl.reserve()" class="bg-surface border-2 border-line rounded-[8px] shadow-hard-sm px-[9px] py-[5px] font-extrabold text-[12px]">Reserveer als buffer</button>
+                    <button (click)="sl.close()" title="Sluiten" class="bg-surface border-2 border-line rounded-[8px] shadow-hard-sm w-[30px] h-[30px] flex items-center justify-center">
+                      <span class="icon text-[17px]">close</span>
+                    </button>
+                  </div>
+                  <div class="flex flex-col gap-3 overflow-auto min-h-0 p-[2px]">
+                    @if (sl.empty) {
+                      <div class="text-[13px] font-bold text-muted text-pretty">Geen voorstel voor dit vak. Zoek een kaart onder Zoeken en sleep hem hierheen.</div>
+                    }
+                    @for (g of sl.groups; track g.key) {
+                      <div class="flex flex-col gap-[6px]">
+                        <div class="font-black text-[13.5px] leading-[1.25]">{{ g.title }}</div>
+                        @for (it of g.items; track it.key) {
+                          <div
+                            draggable="true"
+                            (dragstart)="it.onDragStart($event)"
+                            (dragend)="it.onDragEnd()"
+                            class="flex items-center gap-[10px] bg-bg border-2 border-line rounded-[9px] p-[6px] cursor-grab"
+                          >
+                            <div class="w-[42px] flex-none aspect-[63/88]"><cc-card [card]="it.cv" /></div>
+                            <span class="flex-1 min-w-0 flex flex-col gap-[3px]">
+                              <span class="font-black text-[13.5px] leading-[1.2] truncate">{{ it.name }}</span>
+                              <span class="text-[11.5px] font-bold text-muted truncate">{{ it.sub }}</span>
+                              <span class="text-[11px] font-extrabold truncate" [class]="it.owned ? 'text-lcd-mid' : 'text-muted'">{{ it.owned ? 'In bezit · ' : it.price + ' · ' }}{{ it.reason }}</span>
+                            </span>
+                            <button (click)="it.place()" class="flex-none bg-lcd text-lcd-ink border-2 border-line rounded-[8px] shadow-hard-sm px-[9px] py-[6px] font-black text-[12px]">Zet erin</button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
                 @if (sp.isNeed) {
                   <div class="flex flex-col gap-2 flex-none">
                     <div class="font-black text-[15px] leading-[1.25]">{{ sp.needHead }}</div>

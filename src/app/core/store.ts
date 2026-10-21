@@ -344,10 +344,15 @@ export class CardcaseStore {
       picks.push({ key: idx, cv: this.cv(c, lang, !own(x)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, label: a ? eb.alts[idx] + ' ' + altsNoun(r) : warnShort(w), isWarn: !a, where: where(idx), open: () => { jump(idx); this.setState({ verSheet: { idx } }); } });
     });
 
-    const tab = st.sideTab; const tabs = [['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ['pick', 'Keuzes', picks.length], ['search', 'Zoeken', null]];
+    // An empty slot is selected: cards that would fit there.
+    const slotIdx = st.actSlot != null && eb.slots[st.actSlot] == null ? st.actSlot : null;
+    const slot = slotIdx == null ? null : this.slotSuggestions(eb, slotIdx, { own, nameOf, where, inB, fits, keyOf, lang, drag });
+    const tab = st.sideTab === 'slot' && !slot ? 'need' : st.sideTab;
+    const tabs = [...(slot ? [['slot', 'Dit vak', null]] : []), ['need', 'Nodig', need.length], ['have', 'Heb ik', have.length], ['pick', 'Keuzes', picks.length], ['search', 'Zoeken', null]];
     return {
+      cols: tabs.length,
       tabs: tabs.map(([k, l, n]) => ({ key: k, label: l, count: n == null ? '' : String(n), on: tab === k, select: () => this.setState({ sideTab: k }) })),
-      isNeed: tab === 'need', isHave: tab === 'have', isPick: tab === 'pick', isSearch: tab === 'search',
+      isSlot: tab === 'slot', slot, isNeed: tab === 'need', isHave: tab === 'have', isPick: tab === 'pick', isSearch: tab === 'search',
       needHead: need.length ? need.length + ' kaarten · ' + costLabel(need.map(x => x.c)) : 'Je hebt alles voor deze binder!',
       needItems: need.slice(0, 200).map(({ idx, c }) => ({ key: idx, cv: this.cv(c, lang, true), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, price: priceOf(c), where: where(idx), jump: () => jump(idx) })),
       needMore: need.length > 200 ? 'en nog ' + (need.length - 200) + ' meer' : '',
@@ -370,6 +375,54 @@ export class CardcaseStore {
     if (typeof x === 'string' && x.startsWith('D:')) { this.updDeco(dd => { dd.images = dd.images.filter(i => 'D:' + i.id !== x); }); this.toast('Art verwijderd'); }
     else if (isCard(x)) { this.updB(b.id, nb => { nb.slots[idx] = null; slotMeta(nb, idx, null); return nb; }); this.toast(CARDS[x].names.EN + ' uit de binder gehaald'); }
     this.setState({ actSlot: null });
+  }
+  /**
+   * Cards for an empty slot. In a recipe binder: what the recipe puts there and is missing now (the Pokémon between
+   * its neighbours first), in the version the recipe prefers and the others that fit. In any other binder: cards that
+   * go with the rest of the page (same illustrator, evolution line, type or set), owned ones first.
+   */
+  slotSuggestions(eb, idx, { own, nameOf, where, inB, fits, keyOf, lang, drag }) {
+    const r = eb.recipe; const st = this.state; const fmt = eb.fmt; const page = Math.floor(idx / fmt);
+    const place = c => () => { this.updB(eb.id, nb => { nb.slots[idx] = c.id; slotMeta(nb, idx, null); return nb; }); this.setState({ actSlot: null }); this.toast(nameOf(c) + ' in ' + where(idx).toLowerCase() + ' gezet'); };
+    const item = (c, reason) => ({ key: c.id, cv: this.cv(c, lang, !own(c.id)), name: nameOf(c), sub: c.setName + ' · ' + c.numStr, reason, owned: own(c.id), price: c.trend != null ? eur(c.trend) : '–', place: place(c), ...drag(c) });
+    const groups = [];
+    if (r && r.type !== 'empty' && r.type !== 'master' && r.per === 'one') {
+      // The recipe's entries missing from the binder, nearest to the slot's position in the order first.
+      const want = recipeItems(r, st.owned); const present = new Set(eb.slots.filter(isCard).map(x => keyOf(CARDS[x])));
+      const order = new Map(want.map((it, i) => [keyOf(it.card), i]));
+      let before = -1; for (let i = idx - 1; i >= 0; i--) if (isCard(eb.slots[i]) && order.has(keyOf(CARDS[eb.slots[i]]))) { before = order.get(keyOf(CARDS[eb.slots[i]])); break; }
+      const missing = want.map((it, i) => ({ it, i })).filter(({ it }) => !present.has(keyOf(it.card))).sort((a, b) => Math.abs(a.i - before - 0.5) - Math.abs(b.i - before - 0.5)).slice(0, 3);
+      for (const { it } of missing) {
+        const alts = (BYSP[it.sp] || []).filter(c => keyOf(c) === keyOf(it.card) && c.id !== it.card.id && !inB.has(c.id) && fits(c)).sort((a, b) => (own(b.id) ? 1 : 0) - (own(a.id) ? 1 : 0) || (a.trend ?? Infinity) - (b.trend ?? Infinity)).slice(0, 5);
+        groups.push({ key: keyOf(it.card), title: '#' + pad(it.sp) + ' ' + (SP[it.sp] ? SP[it.sp].name.EN : nameOf(it.card)) + ' · hoort hier volgens het recept', items: [item(it.card, it.warn ? warnShort(it.warn) : 'Keuze van het recept'), ...alts.map(c => item(c, 'Andere versie'))] });
+      }
+    } else if (r && r.type === 'master') {
+      const present = new Set(eb.slots.filter(isCard)); const set = BYSET[r.set] || [];
+      groups.push({ key: 'set', title: 'Nog niet in deze master set', items: set.filter(c => !present.has(c.id)).slice(0, 12).map(c => item(c, 'Uit ' + c.setName)) });
+    } else {
+      // Theme of the page: the cards around the slot.
+      const near = []; for (let i = page * fmt; i < page * fmt + fmt; i++) if (isCard(eb.slots[i])) near.push(CARDS[eb.slots[i]]);
+      if (!near.length) for (let i = idx - 1; i >= 0 && near.length < 3; i--) if (isCard(eb.slots[i])) near.push(CARDS[eb.slots[i]]);
+      const illus = new Set(near.map(c => c.illus).filter(Boolean)), types = new Map(), sets = new Set(near.map(c => c.set)), sps = near.map(c => c.sp).filter(d => d <= 1025);
+      near.forEach(c => types.set(c.type, (types.get(c.type) || 0) + 1)); const mainType = [...types].sort((a, b) => b[1] - a[1])[0]?.[0];
+      const scored = [];
+      for (const c of CARDS) {
+        if (inB.has(c.id)) continue; let sc = 0, why = '';
+        if (c.illus && illus.has(c.illus)) { sc += 3; why = 'Zelfde illustrator · ' + c.illus; }
+        if (c.sp <= 1025 && sps.some(d => d !== c.sp && Math.abs(d - c.sp) <= 2 && SP[d] && SP[c.sp] && SP[d].type === SP[c.sp].type)) { sc += 2; why = why || 'Zelfde evolutielijn'; }
+        if (mainType && c.type === mainType && near.length >= 2) { sc += 1; why = why || 'Zelfde type · ' + TYPES[c.type][0]; }
+        if (sets.has(c.set)) { sc += 1; why = why || 'Zelfde set · ' + c.setName; }
+        if (!sc) continue; if (own(c.id)) sc += 2;
+        scored.push({ c, sc, why });
+      }
+      scored.sort((a, b) => b.sc - a.sc || (a.c.trend ?? Infinity) - (b.c.trend ?? Infinity));
+      groups.push({ key: 'theme', title: near.length ? 'Past bij de kaarten op deze pagina' : 'Zet eerst een paar kaarten op de pagina, dan zoekt hij er passende bij', items: scored.slice(0, 16).map(x => item(x.c, x.why)) });
+    }
+    return {
+      where: where(idx), groups: groups.filter(g => g.items.length), empty: !groups.some(g => g.items.length),
+      reserve: () => { this.updB(eb.id, nb => { nb.slots[idx] = 'B'; return nb; }); this.setState({ actSlot: null }); this.toast(where(idx).toLowerCase() + ' gereserveerd als buffer'); },
+      close: () => this.setState({ actSlot: null }),
+    };
   }
   /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
   deleteBinder(id) {
@@ -414,14 +467,14 @@ export class CardcaseStore {
     for (let j = 0; j < fmt; j++) {
       const idx = p * fmt + j; const x = p < b.pages ? src[idx] : null; const has = isCard(x); const isD = typeof x === 'string' && x.startsWith('D:'); const res = isRes(x) && !isD; const own = has && tot(owned[x]) > 0;
       const mv = ov && ov.moved && ov.moved[idx];
-      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && (has || (isD && decoPiece(b, x, j).decoCorner)), isAct: editable && (has ? this.state.actSlot === idx : isD && actArt === x), draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
+      const s = { key: idx, n: j + 1, hasCard: has, isEmpty: x == null, isReserved: res, resLabel: res ? (x === 'B' ? 'BUFFER' : 'VERWACHT #' + x.slice(2)) : '', isOver: editable && over === idx, isTarget: editable && sel != null && !has && over !== idx, isDragging: !!(editable && drag && drag.type === 'slot' && drag.idx === idx), canRemove: editable && (has || (isD && decoPiece(b, x, j).decoCorner)), isAct: editable && (has ? this.state.actSlot === idx : isD ? actArt === x : x == null && this.state.actSlot === idx), draggable: editable && (has || res), cursor: editable ? (has || res ? 'grab' : 'pointer') : 'default', card: has ? { ...this.cv(CARDS[x], (b.recipe && b.recipe.lang) || 'EN', !own), dim: !own } : null, hasAlts: !!(has && b.alts && b.alts[idx] > 1), altsLabel: has && b.alts && b.alts[idx] > 1 ? b.alts[idx] + ' ' + altsNoun(b.recipe) : '', canPickAlt: editable, isMoved: !!mv, moveIcon: mv || '', hasWarn: !!(has && b.warn && b.warn[idx]), warnText: (b.warn && b.warn[idx]) || '', warnShort: warnShort((b.warn && b.warn[idx]) || ''), canSwap: !!(editable && has && b.recipe), onSwap: e => { e.stopPropagation(); this.setState({ verSheet: { idx } }); }, onAlts: e => { if (!editable) return; e.stopPropagation(); this.setState({ verSheet: { idx } }); }, isDeco: isD, ...decoPiece(b, x, j), isNew: !!(ov && ov.newIdx === idx), showPrice: has && this.state.showPrice, priceLabel: has ? (own ? '' : '≈ ') + eur(CARDS[x].trend) : '', priceBorder: own ? 'solid' : 'dashed' };
       if (editable) {
         s.onDragStart = e => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; this.setState({ drag: { type: 'slot', idx, cardId: x }, sel: null }); };
         s.onDragOver = e => { e.preventDefault(); if (this.state.over !== idx) this.setState({ over: idx }); };
         s.onDragLeave = () => { if (this.state.over === idx) this.setState({ over: null }); };
         s.onDrop = e => { e.preventDefault(); this.dropOn(idx); };
         s.onDragEnd = () => this.setState({ drag: null, over: null, sideOver: false });
-        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.updB(b.id, nb => { nb.slots[idx] = 'B'; return nb; }); } else if (res && !isD) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx })); };
+        s.onClick = () => { const sl = this.state.sel; if (sl != null) { this.updB(b.id, nb => { nb.slots[idx] = sl; return nb; }); this.setState({ sel: null }); } else if (x == null) { this.setState(st => st.actSlot === idx ? { actSlot: null } : { actSlot: idx, sideTab: 'slot' }); } else if (res && !isD) { this.updB(b.id, nb => { nb.slots[idx] = null; return nb; }); } else this.setState(st => ({ actSlot: st.actSlot === idx ? null : idx })); };
         s.onRemove = e => { e.stopPropagation(); this.removeSlot(b, idx); };
       }
       slots.push(s);
