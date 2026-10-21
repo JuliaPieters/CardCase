@@ -41,6 +41,7 @@ const DEMO = {
       >
         @for (s of p().slots; track s.key) {
           <div
+            data-sel
             class="group relative aspect-[63/88] rounded-[7px] bg-pocket shadow-[inset_0_2px_0_rgba(0,0,0,.08)] [container-type:inline-size]"
             [attr.draggable]="s.draggable ? 'true' : null"
             [style.cursor]="s.cursor"
@@ -180,6 +181,7 @@ const DEMO = {
         @for (im of dc?.images || []; track im.key) {
           <!-- Art: select, move and resize; its picture is drawn in the pockets underneath. -->
           <div
+            data-sel
             class="absolute z-[4] rounded-[7px] touch-none cursor-move"
             [style.left]="'calc(' + im.l + ')'"
             [style.top]="'calc(' + im.t + ')'"
@@ -211,6 +213,7 @@ const DEMO = {
       <div class="absolute inset-0 z-[5] pointer-events-none">
         @for (st of dc?.stickers || []; track st.key) {
           <div
+            data-sel
             class="absolute touch-none rounded outline-offset-4"
             [style.left.%]="st.x"
             [style.top.%]="st.y"

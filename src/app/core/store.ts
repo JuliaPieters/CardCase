@@ -100,6 +100,13 @@ export class CardcaseStore {
     const onResize = () => { const w = window.innerWidth >= 900; if (w !== this.state.wide) this.setState({ wide: w }); };
     onResize();
     window.addEventListener('resize', onResize);
+    // Editor: a click outside the cards, art and stickers (and not in the panel, the selection bar or a sheet) ends
+    // the selection.
+    document.addEventListener('pointerdown', e => {
+      const st = this.state; if (st.screen !== 'editor' || (st.actSlot == null && !st.decoSel)) return;
+      const t = e.target as HTMLElement; if (t && t.closest && t.closest('[data-sel],[data-keep-sel]')) return;
+      this.setState({ actSlot: null, decoSel: null });
+    });
     // Editor: Backspace or Delete removes what's selected (not while typing in a field).
     window.addEventListener('keydown', e => {
       if (this.state.screen !== 'editor' || (e.key !== 'Backspace' && e.key !== 'Delete')) return;

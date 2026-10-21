@@ -127,7 +127,7 @@ import { Pix, Switch } from '../shared/bits';
                 <cc-page-turn [page]="s.edOne.page" [leaf]="s.edOne.leaf" [angle]="s.edOne.angle" [cover]="s.ed.cover" />
               }
           <!-- What's selected, and what you can do with it. -->
-          <div class="min-h-[48px] flex flex-wrap items-center gap-x-[10px] gap-y-2 bg-surface border-2 border-line rounded-xl px-3 py-2">
+          <div data-keep-sel class="min-h-[48px] flex flex-wrap items-center gap-x-[10px] gap-y-2 bg-surface border-2 border-line rounded-xl px-3 py-2">
             @if (s.hasImgSel) {
               <div class="flex flex-wrap items-center gap-[6px]">
                 <span class="font-pixel text-[11px] leading-none text-muted tracking-[.08em]">AFBEELDING</span>
@@ -177,6 +177,7 @@ import { Pix, Switch } from '../shared/bits';
           </div>
         </div>
         <aside
+          data-keep-sel
           (dragover)="s.sideDragOver($event)"
           (dragleave)="s.sideDragLeave()"
           (drop)="s.sideDrop($event)"
@@ -517,7 +518,7 @@ import { Pix, Switch } from '../shared/bits';
 
     <!-- Everything you rarely need: the recipe, page format and pages, filling, and the other tools. -->
     @if (s.edMenu) {
-      <div (click)="s.toggleEdMenu()" class="fixed inset-0 z-[60] bg-[rgba(0,0,0,.45)] flex items-end md:items-start md:justify-end justify-center md:p-6">
+      <div data-keep-sel (click)="s.toggleEdMenu()" class="fixed inset-0 z-[60] bg-[rgba(0,0,0,.45)] flex items-end md:items-start md:justify-end justify-center md:p-6">
         <div
           (click)="$event.stopPropagation()"
           class="w-full max-w-[460px] max-h-[calc(88vh/var(--z))] overflow-auto bg-bg text-ink border-2 border-line rounded-t-[22px] md:rounded-[18px] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] flex flex-col gap-4 shadow-[5px_5px_0_var(--line)]"
