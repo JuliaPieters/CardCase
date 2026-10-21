@@ -118,7 +118,9 @@ body.cc-dark {
   }
   body {
     margin: 0;
-    background: var(--bg);
+    /* The app shell covers the body, so this colour only shows outside it: in iOS home-screen apps that is a band
+       below the bottom nav (iOS makes the page shorter than the screen there), so match the nav's colour. */
+    background: var(--surface);
     color: var(--ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
