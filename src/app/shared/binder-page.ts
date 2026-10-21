@@ -67,6 +67,12 @@ const DEMO = {
                 <span class="icon text-[max(13px,12cqw)]">check</span>
               </div>
             }
+            @if (s.isWanted) {
+              <!-- While editing: not in the collection yet. -->
+              <div title="Nog niet in je collectie" class="absolute top-[4%] right-[4%] z-[3] w-[max(18px,17cqw)] h-[max(18px,17cqw)] rounded-full bg-red text-cream border-[1.5px] border-line flex items-center justify-center shadow-[0_2px_0_var(--line)] pointer-events-none">
+                <span class="icon text-[max(12px,11cqw)]">shopping_cart</span>
+              </div>
+            }
             @if (s.isAct) {
               <div class="absolute -inset-[3px] border-[3px] border-red rounded-[9px] pointer-events-none"></div>
             }
