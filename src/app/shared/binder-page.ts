@@ -53,9 +53,6 @@ const DEMO = {
                 [style.background-size]="s.decoSize"
                 [style.background-position]="s.decoPos"
               ></div>
-              <div class="absolute left-1/2 bottom-[8%] -translate-x-1/2 bg-paper text-coal border-[1.5px] border-coal font-pixel text-[9.5cqw] leading-none px-[4cqw] py-[3cqw] rounded-[3px] whitespace-nowrap pointer-events-none">
-                DECORATIE
-              </div>
               @if (s.decoBuf) {
                 <div
                   title="Wordt vervangen als er een nieuwe kaart bij komt."

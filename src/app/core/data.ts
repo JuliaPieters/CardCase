@@ -107,15 +107,19 @@ export const rarAbbr = c => { const r = RARITIES[c.rarityName]; if (!r) return c
 /** "AR · Illustration rare" style label for a card. */
 export const rarLabel = c => c.rarityName ? rarAbbr(c) + ' · ' + c.rarityName : RAR[c.rarity][1] + ' ' + RAR[c.rarity][0];
 export const RAR_ORDER = { X: -1, C: 0, U: 1, R: 2, HR: 3 };
+/** A drawn scene as a CSS background (300×420, the shape of a 3×3 page; covers any span of pockets). */
+const scene = (body: string) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420' preserveAspectRatio='xMidYMid slice' shape-rendering='crispEdges'>${body}</svg>`)}")`;
+const stars = (n: number, seed: number, h: number) => Array.from({ length: n }, (_, i) => { const x = (i * 97 + seed * 31) % 300, y = (i * 53 + seed * 17) % h, z = i % 3 ? 3 : 5; return `<rect x='${x}' y='${y}' width='${z}' height='${z}' fill='#FFF8E0'/>`; }).join('');
+/** Default art for Michi-style inserts: scenes that fill pockets instead of cards (users can upload their own). */
 export const IMGS = [
-  { id: 'sunset', name: 'Zonsondergang', fill: 'linear-gradient(165deg,#FFC36B 0%,#FF7A3D 38%,#E3350D 62%,#5A1A3A 100%)' },
-  { id: 'lagoon', name: 'Lagune', fill: 'linear-gradient(200deg,#BFF3FF 0%,#5BC0EB 45%,#1E5FA8 100%)' },
-  { id: 'meadow', name: 'Weide', fill: 'linear-gradient(180deg,#D8F5A2 0%,#9BBC0F 50%,#306230 100%)' },
-  { id: 'night', name: 'Sterrennacht', fill: 'radial-gradient(circle at 20% 30%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 72% 58%,#fff 0 1px,transparent 2px),radial-gradient(circle at 45% 82%,#fff 0 1px,transparent 2px),radial-gradient(circle at 85% 20%,#fff 0 1.5px,transparent 2.5px),linear-gradient(180deg,#1B1F4B,#4B2A6B)' },
-  { id: 'holo', name: 'Holo', fill: 'linear-gradient(115deg,#ffb3d9,#ffe9a3 25%,#b8f5d0 50%,#a9dcff 75%,#d6b8ff)' },
+  { id: 'sunset', name: 'Zonsondergang', fill: scene(`<rect width='300' height='420' fill='#5A1A3A'/><rect width='300' height='70' fill='#FFC36B'/><rect y='70' width='300' height='50' fill='#FFA24D'/><rect y='120' width='300' height='50' fill='#FF7A3D'/><rect y='170' width='300' height='50' fill='#E3350D'/><circle cx='150' cy='215' r='62' fill='#FFE9A3'/><path d='M0 260 L60 200 L110 240 L170 170 L230 230 L300 190 L300 420 L0 420Z' fill='#7A2448'/><path d='M0 300 L80 250 L150 290 L220 245 L300 285 L300 420 L0 420Z' fill='#3E1230'/><rect y='330' width='300' height='90' fill='#2B0F25'/><rect x='40' y='345' width='60' height='4' fill='#FF7A3D'/><rect x='170' y='362' width='90' height='4' fill='#FF7A3D'/><rect x='90' y='385' width='70' height='4' fill='#E3350D'/>`) },
+  { id: 'lagoon', name: 'Lagune', fill: scene(`<rect width='300' height='420' fill='#1E5FA8'/><rect width='300' height='150' fill='#BFF3FF'/><rect x='30' y='40' width='70' height='16' fill='#FFFFFF'/><rect x='45' y='28' width='40' height='14' fill='#FFFFFF'/><rect x='190' y='70' width='80' height='14' fill='#FFFFFF'/><rect y='150' width='300' height='80' fill='#5BC0EB'/><path d='M180 230 L215 175 L250 230Z' fill='#F6E2A6'/><rect x='212' y='150' width='6' height='45' fill='#7A5230'/><path d='M190 150 L215 140 L245 152 L215 147Z' fill='#4E9F3D'/>${Array.from({ length: 9 }, (_, i) => `<rect x='${(i * 70) % 300}' y='${250 + i * 18}' width='40' height='5' fill='#BFF3FF' opacity='.7'/>`).join('')}`) },
+  { id: 'meadow', name: 'Weide', fill: scene(`<rect width='300' height='420' fill='#9BD7F5'/><rect x='40' y='50' width='80' height='18' fill='#FFFFFF'/><rect x='58' y='36' width='44' height='16' fill='#FFFFFF'/><rect x='180' y='90' width='70' height='16' fill='#FFFFFF'/><path d='M0 230 Q75 170 150 220 T300 200 L300 420 L0 420Z' fill='#9BBC0F'/><path d='M0 290 Q100 240 200 285 T300 270 L300 420 L0 420Z' fill='#6E9A1A'/><rect y='340' width='300' height='80' fill='#306230'/>${Array.from({ length: 14 }, (_, i) => `<rect x='${(i * 43 + 11) % 290}' y='${300 + (i * 29) % 110}' width='6' height='6' fill='${['#FFF8EE', '#F6C945', '#F3A6C8'][i % 3]}'/>`).join('')}`) },
+  { id: 'night', name: 'Sterrennacht', fill: scene(`<rect width='300' height='420' fill='#0F1A3A'/><rect y='200' width='300' height='220' fill='#1E2A5A'/>${stars(40, 3, 260)}<circle cx='225' cy='80' r='34' fill='#FFF3C4'/><circle cx='240' cy='70' r='30' fill='#0F1A3A'/><path d='M0 320 L70 260 L130 300 L200 240 L300 310 L300 420 L0 420Z' fill='#141D40'/><rect y='370' width='300' height='50' fill='#0A1230'/>`) },
+  { id: 'holo', name: 'Holo', fill: scene(`<defs><linearGradient id='h' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ffb3d9'/><stop offset='.25' stop-color='#ffe9a3'/><stop offset='.5' stop-color='#b8f5d0'/><stop offset='.75' stop-color='#a9dcff'/><stop offset='1' stop-color='#d6b8ff'/></linearGradient></defs><rect width='300' height='420' fill='url(#h)'/>${Array.from({ length: 12 }, (_, i) => { const x = (i * 83 + 20) % 280, y = (i * 61 + 30) % 400; return `<path d='M${x} ${y - 12} L${x + 3} ${y - 3} L${x + 12} ${y} L${x + 3} ${y + 3} L${x} ${y + 12} L${x - 3} ${y + 3} L${x - 12} ${y} L${x - 3} ${y - 3}Z' fill='#FFFFFF' opacity='.85'/>`; }).join('')}`) },
   { id: 'plaid', name: 'Ruit', fill: 'repeating-linear-gradient(0deg,rgba(227,53,13,.35) 0 6px,transparent 6px 18px),repeating-linear-gradient(90deg,rgba(227,53,13,.35) 0 6px,transparent 6px 18px),linear-gradient(#F7F3E8,#F7F3E8)' },
   { id: 'lcd', name: 'Pixelscherm', fill: 'repeating-linear-gradient(0deg,rgba(15,56,15,.2) 0 2px,transparent 2px 6px),repeating-linear-gradient(90deg,rgba(15,56,15,.2) 0 2px,transparent 2px 6px),linear-gradient(#9BBC0F,#8BAC0F)' },
-  { id: 'dusk', name: 'Schemering', fill: 'linear-gradient(160deg,#F3A6C8,#9D7BD8 55%,#3B3A7A)' },
+  { id: 'dusk', name: 'Bos in de schemering', fill: scene(`<rect width='300' height='420' fill='#3B3A7A'/><rect width='300' height='120' fill='#F3A6C8'/><rect y='120' width='300' height='80' fill='#C38AD8'/><rect y='200' width='300' height='60' fill='#9D7BD8'/>${stars(10, 7, 110)}${Array.from({ length: 8 }, (_, i) => { const x = i * 40 - 5, h = 120 + (i * 37) % 70; return `<path d='M${x + 20} ${420 - h - 60} L${x + 45} ${420 - h} L${x - 5} ${420 - h}Z' fill='#2A2860'/><path d='M${x + 20} ${420 - h - 30} L${x + 50} ${420 - h + 40} L${x - 10} ${420 - h + 40}Z' fill='#232150'/><rect x='${x + 16}' y='${420 - h + 40}' width='8' height='${h}' fill='#1A183E'/>`; }).join('')}<rect y='390' width='300' height='30' fill='#16143A'/>`) },
 ];
 export const BGS = [
   { id: 'none', name: 'Geen', fill: 'none' },
@@ -145,10 +149,28 @@ export function tplAreas(t, cols, rows) {
   if (t === 'checker') { const a = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if ((r + c) % 2 === 0) a.push({ col: c, row: r, w: 1, h: 1 }); return a; }
   return [];
 }
+/**
+ * Lays out a binder around its decoration, Michi style: an image fills the pockets it covers instead of cards, and
+ * the cards (with empty and reserved slots, in their order) flow on into the next free pockets, adding pages when
+ * needed. A buffer image only takes pockets that are empty, so a new card can still take its place. The recipe's
+ * per-slot labels (warn, alts) move along with their cards.
+ */
 export function syncSlots(b) {
-  const cols = COLS[b.fmt]; const s = b.slots.map(x => (typeof x === 'string' && x.startsWith('D:')) ? null : x);
-  ((b.deco && b.deco.images) || []).forEach(im => { for (let r = im.row; r < im.row + im.h; r++) for (let c = im.col; c < im.col + im.w; c++) { const idx = im.page * b.fmt + r * cols + c; if (idx < s.length && (s[idx] == null || s[idx] === 'B')) s[idx] = 'D:' + im.id; } });
-  return s;
+  const fmt = b.fmt, cols = COLS[fmt]; const isD = x => typeof x === 'string' && x.startsWith('D:');
+  const seq = []; b.slots.forEach((x, i) => { if (!isD(x)) seq.push([x, b.warn && b.warn[i], b.alts && b.alts[i]]); });
+  while (seq.length && seq[seq.length - 1][0] == null) seq.pop();
+  const cover = new Map(), soft = new Map(); let last = -1;
+  ((b.deco && b.deco.images) || []).forEach(im => { for (let r = im.row; r < im.row + im.h; r++) for (let c = im.col; c < im.col + im.w; c++) { const idx = im.page * fmt + r * cols + c; (im.buffer ? soft : cover).set(idx, 'D:' + im.id); last = Math.max(last, idx); } });
+  const slots = [], warn = {}, alts = {}; let pages = b.pages, k = 0;
+  for (let i = 0; k < seq.length || i < pages * fmt || i <= last; i++) {
+    if (i >= pages * fmt) pages += 2;
+    if (cover.has(i)) { slots.push(cover.get(i)); continue; }
+    // A buffer image shows where the next card would otherwise leave the pocket empty.
+    const it = seq[k]; if (soft.has(i) && (!it || it[0] == null)) { slots.push(soft.get(i)); if (it) k++; continue; }
+    k++; if (!it) { slots.push(null); continue; }
+    slots.push(it[0]); if (it[1]) warn[i] = it[1]; if (it[2]) alts[i] = it[2];
+  }
+  return { slots, pages, warn, alts };
 }
 export function decoPiece(b, x, j) {
   const none = { decoFill: 'none', decoSize: 'cover', decoPos: 'center', decoBuf: false };

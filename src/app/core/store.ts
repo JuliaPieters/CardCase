@@ -391,7 +391,7 @@ export class CardcaseStore {
   confirmShift(mode) {
     const b = this.curB(); const plan = this.shiftPlan(b, mode); if (!plan) return;
     const job = this.jobFrom(b, plan);
-    this.updB(b.id, nb => { const n = { ...nb, slots: plan.slots, pages: plan.pages }; n.slots = syncSlots(n); return n; });
+    this.updB(b.id, nb => { const n = { ...nb, slots: plan.slots, pages: plan.pages }; return Object.assign(n, syncSlots(n)); });
     this.go('moves', { job, done: {} });
   }
   startPageScan(bid, pages, i = 0) {
@@ -417,7 +417,7 @@ export class CardcaseStore {
     Object.entries(st.fixes).forEach(([i, f]) => { if (det[i]) { det[i].got = f.got; det[i].st = 'fixed'; } });
     return { b, p, fmt, idxs, det };
   }
-  updDeco(fn) { this.updB(this.state.edId, nb => { const o = nb.deco || EMPTYD; const dd = { bg: Object.assign({}, o.bg), images: o.images.map(i => Object.assign({}, i)), stickers: o.stickers.map(s => Object.assign({}, s)) }; fn(dd, nb); nb.deco = dd; nb.slots = syncSlots(nb); return nb; }); }
+  updDeco(fn) { this.updB(this.state.edId, nb => { const o = nb.deco || EMPTYD; const dd = { bg: Object.assign({}, o.bg), images: o.images.map(i => Object.assign({}, i)), stickers: o.stickers.map(s => Object.assign({}, s)) }; fn(dd, nb); nb.deco = dd; return Object.assign(nb, syncSlots(nb)); }); }
   cellAt(e, cols, rows) { const r = e.currentTarget.getBoundingClientRect(); return { col: Math.max(0, Math.min(cols - 1, Math.floor((e.clientX - r.left) / r.width * cols))), row: Math.max(0, Math.min(rows - 1, Math.floor((e.clientY - r.top) / r.height * rows))) }; }
   sizeOf(k, cols, rows) { if (k === 'page') return [cols, rows]; const s = SIZES[k] || [1, 1]; return [Math.min(s[0], cols), Math.min(s[1], rows)]; }
   fitSize(cols, rows) { return this.sizeOf(this.state.decoSize, cols, rows); }
