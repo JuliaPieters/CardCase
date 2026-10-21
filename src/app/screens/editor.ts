@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
 import { BinderPage } from '../shared/binder-page';
+import { PageTurn } from '../shared/page-turn';
 import { Pix, Switch } from '../shared/bits';
 import { EditorDeco } from './editor-deco';
 
@@ -9,7 +10,7 @@ import { EditorDeco } from './editor-deco';
 @Component({
   selector: 'cc-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, BinderPage, Pix, Switch, EditorDeco],
+  imports: [Card, BinderPage, PageTurn, Pix, Switch, EditorDeco],
   template: `
     @let s = v();
     <div class="flex flex-col gap-[14px]">
@@ -202,38 +203,65 @@ import { EditorDeco } from './editor-deco';
           }
           <div class="flex flex-wrap gap-5 items-start">
             <div class="flex-[3_1_520px] min-w-0 flex flex-col gap-3">
-              <div class="flex items-center justify-center gap-[10px]">
-                <button
-                  (click)="s.edPrev()"
-                  class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
-                  [style.opacity]="s.edPrevOp"
-                >
-                  <span class="icon text-[22px]">chevron_left</span>
-                </button>
-                <div class="bg-device border-2 border-line rounded-lg p-1">
-                  <div class="lcd rounded px-3 py-[6px] text-[14px] leading-none whitespace-nowrap">{{ s.ed.spreadLabel }}</div>
+              @if (s.wide) {
+                <div class="flex items-center justify-center gap-[10px]">
+                  <button
+                    (click)="s.edPrev()"
+                    title="Vorige pagina"
+                    class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
+                    [style.opacity]="s.edPrevOp"
+                  >
+                    <span class="icon text-[22px]">chevron_left</span>
+                  </button>
+                  <div class="bg-device border-2 border-line rounded-lg p-1">
+                    <div class="lcd rounded px-3 py-[6px] text-[14px] leading-none whitespace-nowrap">{{ s.ed.spreadLabel }}</div>
+                  </div>
+                  <button
+                    (click)="s.edNext()"
+                    title="Volgende pagina"
+                    class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
+                    [style.opacity]="s.edNextOp"
+                  >
+                    <span class="icon text-[22px]">chevron_right</span>
+                  </button>
                 </div>
-                <button
-                  (click)="s.edNext()"
-                  class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
-                  [style.opacity]="s.edNextOp"
+                <div
+                  class="flex items-stretch border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[5px_5px_0_var(--line)]"
+                  [style.background]="s.ed.cover"
                 >
-                  <span class="icon text-[22px]">chevron_right</span>
-                </button>
-              </div>
-              <!-- On a phone the two pages sit one above the other, so the cards are big enough to recognize. -->
-              <div
-                class="flex flex-col md:flex-row items-stretch gap-[10px] md:gap-0 border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[5px_5px_0_var(--line)]"
-                [style.background]="s.ed.cover"
-              >
-                <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.edLeft" /></div>
-                <div class="hidden md:flex flex-none w-[clamp(14px,2.4vw,30px)] flex-col justify-evenly items-center">
-                  @for (r of rings; track r) {
-                    <div class="w-4/5 h-[26px] rounded-[7px] border-2 border-coal bg-[linear-gradient(90deg,#8E949C,#EEF1F3_50%,#8E949C)]"></div>
-                  }
+                  <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.edLeft" /></div>
+                  <div class="flex-none w-[clamp(14px,2.4vw,30px)] flex flex-col justify-evenly items-center">
+                    @for (r of rings; track r) {
+                      <div class="w-4/5 h-[26px] rounded-[7px] border-2 border-coal bg-[linear-gradient(90deg,#8E949C,#EEF1F3_50%,#8E949C)]"></div>
+                    }
+                  </div>
+                  <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.edRight" /></div>
                 </div>
-                <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.edRight" /></div>
-              </div>
+              } @else {
+                <!-- Phone: one page at a time, big enough to recognize the cards; the arrows turn the page. -->
+                <div class="flex items-center justify-center gap-[10px]">
+                  <button
+                    (click)="s.edTurnPrev()"
+                    title="Vorige pagina"
+                    class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
+                    [style.opacity]="s.edTurnPrevOp"
+                  >
+                    <span class="icon text-[22px]">chevron_left</span>
+                  </button>
+                  <div class="bg-device border-2 border-line rounded-lg p-1">
+                    <div class="lcd rounded px-3 py-[6px] text-[14px] leading-none whitespace-nowrap">{{ s.edOne.label }}</div>
+                  </div>
+                  <button
+                    (click)="s.edTurnNext()"
+                    title="Volgende pagina"
+                    class="w-[38px] h-[38px] bg-surface border-2 border-line rounded-[10px] shadow-hard-sm flex items-center justify-center"
+                    [style.opacity]="s.edTurnNextOp"
+                  >
+                    <span class="icon text-[22px]">chevron_right</span>
+                  </button>
+                </div>
+                <cc-page-turn [page]="s.edOne.page" [leaf]="s.edOne.leaf" [angle]="s.edOne.angle" [cover]="s.ed.cover" />
+              }
               <div class="text-[13px] text-muted font-bold text-pretty">
                 Sleep kaarten uit je collectie naar een slot. Sleep tussen slots om te wisselen, of terug naar de zijbalk om een kaart eruit te halen. Op
                 touch: tik een kaart aan en daarna een slot. Tik op een leeg slot om het als buffer te reserveren, nog eens tikken maakt het weer leeg.

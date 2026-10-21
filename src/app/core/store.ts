@@ -12,6 +12,15 @@ import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR
 /** Cost of buying these cards; prices are fetched lazily, so say so when some are still unknown. */
 /** Label on a binder slot whose recipe version doesn't exist for that Pokémon (see pickVersion). */
 const warnShort = (w: string) => /^Geen IR/.test(w) ? 'GEEN IR' : /^Geen full art/.test(w) ? 'GEEN FULL ART' : /^Niet in /.test(w) ? 'ANDERE SET' : 'ANDERE VERSIE';
+/**
+ * The single page shown on a phone, and while turning the page that swings over it (`leaf`, at `angle` degrees):
+ * forward the current page swings away above the next, back the previous page swings in above the current one.
+ */
+function onePage(b, p, pflip, where, model, leafModel) {
+  const f = pflip && pflip.where === where ? pflip : null;
+  const base = f ? (f.dir > 0 ? f.to : f.from) : p;
+  return { page: model(base), leaf: f ? leafModel(f.dir > 0 ? f.from : f.to) : null, angle: f ? f.angle : 0, label: `PAGINA ${(f ? f.to : p) + 1} / ${b.pages}` };
+}
 const costLabel = cards => { const known = cards.filter(c => c.trend != null); if (!known.length) return 'prijs nog onbekend'; return (known.length < cards.length ? 'minstens ' : '') + eur(known.reduce((a, c) => a + c.trend, 0)); };
 
 /** Pixel sprite of the card's Pokémon (PokéAPI, ~1 kB), drawn in the placeholder when TCGdex has no photo of the card. */
@@ -64,7 +73,7 @@ export class CardcaseStore {
     owned: u.owned, added: u.added, detailId: 1, detailLang: CARDS[1].avail[0],
     q: '', fLangs: [], fSet: '', fRar: '',
     view: 'grid', sort: 'set', collSet: '', missingOnly: false,
-    binders: u.binders, edId: u.binders[0].id, edSpread: 0, autoSet: 'set:' + SETS[0].code, sideQ: '', sideSet: '',
+    binders: u.binders, edId: u.binders[0].id, edSpread: 0, edSide: 0, vSide: 0, pflip: null, autoSet: 'set:' + SETS[0].code, sideQ: '', sideSet: '',
     drag: null, over: null, sel: null, actSlot: null, sideOver: false,
     vId: u.binders[0].id, vSpread: 0, flip: null,
     scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: 'NM', qty: 1 }, toast: null,
@@ -80,7 +89,7 @@ export class CardcaseStore {
     const onResize = () => { const w = window.innerWidth >= 900; if (w !== this.state.wide) this.setState({ wide: w }); };
     onResize();
     window.addEventListener('resize', onResize);
-    window.addEventListener('keydown', e => { if (this.state.screen !== 'viewer') return; if (e.key === 'ArrowRight') this.flip(1); if (e.key === 'ArrowLeft') this.flip(-1); });
+    window.addEventListener('keydown', e => { if (this.state.screen !== 'viewer') return; const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (d) this.state.wide ? this.flip(d) : this.turn('v', d); });
     window.addEventListener('pointermove', e => this.onPD(e));
     window.addEventListener('pointerup', () => { this.pd = null; });
     // iOS freezes a home-screen app as soon as it goes to the background: send a pending change before that happens,
@@ -639,6 +648,22 @@ export class CardcaseStore {
       fixEmpty: () => this.setState(s => ({ fixes: { ...s.fixes, [s.fix]: { got: null } }, fix: null })),
     };
   }
+  /**
+   * Phone: one page at a time. Turns to the next or previous page of the binder in the editor ('ed') or viewer ('v'):
+   * going forward the current page swings away to the left, going back the previous page swings in over it.
+   */
+  turn(where, dir) {
+    const st = this.state; if (st.pflip) return;
+    const b = where === 'ed' ? this.curB() : st.binders.find(x => x.id === st.vId);
+    const sk = where === 'ed' ? 'edSpread' : 'vSpread', dk = where === 'ed' ? 'edSide' : 'vSide';
+    const from = 2 * Math.min(st[sk], b.pages / 2 - 1) + (st[dk] || 0); const to = from + dir;
+    if (to < 0 || to >= b.pages) return;
+    const done = { [sk]: Math.floor(to / 2), [dk]: to % 2, pflip: null, actSlot: null };
+    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return this.setState(done);
+    this.setState({ pflip: { where, dir, from, to, angle: dir > 0 ? 0 : -180 } });
+    requestAnimationFrame(() => requestAnimationFrame(() => this.setState(s => ({ pflip: s.pflip && { ...s.pflip, angle: dir > 0 ? -180 : 0 } }))));
+    clearTimeout(this.ft); this.ft = setTimeout(() => this.setState(done), 620);
+  }
   flip(dir) {
     const b = this.state.binders.find(x => x.id === this.state.vId); const last = b.pages / 2 - 1; const s = this.state.vSpread;
     if (this.state.flip || (dir > 0 && s >= last) || (dir < 0 && s <= 0)) return;
@@ -781,12 +806,14 @@ export class CardcaseStore {
       binderCards, newBinder: () => this.go('recipe', { rcStep: 0 }),
       ed: { name: eb.name, cover: eb.cover, spreadLabel: `PAGINA ${2 * es + 1}–${2 * es + 2} / ${eb.pages}` },
       edLeft: this.pageModel(eb, 2 * es, true), edRight: this.pageModel(eb, 2 * es + 1, true),
+      edOne: onePage(eb, 2 * es + (st.edSide || 0), st.pflip, 'ed', p => this.pageModel(eb, p, true), p => this.pageModel(eb, p, false)),
+      edTurnPrev: () => this.turn('ed', -1), edTurnNext: () => this.turn('ed', 1), edTurnPrevOp: 2 * es + (st.edSide || 0) > 0 ? 1 : 0.35, edTurnNextOp: 2 * es + (st.edSide || 0) < eb.pages - 1 ? 1 : 0.35,
       edPrev: () => es > 0 && this.setState({ edSpread: es - 1 }), edNext: () => es < lastSpread && this.setState({ edSpread: es + 1 }), edPrevOp: es > 0 ? 1 : 0.35, edNextOp: es < lastSpread ? 1 : 0.35,
       fmtOptions: [4, 9, 12, 16].map(n => { const on = eb.fmt === n; return { key: n, label: n + '-pocket', bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : 'var(--ink)', select: () => this.setFmt(n) }; }),
       autoSet: st.autoSet, onAutoSet: e => this.setState({ autoSet: e.target.value }), autofill: () => this.autofill(),
       addPages: () => { this.updB(eb.id, nb => { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); return nb; }); this.toast("2 pagina's toegevoegd"); },
       exportImg: () => this.toast(`Pagina ${2 * es + 1}–${2 * es + 2} geëxporteerd als PNG`),
-      openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es }),
+      openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }),
       sideItems, sideCount: sideItems.length >= 60 ? 'eerste 60 · zoek om te filteren' : sideItems.length + ' kaarten', sideQ: st.sideQ, onSideQ: e => this.setState({ sideQ: e.target.value }), sideSet: st.sideSet, onSideSet: e => this.setState({ sideSet: e.target.value }),
       isDraggingSlot, sideZoneBg: st.sideOver ? 'rgba(227,53,13,.22)' : 'rgba(227,53,13,.10)',
       sideDragOver: e => { if (this.state.drag && this.state.drag.type === 'slot') { e.preventDefault(); if (!this.state.sideOver) this.setState({ sideOver: true }); } },
@@ -796,8 +823,10 @@ export class CardcaseStore {
       v: { name: vb.name, cover: vb.cover, fmt: vb.fmt + '-POCKET', link: `cardcase.app/b/${vb.id}-7kq2`, label: `PAGINA ${2 * vs + 1}–${2 * vs + 2} / ${vb.pages}`, warns: Object.keys(vb.warn || {}).length, warnLabel: warnShort(Object.values(vb.warn || {})[0] as string || '') },
       vLeft, vRight, leafFront, leafBack, flipping: !!f, leafLeft: f && f.dir > 0 ? '50%' : '0%', leafOrigin: f && f.dir > 0 ? 'left center' : 'right center', leafAngle: f ? f.angle : 0,
       vPrev: () => this.flip(-1), vNext: () => this.flip(1), vPrevOp: vs > 0 ? 1 : 0.35, vNextOp: vs < vb.pages / 2 - 1 ? 1 : 0.35,
+      vOne: onePage(vb, 2 * vs + (st.vSide || 0), st.pflip, 'v', pm, pm),
+      vTurnPrev: () => this.turn('v', -1), vTurnNext: () => this.turn('v', 1), vTurnPrevOp: 2 * vs + (st.vSide || 0) > 0 ? 1 : 0.35, vTurnNextOp: 2 * vs + (st.vSide || 0) < vb.pages - 1 ? 1 : 0.35,
       copyLink: () => { try { navigator.clipboard && navigator.clipboard.writeText('https://' + `cardcase.app/b/${vb.id}-7kq2`); } catch (e) {} this.toast('Link gekopieerd'); },
-      closeViewer: () => this.go('editor', { edId: vb.id, edSpread: vs }),
+      closeViewer: () => this.go('editor', { edId: vb.id, edSpread: vs, edSide: st.vSide || 0 }),
       scanSearching: sc.phase === 'search', scanLocked: sc.phase !== 'search', scanSheet: sc.phase === 'sheet',
       frameColor: sc.phase === 'search' ? 'rgba(155,188,15,.55)' : '#9BBC0F',
       statusText: sc.phase === 'search' ? 'ZOEKEN NAAR KAART…' : sc.phase === 'found' ? 'KAART GEVONDEN…' : ms.length === 1 ? '1 MATCH GEVONDEN' : ms.length + ' MATCHES GEVONDEN', matchCount: ms.length,

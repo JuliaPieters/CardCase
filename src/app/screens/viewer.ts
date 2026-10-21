@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CardcaseStore } from '../core/store';
 import { BinderPage } from '../shared/binder-page';
+import { PageTurn } from '../shared/page-turn';
 
 /** Read-only shared binder viewer with a 3D page-flip leaf. */
 @Component({
   selector: 'cc-viewer',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BinderPage],
+  imports: [BinderPage, PageTurn],
   template: `
     @let s = v();
     <div class="fixed inset-0 z-[45] bg-bg flex flex-col overflow-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
@@ -32,53 +33,61 @@ import { BinderPage } from '../shared/binder-page';
           <div class="kicker">GEDEELDE BINDER · {{ s.v.fmt }}</div>
           <h1 class="m-0 text-[clamp(26px,4vw,36px)] font-black">{{ s.v.name }}</h1>
         </div>
-        <div
-          class="w-full max-w-[1000px] border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[6px_6px_0_var(--line)]"
-          [style.background]="s.v.cover"
-        >
-          <!-- Phone: the pages one above the other, without the page-flip leaf. -->
-          <div class="relative flex flex-col md:flex-row items-stretch gap-[10px] md:gap-0 [perspective:2400px]">
-            <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.vLeft" /></div>
-            <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.vRight" /></div>
-            @if (s.flipping && s.wide) {
-              <div
-                class="absolute top-0 bottom-0 w-1/2 z-[3] [transform-style:preserve-3d] transition-transform duration-[750ms] ease-[cubic-bezier(.35,.1,.25,1)]"
-                [style.left]="s.leafLeft"
-                [style.transform-origin]="s.leafOrigin"
-                [style.transform]="'rotateY(' + s.leafAngle + 'deg)'"
-              >
-                <div class="absolute inset-0 [backface-visibility:hidden] flex shadow-[0_0_24px_rgba(0,0,0,.25)]">
-                  <div class="flex-1 min-w-0 flex flex-col"><cc-binder-page [page]="s.leafFront" /></div>
+        @if (s.wide) {
+          <div
+            class="w-full max-w-[1000px] border-2 border-line rounded-[14px] p-[clamp(6px,1.3vw,14px)] shadow-[6px_6px_0_var(--line)]"
+            [style.background]="s.v.cover"
+          >
+            <div class="relative flex items-stretch [perspective:2400px]">
+              <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.vLeft" /></div>
+              <div class="flex-[1_1_0] min-w-0 flex flex-col"><cc-binder-page [page]="s.vRight" /></div>
+              @if (s.flipping) {
+                <div
+                  class="absolute top-0 bottom-0 w-1/2 z-[3] [transform-style:preserve-3d] transition-transform duration-[750ms] ease-[cubic-bezier(.35,.1,.25,1)]"
+                  [style.left]="s.leafLeft"
+                  [style.transform-origin]="s.leafOrigin"
+                  [style.transform]="'rotateY(' + s.leafAngle + 'deg)'"
+                >
+                  <div class="absolute inset-0 [backface-visibility:hidden] flex shadow-[0_0_24px_rgba(0,0,0,.25)]">
+                    <div class="flex-1 min-w-0 flex flex-col"><cc-binder-page [page]="s.leafFront" /></div>
+                  </div>
+                  <div class="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] flex shadow-[0_0_24px_rgba(0,0,0,.25)]">
+                    <div class="flex-1 min-w-0 flex flex-col"><cc-binder-page [page]="s.leafBack" /></div>
+                  </div>
                 </div>
-                <div class="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] flex shadow-[0_0_24px_rgba(0,0,0,.25)]">
-                  <div class="flex-1 min-w-0 flex flex-col"><cc-binder-page [page]="s.leafBack" /></div>
-                </div>
-              </div>
-            }
-            <div
-              class="hidden md:flex absolute left-1/2 top-[6%] bottom-[6%] -translate-x-1/2 w-[clamp(10px,1.8vw,22px)] flex-col justify-evenly z-[5] pointer-events-none"
-            >
-              @for (r of rings; track r) {
-                <div class="h-6 rounded-[7px] border-2 border-coal bg-[linear-gradient(90deg,#8E949C,#EEF1F3_50%,#8E949C)]"></div>
               }
+              <div
+                class="absolute left-1/2 top-[6%] bottom-[6%] -translate-x-1/2 w-[clamp(10px,1.8vw,22px)] flex flex-col justify-evenly z-[5] pointer-events-none"
+              >
+                @for (r of rings; track r) {
+                  <div class="h-6 rounded-[7px] border-2 border-coal bg-[linear-gradient(90deg,#8E949C,#EEF1F3_50%,#8E949C)]"></div>
+                }
+              </div>
             </div>
           </div>
-        </div>
+        } @else {
+          <!-- Phone: one page at a time, turned with the arrows. -->
+          <div class="w-full max-w-[520px]">
+            <cc-page-turn [page]="s.vOne.page" [leaf]="s.vOne.leaf" [angle]="s.vOne.angle" [cover]="s.v.cover" />
+          </div>
+        }
         <div class="flex items-center gap-3">
           <button
-            (click)="s.vPrev()"
+            (click)="s.wide ? s.vPrev() : s.vTurnPrev()"
+            title="Vorige pagina"
             class="press-sm w-[52px] h-[52px] rounded-[14px] bg-surface border-2 border-line shadow-[0_4px_0_var(--line)] flex items-center justify-center"
-            [style.opacity]="s.vPrevOp"
+            [style.opacity]="s.wide ? s.vPrevOp : s.vTurnPrevOp"
           >
             <span class="icon text-[28px]">chevron_left</span>
           </button>
           <div class="bg-device border-2 border-line rounded-[9px] p-1">
-            <div class="lcd rounded-[5px] px-[14px] py-[9px] text-[15px] leading-none whitespace-nowrap">{{ s.v.label }}</div>
+            <div class="lcd rounded-[5px] px-[14px] py-[9px] text-[15px] leading-none whitespace-nowrap">{{ s.wide ? s.v.label : s.vOne.label }}</div>
           </div>
           <button
-            (click)="s.vNext()"
+            (click)="s.wide ? s.vNext() : s.vTurnNext()"
+            title="Volgende pagina"
             class="press-sm w-[52px] h-[52px] rounded-[14px] bg-red text-cream border-2 border-line shadow-[0_4px_0_var(--line)] flex items-center justify-center"
-            [style.opacity]="s.vNextOp"
+            [style.opacity]="s.wide ? s.vNextOp : s.vTurnNextOp"
           >
             <span class="icon text-[28px]">chevron_right</span>
           </button>
