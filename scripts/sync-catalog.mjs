@@ -4,7 +4,8 @@
 // thousand requests instead of one per card. Prices are not included: the app fetches those per card at runtime.
 //
 // Images TCGdex lacks are filled in from other sources afterwards (scripts/sync-images.mjs), Japanese sets and card
-// details from the official database (scripts/sync-japanese.mjs), and the scanner's image index is rebuilt
+// details from the official database (scripts/sync-japanese.mjs), Taiwanese ones from the official Asian database
+// (scripts/sync-chinese.mjs), and the scanner's image index is rebuilt
 // (scripts/sync-hashes.mjs).
 //
 // Usage: npm run sync-catalog
@@ -12,6 +13,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { buildHashes } from './sync-hashes.mjs';
 import { addImages } from './sync-images.mjs';
+import { addChinese } from './sync-chinese.mjs';
 import { addJapanese } from './sync-japanese.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
@@ -170,6 +172,8 @@ async function main() {
   await addImages(out);
   console.log('\nJapanse kaarten aanvullen uit de officiële database…');
   await addJapanese(out);
+  console.log('\nChinese kaarten aanvullen uit de officiële database…');
+  await addChinese(out);
   await mkdir(new URL('.', OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(out));
   // The scanner's image index must match this catalog row for row.

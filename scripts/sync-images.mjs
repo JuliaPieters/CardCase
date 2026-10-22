@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 // Fills in card images that TCGdex doesn't have, in public/catalog.json:
 //  - English cards: pokemontcg.io, matched by set and card number, checked by name.
-//  - Taiwanese cards: the official Asian card database (asia.pokemon-card.com/tw), matched by order when the set has
-//    exactly as many cards there as in the catalog.
-// Japanese cards get theirs from the official card database (scripts/sync-japanese.mjs).
+// Japanese and Taiwanese cards get theirs from the official card databases (scripts/sync-japanese.mjs,
+// scripts/sync-chinese.mjs).
 // Chinese cards still without an image borrow the Japanese print of the same set at runtime (src/app/core/catalog.ts).
-// The image ref is stored as the 11th field of a card row: 'J:<path>' (sync-japanese.mjs),
-// 'p:<setId>/<number>' or 'c:<id>'.
+// The image ref is stored as the 11th field of a card row: 'J:<path>' (sync-japanese.mjs), 'c:<id>'
+// (sync-chinese.mjs) or 'p:<setId>/<number>'.
 //
 // Usage: npm run sync-images (also runs at the end of npm run sync-catalog)
 
@@ -15,22 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const OUT = new URL('../public/catalog.json', import.meta.url);
 const PTCG = 'https://api.pokemontcg.io/v2';
-const TW_LIST = 'https://asia.pokemon-card.com/tw/card-search/list/?expansionCodes=';
 const CONCURRENCY = 4;
-
-async function getText(url) {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Cardcase catalog sync)' } });
-      if (res.status === 404) return '';
-      if (!res.ok) throw new Error(`${res.status} ${url}`);
-      return await res.text();
-    } catch (err) {
-      if (attempt >= 5) throw err;
-      await new Promise((r) => setTimeout(r, 1000 * attempt));
-    }
-  }
-}
 
 async function getJson(url) {
   for (let attempt = 1; ; attempt++) {
@@ -141,42 +125,9 @@ async function english(raw, bySet) {
   console.log(`[en] ${added} afbeeldingen toegevoegd (${todo.length} sets)`);
 }
 
-async function taiwanese(raw, bySet) {
-  console.log('[zh-tw] officiële Aziatische kaartdatabase doorlopen…');
-  const todo = [];
-  raw.sets.forEach((set, s) => {
-    const rows = bySet.get(s) ?? [];
-    if (set.code.startsWith('ZH-TW-') && rows.some((r) => !hasImage(raw, raw.cards[r]))) todo.push({ set, rows });
-  });
-  let added = 0;
-  let skipped = 0;
-  await mapLimit(todo, async ({ set, rows }) => {
-    // The list is in collector-number order, 20 cards a page; it has no names, so the count has to match exactly.
-    const ids = [];
-    for (let page = 1; page <= 60; page++) {
-      const found = [...(await getText(`${TW_LIST}${encodeURIComponent(set.code.slice(6))}&pageNo=${page}`)).matchAll(/card-img\/(tw\d+)\.png/g)].map((m) => m[1]);
-      const fresh = found.filter((id) => !ids.includes(id));
-      if (!fresh.length) break;
-      ids.push(...fresh);
-    }
-    if (ids.length !== rows.length) {
-      if (ids.length) skipped++;
-      return;
-    }
-    rows.forEach((r, i) => {
-      if (!hasImage(raw, raw.cards[r])) {
-        raw.cards[r][10] = `c:${ids[i]}`;
-        added++;
-      }
-    });
-  });
-  console.log(`[zh-tw] ${added} afbeeldingen toegevoegd (${skipped} sets overgeslagen: aantal kaarten wijkt af)`);
-}
-
 export async function addImages(raw) {
   const bySet = rowsBySet(raw);
   await english(raw, bySet);
-  await taiwanese(raw, bySet);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
