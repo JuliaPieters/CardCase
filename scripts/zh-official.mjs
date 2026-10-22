@@ -19,6 +19,12 @@ const BLOCKED_WAIT_MIN = [5, 10, 20, 30];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Whether the whole site is down for maintenance: then every page redirects to a notice on its home page. */
+async function inMaintenance() {
+  const res = await fetch('https://asia.pokemon-card.com/').catch(() => null);
+  return /under maintenance/i.test((await res?.text()) ?? '');
+}
+
 /** Fetches a page; when blocked it waits and tries again, unless `wait` is false. */
 async function get(url, wait = true) {
   let blocked = 0;
@@ -26,9 +32,11 @@ async function get(url, wait = true) {
     try {
       await sleep(PAUSE_MS);
       // When it's had enough the site doesn't answer 403 but redirects every page to its home page: count that as
-      // blocked too, not as an empty card page.
+      // blocked too, not as an empty card page. During maintenance it does the same, for hours: don't wait for that.
       const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Cardcase catalog sync)' }, redirect: 'manual' });
       if (res.status === 404) return null;
+      if (res.status >= 300 && res.status < 400 && (await inMaintenance()))
+        throw new Error('site in onderhoud (geblokkeerd)');
       if (res.status === 403 || res.status === 429 || (res.status >= 300 && res.status < 400)) {
         if (!wait || blocked >= BLOCKED_WAIT_MIN.length)
           throw new Error(`${res.status} ${url} (nog steeds geblokkeerd)`);
@@ -114,6 +122,48 @@ export function parseDetail(html) {
 }
 
 /**
+ * Fills `cache` with the given cards' pages as the Wayback Machine archived them, for when the site itself is down.
+ * It has only part of them. Returns how many it added.
+ */
+async function fromArchive(ids, cache, log) {
+  const want = new Set(ids);
+  let listed;
+  try {
+    const res = await fetch(
+      'https://web.archive.org/cdx/search/cdx?url=asia.pokemon-card.com/tw/card-search/detail/*' +
+        '&output=json&fl=original&collapse=urlkey&filter=statuscode:200',
+    );
+    listed = (await res.json()).slice(1).map(([url]) => Number(/detail\/(\d+)/.exec(url)?.[1]));
+  } catch (err) {
+    log(`  webarchief niet bereikbaar (${err.message})`);
+    return 0;
+  }
+  const todo = [...new Set(listed)].filter((id) => want.has(id));
+  log(`[zh] ${todo.length} van de ${ids.length} ontbrekende kaarten staan in het webarchief`);
+  let added = 0;
+  let done = 0;
+  await mapLimit(todo, async (id) => {
+    // id_ gives the page as archived, without the archive's toolbar; "2" picks the nearest snapshot.
+    await sleep(PAUSE_MS);
+    const url = `https://web.archive.org/web/2id_/${SITE}/card-search/detail/${id}/`;
+    const html = await fetch(url)
+      .then((res) => (res.ok ? res.text() : null))
+      .catch(() => null);
+    const d = html && parseDetail(html);
+    if (d && d.name) {
+      cache[id] = d;
+      added++;
+    }
+    if (++done % 250 === 0) {
+      log(`  ${done}/${todo.length}`);
+      await writeFile(CACHE, JSON.stringify(cache));
+    }
+  });
+  await writeFile(CACHE, JSON.stringify(cache));
+  return added;
+}
+
+/**
  * Details for the given card ids, from the cache or (unless `fetchMissing` is false) the site. Returns Map<id, details>;
  * cards whose page couldn't be fetched are left out.
  */
@@ -145,7 +195,11 @@ export async function officialDetails(ids, log = console.log, { fetchMissing = t
     }
   });
   await writeFile(CACHE, JSON.stringify(cache));
-  if (stopped) log(`[zh] gestopt: ${stopped}; draai de sync later opnieuw voor de rest`);
+  if (stopped) {
+    log(`[zh] gestopt: ${stopped}`);
+    const archived = await fromArchive(ids.filter((id) => !cache[id]), cache, log);
+    log(`[zh] ${archived} kaarten uit het webarchief; draai de sync later opnieuw voor de rest`);
+  }
   return new Map(ids.filter((id) => cache[id]).map((id) => [id, cache[id]]));
 }
 
