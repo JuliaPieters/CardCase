@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, viewChild } from '@angular/core';
 import { CardcaseStore } from '../core/store';
 import { ArtPiece } from '../shared/art-piece';
 
@@ -82,16 +82,60 @@ import { ArtPiece } from '../shared/art-piece';
             </span>
           </div>
           <button
-            (click)="s.downloadPdf()"
+            (click)="print()"
             class="press flex items-center justify-center gap-2 bg-red text-cream border-2 border-line rounded-xl shadow-[0_5px_0_var(--line)] p-[13px] font-black text-[15px]"
           >
-            <span class="icon text-[20px]">picture_as_pdf</span>Download printvel (PDF)
+            <span class="icon text-[20px]">picture_as_pdf</span>Printvel opslaan als PDF
           </button>
+          <div class="text-[12.5px] font-bold text-muted text-pretty">
+            Kies in het printvenster "Opslaan als PDF" en print daarna op 100% (werkelijke grootte), niet "passend maken".
+          </div>
         </div>
       </div>
+    </div>
+    <!-- The sheets at real size, for printing; print() puts a copy of them on the page on its own. -->
+    <div #sheets class="cc-print-sheets">
+      @for (sh of s.printSheets; track sh.key) {
+        <div class="relative overflow-hidden bg-white" [style.width.mm]="s.pr.wmm" [style.height.mm]="s.pr.hmm">
+          @for (pc of sh.pieces; track pc.key) {
+            <div class="absolute" [style.left.%]="pc.l" [style.top.%]="pc.t" [style.width.%]="pc.w" [style.height.%]="pc.h">
+              <cc-art-piece [p]="pc.art" />
+              <div class="absolute border-[0.2mm] border-dashed border-[rgba(26,28,34,.85)]" [style.inset]="pc.inset"></div>
+              @if (s.pr.bleed) {
+                <!-- In the bleed, so it's cut off with it. -->
+                <div class="absolute left-[3mm] bottom-[0.4mm] bg-white text-black font-pixel text-[5pt] leading-none px-[0.5mm]">{{ pc.label }}</div>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
   `,
 })
 export class PrintScreen {
   protected readonly v = inject(CardcaseStore).vals;
+  private readonly sheets = viewChild.required<ElementRef<HTMLElement>>('sheets');
+
+  /**
+   * Opens the print dialog (where "Save as PDF" makes the PDF) with only the sheets on the page, one per sheet of paper
+   * at its real size, so the pieces come out at 63 × 88 mm.
+   */
+  protected print() {
+    const { wmm, hmm } = this.v().pr;
+    const root = document.createElement('div');
+    root.className = 'cc-print-root';
+    root.append(this.sheets().nativeElement.cloneNode(true));
+    const page = document.createElement('style');
+    page.textContent = `@page { size: ${wmm}mm ${hmm}mm; margin: 0; }`;
+    document.head.append(page);
+    document.body.append(root);
+    document.body.classList.add('cc-printing');
+    const done = () => {
+      document.body.classList.remove('cc-printing');
+      root.remove();
+      page.remove();
+    };
+    window.addEventListener('afterprint', done, { once: true });
+    window.print();
+  }
 }

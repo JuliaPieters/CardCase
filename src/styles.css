@@ -358,3 +358,27 @@ body.cc-dark {
     animation: none !important;
   }
 }
+
+/* Print sheets (screens/print.ts): only on paper, and then on their own, at real size. */
+.cc-print-sheets {
+  display: none;
+}
+@media print {
+  html {
+    zoom: 1;
+  }
+  body.cc-printing {
+    background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  body.cc-printing > :not(.cc-print-root) {
+    display: none !important;
+  }
+  .cc-print-root .cc-print-sheets {
+    display: block;
+  }
+  .cc-print-root .cc-print-sheets > div:not(:last-child) {
+    break-after: page;
+  }
+}
