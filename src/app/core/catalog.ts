@@ -202,16 +202,19 @@ function altImage(ref: string | undefined, resized: boolean): string | null {
 /**
  * Taiwanese and Chinese sets reuse the Japanese set codes and numbering ("ZH-TW-SV2a" 025 = "JA-SV2a" 025), and the
  * artwork is the same: a Chinese card without its own photo shows the Japanese one, if it is the same Pokémon
- * (or, in a Taiwanese set, a trainer/energy card of the same kind).
+ * (or, in a Taiwanese set, a trainer/energy card of the same kind). A card with its own photo from the official Asian
+ * database falls back to the Japanese one instead of that site's original, so it still shows when the site is down.
  */
 function borrowJapaneseImages(cards: any[]) {
   const ja = new Map<string, any>();
   for (const c of cards) if (c.avail[0] === 'JA' && c.img.JA) ja.set(c.set.slice(3) + '/' + c.num, c);
   for (const c of cards) {
-    if (c.avail[0] !== 'ZH' || c.img.ZH) continue;
+    if (c.avail[0] !== 'ZH') continue;
     const j = ja.get(c.set.replace(/^ZH-(TW|CN)-/, '') + '/' + c.num);
     const same = c.sp <= 1025 ? j?.sp === c.sp : c.category !== 0 && j?.category === c.category && c.set.startsWith('ZH-TW-');
-    if (j && same) {
+    if (c.img.ZH) {
+      if (j && same && c.imgAlt?.includes('asia.pokemon-card.com')) c.imgAlt = j.img.JA;
+    } else if (j && same) {
       c.img.ZH = j.img.JA;
       c.imgAlt = j.imgAlt;
       c.hashRow = j.hashRow;
