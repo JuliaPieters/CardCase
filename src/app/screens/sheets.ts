@@ -74,7 +74,7 @@ import { DecoPage } from '../shared/deco-page';
             >
               <span class="icon text-[20px]">download</span>Download afbeelding (PNG)
             </button>
-            <button (click)="s.copyLink()" class="btn"><span class="icon text-[19px]">link</span>Kopieer link</button>
+            <button (click)="s.openShareB()" class="btn"><span class="icon text-[19px]">link</span>Deel via link</button>
           </div>
         </div>
       </div>

@@ -222,7 +222,7 @@ export function buildLayout(o) {
   while (slots.length < pages * o.fmt) slots.push(null);
   return { fmt: o.fmt, pages, slots };
 }
-export const NAV = [['home', 'Home', 'home'], ['search', 'Zoeken', 'search'], ['collection', 'Collectie', 'style'], ['binders', 'Binders', 'menu_book']];
+export const NAV = [['home', 'Home', 'home'], ['search', 'Zoeken', 'search'], ['collection', 'Collectie', 'style'], ['binders', 'Binders', 'menu_book'], ['friends', 'Vrienden', 'group']];
 export const pad = n => String(n).padStart(3, '0');
 export const CARDS: any[] = [];
 /** Species by national dex number: { name: {EN,DE,JA,ZH}, type }. Filled by setCatalog(). */

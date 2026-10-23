@@ -107,6 +107,12 @@ export class AuthService {
     return (snap.data() as any) ?? null;
   }
 
+  /** Firestore and its functions, for the other services that keep data there (core/friends). */
+  async firestore() {
+    const { fsMod } = await this.requireSdk();
+    return { fs: fsMod, db: this.db! };
+  }
+
   private async requireSdk() {
     if (!this.sdk) throw new Error('Firebase is niet geconfigureerd (src/app/core/firebase.config.ts).');
     return this.sdk;

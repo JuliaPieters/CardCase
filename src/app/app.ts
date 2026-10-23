@@ -17,6 +17,8 @@ import { MovesScreen } from './screens/moves';
 import { PageResultScreen } from './screens/page-result';
 import { CropScreen } from './screens/crop';
 import { PrintScreen } from './screens/print';
+import { FriendsScreen } from './screens/friends';
+import { ShareSheet } from './screens/share';
 import { ScanOverlay } from './screens/scan';
 import { ViewerOverlay } from './screens/viewer';
 import { PageScanOverlay } from './screens/page-scan';
@@ -45,6 +47,8 @@ import { AppUpdate } from './core/app-update';
     PageResultScreen,
     CropScreen,
     PrintScreen,
+    FriendsScreen,
+    ShareSheet,
     ScanOverlay,
     ViewerOverlay,
     PageScanOverlay,

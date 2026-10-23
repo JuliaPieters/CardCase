@@ -21,16 +21,22 @@ import { PageTurn } from '../shared/page-turn';
         </button>
         <div class="font-pixel font-bold text-[18px] leading-none tracking-[.04em]">CARDCASE</div>
         <span class="font-pixel text-[11px] leading-none bg-coal text-lcd px-[7px] py-[5px] rounded-[5px]">ALLEEN-LEZEN</span>
-        <div class="ml-auto flex items-center bg-paper border-2 border-coal rounded-[10px] overflow-hidden text-coal max-w-full">
-          <span class="px-[10px] py-2 font-mono font-medium text-[12px] leading-none whitespace-nowrap overflow-hidden text-ellipsis">{{ s.v.link }}</span>
-          <button (click)="s.copyLink()" class="flex items-center gap-[5px] border-0 border-l-2 border-coal bg-lcd text-lcd-ink px-[10px] py-2 font-black text-[13px]">
-            <span class="icon text-[17px]">link</span>Kopieer
+        @if (s.v.link) {
+          <div class="ml-auto flex items-center bg-paper border-2 border-coal rounded-[10px] overflow-hidden text-coal max-w-full">
+            <span class="px-[10px] py-2 font-mono font-medium text-[12px] leading-none whitespace-nowrap overflow-hidden text-ellipsis">{{ s.v.link }}</span>
+            <button (click)="s.copyLink()" class="flex items-center gap-[5px] border-0 border-l-2 border-coal bg-lcd text-lcd-ink px-[10px] py-2 font-black text-[13px]">
+              <span class="icon text-[17px]">link</span>Kopieer
+            </button>
+          </div>
+        } @else if (s.v.canEdit) {
+          <button (click)="s.copyLink()" class="ml-auto flex items-center gap-[5px] bg-paper text-coal border-2 border-coal rounded-[10px] px-[10px] py-2 font-black text-[13px]">
+            <span class="icon text-[17px]">share</span>Delen
           </button>
-        </div>
+        }
       </div>
       <div class="flex-1 flex flex-col items-center gap-[18px] pt-6 pb-8 px-[clamp(10px,3vw,32px)]">
         <div class="text-center flex flex-col gap-[6px]">
-          <div class="kicker">GEDEELDE BINDER · {{ s.v.fmt }}</div>
+          <div class="kicker">{{ s.v.by ? 'BINDER VAN ' + s.v.by.toUpperCase() : 'GEDEELDE BINDER' }} · {{ s.v.fmt }}</div>
           <h1 class="m-0 text-[clamp(26px,4vw,36px)] font-black">{{ s.v.name }}</h1>
           @if (s.v.note) {
             <p class="m-0 text-[15px] font-bold text-muted text-pretty max-w-[560px]">{{ s.v.note }}</p>

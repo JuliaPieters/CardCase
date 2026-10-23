@@ -686,6 +686,7 @@ export class EditorScreen {
     { label: 'Verschuiven', icon: 'low_priority', go: (s: any) => s.goShift },
     { label: 'Pagina scannen', icon: 'document_scanner', go: (s: any) => s.goPageScan },
     { label: 'Printvel voor de art', icon: 'print', go: (s: any) => s.goPrint },
+    { label: 'Delen met vrienden of via link', icon: 'share', go: (s: any) => s.openShareB },
     { label: 'Deel als afbeelding', icon: 'ios_share', go: (s: any) => s.openShare },
     { label: 'Exporteer als afbeelding', icon: 'download', go: (s: any) => s.exportImg },
   ];

@@ -72,18 +72,26 @@ import { Card } from '../shared/card';
               </div>
               <span class="font-pixel font-semibold text-[14px] leading-none w-[38px] text-right">{{ b.pct }}%</span>
             </div>
-            <div class="flex justify-between items-center gap-2">
-              <div class="flex flex-col gap-[3px]">
-                <span class="font-pixel font-semibold text-[16px] leading-none">{{ b.value }}</span>
-                <span class="text-[12px] font-extrabold text-muted">{{ b.missLabel }}</span>
-              </div>
+            <div class="flex justify-between items-baseline gap-2">
+              <span class="font-pixel font-semibold text-[16px] leading-none whitespace-nowrap">{{ b.value }}</span>
+              <span class="text-[12px] font-extrabold text-muted whitespace-nowrap overflow-hidden text-ellipsis">{{ b.missLabel }}</span>
+            </div>
+            <div class="flex flex-col">
               <div class="flex gap-[6px]">
-                <button (click)="b.edit()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-3 py-[10px] font-extrabold text-[13px]">Bewerk</button>
-                <button (click)="b.view()" class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-3 py-[10px] font-extrabold text-[13px]">Bekijk</button>
+                <button (click)="b.edit()" class="flex-1 min-w-0 bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-2 py-[10px] font-extrabold text-[13px]">Bewerk</button>
+                <button (click)="b.view()" class="flex-1 min-w-0 bg-surface border-2 border-line rounded-[9px] shadow-hard-sm px-2 py-[10px] font-extrabold text-[13px]">Bekijk</button>
+                <button
+                  (click)="b.share()"
+                  [title]="b.shared ? 'Gedeeld · wijzig wie meekijkt' : 'Delen met vrienden of via link'"
+                  class="flex-none border-2 border-line rounded-[9px] shadow-hard-sm w-[42px] flex items-center justify-center"
+                  [class]="b.shared ? 'bg-lcd text-lcd-ink' : 'bg-surface'"
+                >
+                  <span class="icon text-[19px]">share</span>
+                </button>
                 <button
                   (click)="b.del()"
                   title="Binder verwijderen"
-                  class="bg-surface border-2 border-line rounded-[9px] shadow-hard-sm w-[42px] flex items-center justify-center text-red"
+                  class="flex-none bg-surface border-2 border-line rounded-[9px] shadow-hard-sm w-[42px] flex items-center justify-center text-red"
                 >
                   <span class="icon text-[19px]">delete</span>
                 </button>

@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AuthService, authErrorMessage } from '../core/auth';
+import { FriendsService, USERNAME } from '../core/friends';
 import { CardcaseStore } from '../core/store';
 import { Leds } from '../shared/bits';
 
-type Mode = 'login' | 'register' | 'reset' | 'account';
+type Mode = 'login' | 'register' | 'reset' | 'account' | 'profile';
 
 const GUEST_KEY = 'cc-guest';
 
@@ -17,7 +18,7 @@ const GUEST_KEY = 'cc-guest';
   imports: [Leds],
   template: `
     @let gate = welcome();
-    @let mode = store.state.authPanel || (gate ? 'login' : null);
+    @let mode = needsProfile() ? 'profile' : store.state.authPanel || (gate ? 'login' : null);
     @let offer = store.state.importOffer;
     @if (mode || offer) {
       <div
@@ -32,6 +33,7 @@ const GUEST_KEY = 'cc-guest';
           </p>
         }
         <div
+          [class.wide-form]="mode === 'register' && !offer"
           class="w-full max-w-[420px] max-h-[calc(92vh/var(--z))] overflow-auto bg-bg text-ink border-2 border-line rounded-2xl shadow-[6px_6px_0_var(--line)]"
           (click)="$event.stopPropagation()"
         >
@@ -40,7 +42,7 @@ const GUEST_KEY = 'cc-guest';
             <div class="ml-auto bg-device border-2 border-coal rounded-lg p-1">
               <div class="lcd rounded px-3 py-[6px] text-[14px] leading-none tracking-[.06em]">{{ title() }}</div>
             </div>
-            @if (!offer && !gate) {
+            @if (!offer && !gate && !needsProfile()) {
               <button (click)="close()" title="Sluiten" class="w-9 h-9 rounded-full bg-device text-[#F7F3E8] border-2 border-coal flex items-center justify-center">
                 <span class="icon text-[20px]">close</span>
               </button>
@@ -64,6 +66,40 @@ const GUEST_KEY = 'cc-guest';
                 Vul de Firebase-gegevens in <code class="font-mono text-[12px]">src/app/core/firebase.config.ts</code> in om accounts te gebruiken. Tot die tijd wordt je
                 collectie in deze browser bewaard.
               </p>
+            } @else if (mode === 'profile' && user()) {
+              <h2 class="m-0 text-[22px] font-black leading-tight">{{ friends.profile() ? 'Je profiel' : 'Kies een gebruikersnaam' }}</h2>
+              <p class="m-0 text-[14px] font-bold text-muted text-pretty">Hiermee kunnen vrienden je vinden. Je naam is wat ze van je zien.</p>
+              <form class="flex flex-col gap-3" (submit)="$event.preventDefault(); saveProfile()">
+                @if (friends.profile(); as p) {
+                  <div class="flex flex-col gap-[6px]">
+                    <span class="text-[13px] font-extrabold text-muted">Gebruikersnaam</span>
+                    <div class="field opacity-70 flex items-center gap-2"><span class="icon text-[18px]">lock</span>&#64;{{ p.username }}</div>
+                    <span class="text-[12px] font-bold text-muted">Je gebruikersnaam ligt vast.</span>
+                  </div>
+                } @else {
+                  <label class="flex flex-col gap-[6px]">
+                    <span class="text-[13px] font-extrabold text-muted">Gebruikersnaam</span>
+                    <input class="field" autocapitalize="off" autocomplete="username" spellcheck="false" required [value]="username()" (input)="username.set(val($event).toLowerCase())" placeholder="bijv. pikachu_fan" />
+                    <span class="text-[12px] font-bold text-muted">3 tot 20 tekens: letters, cijfers, _ of . · Kies goed: je kunt hem later niet meer wijzigen.</span>
+                  </label>
+                }
+                <label class="flex flex-col gap-[6px]">
+                  <span class="text-[13px] font-extrabold text-muted">Naam</span>
+                  <input class="field" autocomplete="name" required maxlength="40" [value]="name()" (input)="name.set(val($event))" placeholder="Zoals vrienden je zien" />
+                </label>
+                @if (error()) {
+                  <div class="flex items-start gap-2 bg-red text-cream border-2 border-line rounded-[9px] px-3 py-[9px] text-[13px] font-extrabold">
+                    <span class="icon text-[18px]">error</span>{{ error() }}
+                  </div>
+                }
+                <button
+                  type="submit"
+                  [disabled]="busy()"
+                  class="press flex items-center justify-center gap-2 bg-red text-cream border-2 border-line rounded-xl shadow-[0_5px_0_var(--line)] p-[13px] font-black text-[15px] disabled:opacity-60"
+                >
+                  <span class="icon text-[20px]">badge</span>{{ busy() ? 'Even geduld…' : 'Opslaan' }}
+                </button>
+              </form>
             } @else if (mode === 'account' && user()) {
               <div class="flex items-center gap-3">
                 <div class="w-14 h-14 flex-none rounded-full bg-device border-2 border-line shadow-[0_3px_0_var(--line)] flex items-center justify-center font-pixel font-semibold text-[22px] text-lcd">
@@ -71,7 +107,7 @@ const GUEST_KEY = 'cc-guest';
                 </div>
                 <div class="min-w-0">
                   <div class="text-[18px] font-black truncate">{{ user()!.displayName || 'Verzamelaar' }}</div>
-                  <div class="text-[13px] font-bold text-muted truncate">{{ user()!.email }}</div>
+                  <div class="text-[13px] font-bold text-muted truncate">{{ friends.profile() ? '@' + friends.profile()!.username + ' · ' : '' }}{{ user()!.email }}</div>
                 </div>
               </div>
               <div class="bg-device border-2 border-line rounded-[9px] p-1">
@@ -79,6 +115,7 @@ const GUEST_KEY = 'cc-guest';
                   <span class="icon text-[18px]">{{ syncIcon() }}</span>{{ syncText() }}
                 </div>
               </div>
+              <button (click)="setMode('profile')" class="btn justify-center"><span class="icon text-[19px]">badge</span>Naam wijzigen</button>
               <button (click)="logout()" [disabled]="busy()" class="btn justify-center"><span class="icon text-[19px]">logout</span>Uitloggen</button>
             } @else {
               @if (mode !== 'reset') {
@@ -99,7 +136,12 @@ const GUEST_KEY = 'cc-guest';
                 @if (mode === 'register') {
                   <label class="flex flex-col gap-[6px]">
                     <span class="text-[13px] font-extrabold text-muted">Naam</span>
-                    <input class="field" autocomplete="name" [value]="name()" (input)="name.set(val($event))" placeholder="Hoe mogen we je noemen?" />
+                    <input class="field" autocomplete="name" required maxlength="40" [value]="name()" (input)="name.set(val($event))" placeholder="Zoals vrienden je zien" />
+                  </label>
+                  <label class="flex flex-col gap-[6px]">
+                    <span class="text-[13px] font-extrabold text-muted">Gebruikersnaam</span>
+                    <input class="field" autocapitalize="off" autocomplete="username" spellcheck="false" required [value]="username()" (input)="username.set(val($event).toLowerCase())" placeholder="bijv. pikachu_fan" />
+                    <span class="text-[12px] font-bold text-muted">Hiermee vinden vrienden je · 3 tot 20 tekens: letters, cijfers, _ of . · Later niet te wijzigen.</span>
                   </label>
                 }
                 <label class="flex flex-col gap-[6px]">
@@ -121,19 +163,19 @@ const GUEST_KEY = 'cc-guest';
                   </label>
                 }
                 @if (error()) {
-                  <div class="flex items-start gap-2 bg-red text-cream border-2 border-line rounded-[9px] px-3 py-[9px] text-[13px] font-extrabold">
+                  <div class="full flex items-start gap-2 bg-red text-cream border-2 border-line rounded-[9px] px-3 py-[9px] text-[13px] font-extrabold">
                     <span class="icon text-[18px]">error</span>{{ error() }}
                   </div>
                 }
                 @if (info()) {
-                  <div class="bg-device border-2 border-line rounded-[9px] p-1">
+                  <div class="full bg-device border-2 border-line rounded-[9px] p-1">
                     <div class="lcd rounded-[5px] px-3 py-[9px] text-[13px] leading-[1.3]">{{ info() }}</div>
                   </div>
                 }
                 <button
                   type="submit"
                   [disabled]="busy()"
-                  class="press flex items-center justify-center gap-2 bg-red text-cream border-2 border-line rounded-xl shadow-[0_5px_0_var(--line)] p-[13px] font-black text-[15px] disabled:opacity-60"
+                  class="full press flex items-center justify-center gap-2 bg-red text-cream border-2 border-line rounded-xl shadow-[0_5px_0_var(--line)] p-[13px] font-black text-[15px] disabled:opacity-60"
                 >
                   <span class="icon text-[20px]">{{ mode === 'register' ? 'person_add' : mode === 'reset' ? 'mail' : 'login' }}</span>
                   {{ busy() ? 'Even geduld…' : mode === 'register' ? 'Account maken' : mode === 'reset' ? 'Stuur resetlink' : 'Inloggen' }}
@@ -152,7 +194,7 @@ const GUEST_KEY = 'cc-guest';
           </div>
         </div>
         @if (gate && !offer) {
-          <div class="w-full max-w-[420px] flex flex-col gap-2">
+          <div [class.wide-form]="mode === 'register'" class="w-full max-w-[420px] flex flex-col gap-2">
             <button (click)="continueAsGuest()" class="btn justify-center"><span class="icon text-[19px]">travel_explore</span>Doorgaan als gast</button>
             <p class="m-0 text-[12.5px] font-bold text-muted text-center text-pretty">
               Als gast kun je rondkijken; wat je toevoegt wordt niet in een account bewaard. Inloggen kan later altijd nog.
@@ -175,12 +217,31 @@ const GUEST_KEY = 'cc-guest';
     .field:focus {
       box-shadow: 0 0 0 3px #9bbc0f;
     }
+    /* Creating an account: on a wide screen the panel is wider and the fields sit two by two, so nothing scrolls. */
+    @media (min-width: 700px) {
+      .wide-form.wide-form {
+        max-width: 640px;
+      }
+      .wide-form form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+        column-gap: 14px;
+      }
+      .wide-form form > .full {
+        grid-column: 1 / -1;
+      }
+    }
   `,
 })
 export class AuthPanel {
   protected readonly store = inject(CardcaseStore);
   protected readonly auth = inject(AuthService);
+  protected readonly friends = inject(FriendsService);
   protected readonly user = this.auth.user;
+  /** Logged in without a username yet: choosing one comes first (not while the import question is open). */
+  protected readonly needsProfile = computed(() => !!this.user() && this.friends.profile() === null && !this.store.state.importOffer);
+  protected readonly username = signal('');
 
   protected readonly name = signal('');
   protected readonly email = signal('');
@@ -189,7 +250,7 @@ export class AuthPanel {
   /** Chose "continue as guest" on this device (remembered until logging out). */
   private readonly guest = signal(readGuest());
   /** Not logged in and no guest choice yet: show the welcome page. */
-  protected readonly welcome = computed(() => this.auth.enabled && this.auth.ready() && !this.user() && !this.guest());
+  protected readonly welcome = computed(() => this.auth.enabled && this.auth.ready() && !this.user() && !this.guest() && !this.store.state.foreign && !this.store.state.linkLoading);
   protected readonly error = signal('');
   protected readonly info = signal('');
 
@@ -197,6 +258,7 @@ export class AuthPanel {
   protected readonly title = computed(() => {
     if (this.store.state.importOffer) return 'WELKOM';
     const m = (this.store.state.authPanel || 'login') as Mode;
+    if (this.needsProfile() || m === 'profile') return 'PROFIEL';
     return m === 'account' ? 'ACCOUNT' : m === 'register' ? 'NIEUW ACCOUNT' : m === 'reset' ? 'RESET' : 'INLOGGEN';
   });
   protected readonly syncText = computed(
@@ -220,11 +282,16 @@ export class AuthPanel {
   protected setMode(mode: Mode) {
     this.error.set('');
     this.info.set('');
+    if (mode === 'profile') {
+      const p = this.friends.profile();
+      this.username.set(p?.username ?? '');
+      this.name.set(p?.name ?? this.user()?.displayName ?? '');
+    }
     this.store.setState({ authPanel: mode });
   }
 
   protected close() {
-    if (this.store.state.importOffer || this.welcome()) return;
+    if (this.store.state.importOffer || this.welcome() || this.needsProfile()) return;
     this.store.setState({ authPanel: null });
   }
 
@@ -242,8 +309,15 @@ export class AuthPanel {
         this.info.set('RESETLINK VERSTUURD · CHECK JE MAIL');
         return;
       }
-      if (mode === 'register') await this.auth.register(this.name(), this.email(), this.password());
-      else await this.auth.login(this.email(), this.password());
+      if (mode === 'register') {
+        const username = this.username().trim();
+        if (!this.name().trim()) throw new Error('Vul je naam in.');
+        if (!USERNAME.test(username)) throw new Error('Een gebruikersnaam heeft 3 tot 20 tekens: letters, cijfers, _ of .');
+        if (!(await this.friends.usernameFree(username))) throw new Error('Die gebruikersnaam is al bezet.');
+        await this.auth.register(this.name(), this.email(), this.password());
+        await this.friends.whenProfileKnown();
+        await this.friends.saveProfile(username, this.name()).catch(() => {});
+      } else await this.auth.login(this.email(), this.password());
       this.password.set('');
       this.store.setState({ authPanel: null });
     });
@@ -256,6 +330,13 @@ export class AuthPanel {
       // Back to the welcome page, as on a first visit.
       writeGuest(false);
       this.guest.set(false);
+      this.store.setState({ authPanel: null });
+    });
+  }
+
+  protected saveProfile() {
+    return this.run(async () => {
+      await this.friends.saveProfile(this.username(), this.name());
       this.store.setState({ authPanel: null });
     });
   }

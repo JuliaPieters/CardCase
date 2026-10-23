@@ -2,12 +2,21 @@ rules_version = '2';
 
 // The rules published in the Firebase console (Firestore Database → Rules); keep this file the same, since pasting
 // it replaces everything there. The project also holds collections of another app (portfolios, collectionEntries,
-// tradeAnalyses and the caches); Cardcase only uses users/{uid} and its images.
+// tradeAnalyses and the caches); Cardcase uses users/{uid} and its images, and the friends and sharing collections.
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    // Id of the friendship between two users: their uids in order, joined by '_'.
+    function pairId(a, b) {
+      return a < b ? a + '_' + b : b + '_' + a;
+    }
+
+    function areFriends(a, b) {
+      return get(/databases/$(database)/documents/friendships/$(pairId(a, b))).data.status == 'accepted';
     }
 
     // users/{userId}: only the owner (document id == uid) can read and write it.
@@ -18,6 +27,86 @@ service cloud.firestore {
       match /images/{imageId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+    }
+
+    // ---- Cardcase friends and sharing (src/app/core/friends.ts) ----
+
+    // usernames/{username}: { uid }. Whoever creates it owns the username for good; anyone may check whether one is taken.
+    match /usernames/{username} {
+      allow get: if true;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid
+        && username.matches('^[a-z0-9_.]{3,20}$');
+    }
+
+    // profiles/{uid}: { username, name }, found by username search. The username is chosen once (one the user owns)
+    // and can't be changed; the name can.
+    match /profiles/{userId} {
+      function validProfile() {
+        return request.resource.data.keys().hasOnly(['username', 'name'])
+          && request.resource.data.name is string && request.resource.data.name.size() <= 40;
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && validProfile()
+        && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid;
+      allow update: if isSignedIn() && request.auth.uid == userId && validProfile()
+        && request.resource.data.username == resource.data.username;
+    }
+
+    // friendships/{uidA_uidB}: { users, from, status, invite? }. A request starts 'pending' and the other one accepts
+    // it; with someone's invite code it can be 'accepted' straight away.
+    match /friendships/{pair} {
+      function other(users) {
+        return users[0] == request.auth.uid ? users[1] : users[0];
+      }
+      function inviteOf(code, uid) {
+        return get(/databases/$(database)/documents/invites/$(code)).data.uid == uid;
+      }
+
+      allow read: if isSignedIn() && (resource == null || request.auth.uid in resource.data.users);
+      allow create: if isSignedIn()
+        && request.resource.data.users is list && request.resource.data.users.size() == 2
+        && request.auth.uid in request.resource.data.users
+        && request.resource.data.users[0] != request.resource.data.users[1]
+        && pair == pairId(request.resource.data.users[0], request.resource.data.users[1])
+        && request.resource.data.from == request.auth.uid
+        && (request.resource.data.status == 'pending'
+          || (request.resource.data.status == 'accepted'
+            && inviteOf(request.resource.data.invite, other(request.resource.data.users))));
+      allow update: if isSignedIn() && request.auth.uid in resource.data.users
+        && resource.data.status == 'pending' && request.resource.data.status == 'accepted'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'since', 'invite'])
+        && (request.auth.uid != resource.data.from || inviteOf(request.resource.data.invite, other(resource.data.users)));
+      allow delete: if isSignedIn() && request.auth.uid in resource.data.users;
+    }
+
+    // invites/{code}: { uid }. The code is the secret; its owner can look up their own.
+    match /invites/{code} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // shared/{uid}: { owned, binders } — what friends see.
+    match /shared/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || areFriends(request.auth.uid, userId));
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // publicBinders/{shareId} and publicImages/{imageId}: shared by link, readable by anyone who has it (no listing).
+    match /publicBinders/{shareId} {
+      allow get: if true;
+      allow create: if isSignedIn() && request.resource.data.owner == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.owner == request.auth.uid && request.resource.data.owner == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.owner == request.auth.uid;
+    }
+
+    match /publicImages/{imageId} {
+      allow get: if true;
+      allow create: if isSignedIn() && request.resource.data.owner == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.owner == request.auth.uid && request.resource.data.owner == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.owner == request.auth.uid;
     }
 
     // portfolios/{portfolioId}: only the owner, given by the ownerId field.

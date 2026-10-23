@@ -43,21 +43,38 @@ export function serializeUser(st: UserData): SavedUser {
   return JSON.parse(JSON.stringify({ v: 1, owned, added, binders, dark: !!st.dark, savedAt: Date.now() }));
 }
 
-export function deserializeUser(raw: SavedUser | null): UserData | null {
-  if (!raw || raw.v !== 1) return null;
-  const idOf = new Map(CARDS.map((c) => [c.uid, c.id]));
+/** Catalog index by card uid, rebuilt when the catalog is (re)loaded. */
+let idOfCache: { cards: any; n: number; map: Map<string, number> } | null = null;
+function idOf() {
+  if (!idOfCache || idOfCache.cards !== CARDS[0] || idOfCache.n !== CARDS.length) idOfCache = { cards: CARDS[0], n: CARDS.length, map: new Map(CARDS.map((c) => [c.uid, c.id])) };
+  return idOfCache.map;
+}
+
+/** A saved collection ({uid: {EN,DE,JA,ZH}}) in the state's form: counts per catalog index. */
+export function ownedFromSaved(saved: Record<string, any> | undefined) {
   const owned = denseOwned();
-  const added = {};
-  for (const [uid, n] of Object.entries(raw.owned || {})) {
-    const id = idOf.get(uid);
+  for (const [uid, n] of Object.entries(saved || {})) {
+    const id = idOf().get(uid);
     if (id != null) owned[id] = { ...zeros(), ...n };
   }
+  return owned;
+}
+
+/** A saved binder (card slots as 'U:uid') in the state's form. */
+export function binderFromSaved(b: any) {
+  const toId = (x) => (typeof x === 'string' && x.startsWith('U:') ? (idOf().get(x.slice(2)) ?? null) : x);
+  return { ...b, slots: b.slots.map(toId), dismissed: (b.dismissed || []).map(toId).filter((x) => x != null) };
+}
+
+export function deserializeUser(raw: SavedUser | null): UserData | null {
+  if (!raw || raw.v !== 1) return null;
+  const owned = ownedFromSaved(raw.owned);
+  const added = {};
   for (const [uid, t] of Object.entries(raw.added || {})) {
-    const id = idOf.get(uid);
+    const id = idOf().get(uid);
     if (id != null) added[id] = t;
   }
-  const toId = (x) => (typeof x === 'string' && x.startsWith('U:') ? (idOf.get(x.slice(2)) ?? null) : x);
-  const binders = (raw.binders || []).map((b) => ({ ...b, slots: b.slots.map(toId), dismissed: (b.dismissed || []).map(toId).filter((x) => x != null) }));
+  const binders = (raw.binders || []).map(binderFromSaved);
   if (!binders.length) return { ...freshUser(), owned, added, dark: !!raw.dark };
   return { owned, added, binders, dark: !!raw.dark };
 }

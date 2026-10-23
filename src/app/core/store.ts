@@ -3,7 +3,8 @@ import { Injectable, computed, effect, inject, signal, untracked } from '@angula
 import { AuthService, authErrorMessage } from './auth';
 import { CatalogService } from './catalog';
 import { IMG_DATA, compressImage, deleteLocalImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
-import { deserializeUser, freshUser, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
+import { FriendsService } from './friends';
+import { binderFromSaved, deserializeUser, freshUser, ownedFromSaved, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
 import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
 /**
@@ -37,12 +38,17 @@ const costLabel = cards => { const known = cards.filter(c => c.trend != null); i
 /** Marks this device's saves, so it can tell its own writes from another device's when the account changes. */
 const DEVICE = Math.random().toString(36).slice(2, 10);
 const DAYF = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' });
+/** Link to a binder shared by link (see FriendsService.publish). */
+export const shareUrl = (id: string) => `${location.origin}/?b=${id}`;
+/** Puts text on the clipboard; false when the browser doesn't allow it. */
+export async function copyText(text: string) { try { await navigator.clipboard.writeText(text); return true; } catch { return false; } }
 const spriteOf = c => c.sp >= 1 && c.sp <= 1025 ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.sp}.png` : null;
 
 @Injectable({ providedIn: 'root' })
 export class CardcaseStore {
   private readonly catalog = inject(CatalogService);
   private readonly auth = inject(AuthService);
+  private readonly friends = inject(FriendsService);
   /** Firebase uid whose data is in the state, or null for the guest collection. */
   private account: string | null = null;
   /** False while an account's data is loading (or failed to load): nothing gets saved then. */
@@ -89,12 +95,14 @@ export class CardcaseStore {
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: ['fire', 'dragon'], langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
     shiftMode: 'buffer', job: null, done: {}, tip: false, showPrice: false, fSort: '', valRange: 'month',
     rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, delAsk: null, sideTab: 'need', needSort: 'binder', newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
+    foreign: null, foreignBack: null, shareB: null, friendId: null,
     edMode: 'cards', decoTab: 'images', toolTab: 'cards', edMenu: false, decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
   }; }
   seq = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any;
 
   /** Window listeners and timers the prototype set up in componentDidMount. */
   init() {
+    this.openLinks();
     // Uploaded pictures kept in this browser: the library in the decorate panel, and the art on the binders.
     if (!CATALOG_MOCK) loadLocalImages().then(list => { this.setState(s => ({ uploads: [...list.map(i => ({ id: i.id, name: i.name.slice(0, 18), fill: 'img:' + i.id })), ...(s.uploads || []).filter(u => !list.some(i => i.id === u.id))] })); this.syncImages(); });
     const onResize = () => { const w = window.innerWidth >= 900; if (w !== this.state.wide) this.setState({ wide: w }); };
@@ -168,6 +176,7 @@ export class CardcaseStore {
         if (this.account !== acc) return;
         if (!this.saveT && !this.remoteT) this.savePending = false;
         this.auth.syncStatus.set('saved');
+        this.friends.publish(acc, saved).catch(err => console.warn('[share]', err));
       }).catch(err => { console.warn('[sync]', err); this.auth.syncStatus.set('error'); });
     };
     if (!remoteDelay) return send();
@@ -262,6 +271,7 @@ export class CardcaseStore {
     if (this.account !== uid) return;
     if (remote) {
       this.applyUser(deserializeUser(remote) ?? freshUser()); writeLocal(uid, remote);
+      this.friends.publish(uid, remote).catch(err => console.warn('[share]', err));
       this.syncReady = true; this.auth.syncStatus.set('saved'); this.watch(uid);
       this.toast('Welkom ' + name + ' · ' + savedCardCount(remote) + ' kaarten geladen');
       return;
@@ -538,7 +548,7 @@ export class CardcaseStore {
     };
   }
   pageModel(b, p, editable, ov) {
-    const { owned, drag, over, sel } = this.state; const fmt = b.fmt; const src = (ov && ov.slots) || b.slots; const slots = [];
+    const { drag, over, sel } = this.state; const owned = (ov && ov.owned) || this.state.owned; const fmt = b.fmt; const src = (ov && ov.slots) || b.slots; const slots = [];
     // Art selected by one of its pockets: all its pockets show as selected.
     const actArt = this.state.actSlot != null && typeof src[this.state.actSlot] === 'string' && src[this.state.actSlot].startsWith('D:') ? src[this.state.actSlot] : null;
     for (let j = 0; j < fmt; j++) {
@@ -950,7 +960,7 @@ export class CardcaseStore {
    */
   turn(where, dir) {
     const st = this.state; if (st.pflip) return;
-    const b = where === 'ed' ? this.curB() : st.binders.find(x => x.id === st.vId);
+    const b = where === 'ed' ? this.curB() : this.viewB();
     const sk = where === 'ed' ? 'edSpread' : 'vSpread', dk = where === 'ed' ? 'edSide' : 'vSide';
     const from = 2 * Math.min(st[sk], b.pages / 2 - 1) + (st[dk] || 0); const to = from + dir;
     if (to < 0 || to >= b.pages) return;
@@ -960,8 +970,40 @@ export class CardcaseStore {
     requestAnimationFrame(() => requestAnimationFrame(() => this.setState(s => ({ pflip: s.pflip && { ...s.pflip, angle: dir > 0 ? -180 : 0 } }))));
     clearTimeout(this.ft); this.ft = setTimeout(() => this.setState(done), 620);
   }
+  /**
+   * Links into the app: ?b=<shareId> opens a binder shared by link (no account needed), ?invite=<code> makes you
+   * friends with whoever sent it, once you're logged in and have a username.
+   */
+  private openLinks() {
+    const q = new URLSearchParams(location.search); const b = q.get('b'); const invite = q.get('invite');
+    if (invite) { this.friends.keepInvite(invite); history.replaceState(null, '', location.pathname); }
+    effect(() => { if (this.friends.profile() && untracked(() => this.friends.pendingInvite())) untracked(() => this.acceptInvite()); });
+    if (b) this.setState({ linkLoading: true });
+    if (b) this.friends.publicBinder(b).finally(() => this.setState({ linkLoading: false })).then(pb => {
+      if (!pb) { this.toast('Deze link werkt niet (meer)'); return; }
+      const binder = binderFromSaved(pb.binder); this.friends.loadImages([binder]).catch(err => console.warn('[share]', err));
+      this.openForeign({ binder, owned: ownedFromSaved(pb.owned), by: pb.by, link: true }, null);
+    }).catch(err => { console.warn('[share]', err); this.toast('Deze binder kon niet worden geladen'); });
+  }
+  private acceptInvite() {
+    const code = this.friends.pendingInvite(); if (!code) return;
+    this.friends.acceptInvite(code).then(r => {
+      if (!r) return this.toast('Dit is je eigen uitnodiging');
+      const n = (r.profile && r.profile.name) || 'je vriend';
+      this.toast(r.already ? 'Je bent al vrienden met ' + n : 'Je bent nu vrienden met ' + n);
+      this.go('friends');
+    }).catch(err => this.toast(err instanceof Error && !(err as any).code ? err.message : 'Uitnodiging mislukt · ' + authErrorMessage(err)));
+  }
+  /** Shows someone else's binder in the viewer; `back` is where closing it goes ({ screen, extra }), home by default. */
+  openForeign(f, back) { this.go('viewer', { foreign: f, foreignBack: back, vSpread: 0, vSide: 0, flip: null, pflip: null }); }
+  closeForeign() {
+    const back = this.state.foreignBack; if (this.state.foreign && this.state.foreign.link) history.replaceState(null, '', location.pathname);
+    this.go(back ? back.screen : 'home', { foreign: null, foreignBack: null, ...(back ? back.extra : {}) });
+  }
+  /** The binder in the viewer: your own, or someone else's (a friend's, or opened from a link). */
+  viewB() { const st = this.state; return st.foreign ? st.foreign.binder : st.binders.find(x => x.id === st.vId); }
   flip(dir) {
-    const b = this.state.binders.find(x => x.id === this.state.vId); const last = b.pages / 2 - 1; const s = this.state.vSpread;
+    const b = this.viewB(); const last = b.pages / 2 - 1; const s = this.state.vSpread;
     if (this.state.flip || (dir > 0 && s >= last) || (dir < 0 && s <= 0)) return;
     this.setState({ flip: { dir, angle: 0 } });
     requestAnimationFrame(() => requestAnimationFrame(() => this.setState({ flip: { dir, angle: dir > 0 ? -180 : 180 } })));
@@ -1002,7 +1044,7 @@ export class CardcaseStore {
   renderVals() {
     this.catalog.priceTick(); // recompute when prices arrive
     const st = this.state; const { owned, added, screen } = st;
-    const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && ['editor', 'create', 'recipe', 'shift', 'moves', 'pageresult', 'crop', 'print'].includes(screen)) || (id === 'collection' && screen === 'value'); return { key: id, label, icon, go: () => this.go(id), bg: on ? '#FFFDF6' : 'transparent', fg: on ? '#1A1C22' : '#FFF4EC', bd: on ? '#1A1C22' : 'transparent', sh: on ? '3px 3px 0 #1A1C22' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
+    const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && ['editor', 'create', 'recipe', 'shift', 'moves', 'pageresult', 'crop', 'print'].includes(screen)) || (id === 'collection' && screen === 'value') || (id === 'friends' && screen === 'friend'); return { key: id, label, icon, go: () => this.go(id), bg: on ? '#FFFDF6' : 'transparent', fg: on ? '#1A1C22' : '#FFF4EC', bd: on ? '#1A1C22' : 'transparent', sh: on ? '3px 3px 0 #1A1C22' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
     const navAll = NAV.map(navItem);
     const ownedCards = CARDS.filter(c => tot(owned[c.id]) > 0);
     const totalCards = CARDS.reduce((a, c) => a + tot(owned[c.id]), 0);
@@ -1047,7 +1089,7 @@ export class CardcaseStore {
     const toCollItem = c => { const n = tot(owned[c.id]); const chg30 = c.trend != null && c.avg30 ? (c.trend - c.avg30) / c.avg30 * 100 : null; return { key: c.id, released: relLabel(c, true), p30: chg30 == null ? null : { avg: eur(c.avg30), chg: pctf(chg30), ...chgStyle(chg30) }, cv: this.cv(c, 'EN', !n), name: c.names.EN, price: (n ? '' : '≈ ') + eur(c.trend), setNum: c.set + ' ' + c.numStr, typeLabel: TYPES[c.type][0], langs: LANGS.filter(l => owned[c.id][l]).map(l => owned[c.id][l] > 1 ? `${l}×${owned[c.id][l]}` : l).join(' '), qtyLabel: n ? '×' + n : 'mist', qtyColor: n ? 'var(--ink)' : 'var(--red)', shadow: n ? '3px 3px 0 var(--line)' : 'none', open: () => this.openDetail(c.id) }; };
 
     // binders
-    const binderCards = st.binders.map(b => { const filled = b.slots.filter(isCard); const miss = filled.filter(x => !tot(owned[x])).length; const ids = [...new Set(filled)]; const pct = ids.length ? Math.round(ids.filter(x => tot(owned[x])).length / ids.length * 100) : 0; return { key: b.id, name: b.name, note: b.note || '', cover: b.cover, fmt: b.fmt + '-POCKET', pct, stats: `${filled.length}/${b.slots.length} slots · ${b.pages} pagina's`, missLabel: !filled.length ? 'nog leeg' : miss ? `${miss} ontbrekend` : 'alles in bezit', newCount: this.newSugs(b).length, hasNewSug: this.newSugs(b).length > 0, kindLabel: (b.kind === 'recipe' ? 'SLIMME BINDER' : (KINDS.find(k => k[0] === (b.kind || 'set')) || KINDS[0])[1].toUpperCase()) + (b.desc ? ' · ' + b.desc : ''), value: eur(filled.filter(x => tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0)), complete: filled.length > 0 && miss === 0, preview: filled.slice(0, 3).map((id, i) => ({ key: id, cv: this.cv(CARDS[id], 'EN', !tot(owned[id])), left: [0, 29, 58][i], rot: [-9, 0, 9][i] })), edit: () => this.go('editor', { edId: b.id, edSpread: 0, edSide: 0 }), view: () => this.go('viewer', { vId: b.id, vSpread: 0, vSide: 0 }), del: () => this.setState({ delAsk: b.id }) }; });
+    const binderCards = st.binders.map(b => { const filled = b.slots.filter(isCard); const miss = filled.filter(x => !tot(owned[x])).length; const ids = [...new Set(filled)]; const pct = ids.length ? Math.round(ids.filter(x => tot(owned[x])).length / ids.length * 100) : 0; return { key: b.id, name: b.name, note: b.note || '', cover: b.cover, fmt: b.fmt + '-POCKET', pct, stats: `${filled.length}/${b.slots.length} slots · ${b.pages} pagina's`, missLabel: !filled.length ? 'nog leeg' : miss ? `${miss} ontbrekend` : 'alles in bezit', newCount: this.newSugs(b).length, hasNewSug: this.newSugs(b).length > 0, kindLabel: (b.kind === 'recipe' ? 'SLIMME BINDER' : (KINDS.find(k => k[0] === (b.kind || 'set')) || KINDS[0])[1].toUpperCase()) + (b.desc ? ' · ' + b.desc : ''), value: eur(filled.filter(x => tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0)), complete: filled.length > 0 && miss === 0, preview: filled.slice(0, 3).map((id, i) => ({ key: id, cv: this.cv(CARDS[id], 'EN', !tot(owned[id])), left: [0, 29, 58][i], rot: [-9, 0, 9][i] })), edit: () => this.go('editor', { edId: b.id, edSpread: 0, edSide: 0 }), view: () => this.go('viewer', { vId: b.id, vSpread: 0, vSide: 0 }), share: () => this.setState({ shareB: b.id }), shared: !!(b.friends || b.shareId), del: () => this.setState({ delAsk: b.id }) }; });
 
     // editor
     const eb = this.curB(); const lastSpread = eb.pages / 2 - 1; const es = Math.min(st.edSpread, lastSpread);
@@ -1057,7 +1099,8 @@ export class CardcaseStore {
     const isDraggingSlot = !!(st.drag && st.drag.type === 'slot');
 
     // viewer
-    const vb = st.binders.find(b => b.id === st.vId); const vs = st.vSpread; const f = st.flip; const pm = p => this.pageModel(vb, p, false);
+    const fo = st.foreign; const vb = this.viewB(); const vs = st.vSpread; const f = st.flip; const pm = p => this.pageModel(vb, p, false, fo ? { owned: fo.owned } : undefined);
+    const vLink = vb.shareId ? shareUrl(vb.shareId) : '';
     let vLeft, vRight, leafFront = null, leafBack = null;
     if (!f) { vLeft = pm(2 * vs); vRight = pm(2 * vs + 1); }
     else if (f.dir > 0) { vLeft = pm(2 * vs); vRight = pm(2 * vs + 3); leafFront = pm(2 * vs + 1); leafBack = pm(2 * vs + 2); }
@@ -1075,8 +1118,8 @@ export class CardcaseStore {
       ...this.decoVals(),
       ...this.recipeVals(),
       wide: st.wide, narrow: !st.wide, lcdPixels: this.lcdPixels,
-      isHome: screen === 'home', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
-      navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2),
+      isHome: screen === 'home', isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
+      navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2, 4), navFriends: navAll[4],
       setOpts: SETS.map(x => ({ key: x.code, code: x.code, name: x.name })),
       setGroups: this.setGroups(st.screen === 'search' ? st.fLangs : []),
       rarGroups: this.rarGroups(),
@@ -1109,7 +1152,7 @@ export class CardcaseStore {
       autoSet: st.autoSet, onAutoSet: e => this.setState({ autoSet: e.target.value }), autofill: () => this.autofill(), fillMenu: st.fillMenu, toggleFillMenu: () => this.setState(s => ({ fillMenu: !s.fillMenu })), isRecipeBinder: eb.kind === 'recipe',
       addPages: () => { this.updB(eb.id, nb => { nb.pages += 2; for (let k = 0; k < 2 * nb.fmt; k++) nb.slots.push(null); return nb; }); this.toast("2 pagina's toegevoegd"); },
       exportImg: () => this.toast(`Pagina ${2 * es + 1}–${2 * es + 2} geëxporteerd als PNG`),
-      openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }),
+      openViewer: () => this.go('viewer', { vId: eb.id, vSpread: es, vSide: st.edSide || 0 }), openShareB: () => this.setState({ shareB: eb.id, share: false }),
       side: screen === 'editor' ? this.sidePanel(eb) : null,
       // The editor's panel: cards, art (pictures, backgrounds, templates) or stickers; and the ⋯ menu.
       // Labels on the binder that can be switched off: prices, and owned / NIET IN BEZIT.
@@ -1128,13 +1171,13 @@ export class CardcaseStore {
       sideDragLeave: () => this.state.sideOver && this.setState({ sideOver: false }),
       sideDrop: e => { const dr = this.state.drag; if (dr && dr.type === 'slot') { e.preventDefault(); this.updB(this.state.edId, nb => { nb.slots[dr.idx] = null; return nb; }); } this.setState({ drag: null, over: null, sideOver: false }); },
       hasSel: st.sel != null, selName: st.sel != null ? CARDS[st.sel].names.EN.toUpperCase() : '', clearSel: () => this.setState({ sel: null }),
-      v: { name: vb.name, note: vb.note || '', cover: vb.cover, fmt: vb.fmt + '-POCKET', link: `cardcase.app/b/${vb.id}-7kq2`, label: `PAGINA ${2 * vs + 1}–${2 * vs + 2} / ${vb.pages}`, warns: Object.keys(vb.warn || {}).length, warnLabel: warnShort(Object.values(vb.warn || {})[0] as string || '') },
+      v: { name: vb.name, note: vb.note || '', cover: vb.cover, fmt: vb.fmt + '-POCKET', link: vLink.replace(/^https?:\/\//, ''), by: fo ? fo.by : '', canEdit: !fo, label: `PAGINA ${2 * vs + 1}–${2 * vs + 2} / ${vb.pages}`, warns: Object.keys(vb.warn || {}).length, warnLabel: warnShort(Object.values(vb.warn || {})[0] as string || '') },
       vLeft, vRight, leafFront, leafBack, flipping: !!f, leafLeft: f && f.dir > 0 ? '50%' : '0%', leafOrigin: f && f.dir > 0 ? 'left center' : 'right center', leafAngle: f ? f.angle : 0,
       vPrev: () => this.flip(-1), vNext: () => this.flip(1), vPrevOp: vs > 0 ? 1 : 0.35, vNextOp: vs < vb.pages / 2 - 1 ? 1 : 0.35,
       vOne: onePage(vb, 2 * vs + (st.vSide || 0), st.pflip, 'v', pm, pm),
       vTurnPrev: () => this.turn('v', -1), vTurnNext: () => this.turn('v', 1), vTurnPrevOp: 2 * vs + (st.vSide || 0) > 0 ? 1 : 0.35, vTurnNextOp: 2 * vs + (st.vSide || 0) < vb.pages - 1 ? 1 : 0.35,
-      copyLink: () => { try { navigator.clipboard && navigator.clipboard.writeText('https://' + `cardcase.app/b/${vb.id}-7kq2`); } catch (e) {} this.toast('Link gekopieerd'); },
-      closeViewer: () => this.go('editor', { edId: vb.id, edSpread: vs, edSide: st.vSide || 0 }),
+      copyLink: () => { if (!vLink) return this.setState({ shareB: vb.id }); copyText(vLink).then(ok => this.toast(ok ? 'Link gekopieerd' : vLink)); },
+      closeViewer: () => fo ? this.closeForeign() : this.go('editor', { edId: vb.id, edSpread: vs, edSide: st.vSide || 0 }),
       scanSearching: sc.phase === 'search', scanLocked: sc.phase !== 'search', scanSheet: sc.phase === 'sheet',
       frameColor: sc.phase === 'search' ? 'rgba(155,188,15,.55)' : '#9BBC0F',
       statusText: sc.phase === 'search' ? 'ZOEKEN NAAR KAART…' : sc.phase === 'found' ? 'KAART GEVONDEN…' : ms.length === 1 ? '1 MATCH GEVONDEN' : ms.length + ' MATCHES GEVONDEN', matchCount: ms.length,

@@ -382,3 +382,20 @@ body.cc-dark {
     break-after: page;
   }
 }
+
+/* Sidebar (app.html): the binder list scrolls with a quiet scrollbar; on lower screens everything sits a bit closer. */
+.cc-side-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 28, 34, 0.45) transparent;
+}
+@media (max-height: 1000px) {
+  .cc-side {
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+  .cc-side nav button {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
