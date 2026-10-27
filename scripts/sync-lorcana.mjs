@@ -107,6 +107,54 @@ for (const c of en.cards) {
   });
 }
 
+// LorcanaJSON lacks the Cardmarket id of the newest set and some promos. Cardmarket's own product list names every card
+// "Name - Version" per expansion: cards without an id get the product of that name in their set's expansion (learned
+// from the cards that do have one; a set without any takes the unclaimed expansion that matches most names). Two
+// products of one name in an expansion (a regular and an Enchanted print) are paired in number order.
+const products = (await getJson('https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_19.json')).products;
+const productById = new Map(products.map((p) => [p.idProduct, p]));
+const key = (name) => name.toLowerCase().replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
+const fullName = (c) => key(c.i18n.EN[0] + (c.i18n.EN[1] ? ' - ' + c.i18n.EN[1] : ''));
+const expansionVotes = {};
+for (const c of cards) {
+  const p = c.cm && productById.get(c.cm);
+  if (p) ((expansionVotes[c.s] ??= {})[p.idExpansion] = (expansionVotes[c.s][p.idExpansion] || 0) + 1);
+}
+const expansionOf = Object.fromEntries(Object.entries(expansionVotes).map(([set, v]) => [set, +Object.keys(v).sort((a, b) => v[b] - v[a])[0]]));
+const claimed = new Set(cards.map((c) => c.cm).filter(Boolean));
+const takenExpansions = new Set(Object.values(expansionOf));
+const missing = cards.filter((c) => !c.cm);
+for (const set of new Set(missing.map((c) => c.s))) {
+  if (expansionOf[set]) continue;
+  const names = new Set(missing.filter((c) => c.s === set).map(fullName));
+  const votes = {};
+  for (const p of products) if (!claimed.has(p.idProduct) && !takenExpansions.has(p.idExpansion) && names.has(key(p.name))) votes[p.idExpansion] = (votes[p.idExpansion] || 0) + 1;
+  const best = Object.keys(votes).sort((a, b) => votes[b] - votes[a])[0];
+  if (best && votes[best] >= Math.min(3, names.size)) {
+    expansionOf[set] = +best;
+    takenExpansions.add(+best);
+  }
+}
+const groups = new Map();
+for (const c of missing) {
+  if (!expansionOf[c.s]) continue;
+  const g = expansionOf[c.s] + '|' + fullName(c);
+  groups.set(g, [...(groups.get(g) || []), c]);
+}
+let linked = 0;
+for (const [g, cs] of groups) {
+  const [exp, name] = [+g.split('|')[0], g.slice(g.indexOf('|') + 1)];
+  const ps = products.filter((p) => p.idExpansion === exp && !claimed.has(p.idProduct) && key(p.name) === name).sort((a, b) => a.idProduct - b.idProduct);
+  cs.sort((a, b) => parseInt(a.n, 10) - parseInt(b.n, 10));
+  cs.forEach((c, i) => {
+    if (!ps[i]) return;
+    c.cm = ps[i].idProduct;
+    claimed.add(c.cm);
+    linked++;
+  });
+}
+console.log(`[lorcana] ${linked} kaarten via de productlijst van Cardmarket gekoppeld; ${cards.filter((c) => !c.cm).length} nog zonder prijs`);
+
 const out = {
   v: 1,
   generated: en.metadata.generatedOn,
