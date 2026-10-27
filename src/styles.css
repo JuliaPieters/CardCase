@@ -668,6 +668,17 @@ body.cc-dark {
   }
 }
 
+/* Sidebar (app.html): the parts and the menu items spread with the height of the screen, within limits. */
+.cc-side {
+  gap: clamp(14px, 3.2vh, 34px);
+}
+.cc-side nav {
+  gap: clamp(6px, 1.6vh, 18px);
+}
+.cc-side nav button {
+  padding-top: clamp(10px, 1.6vh, 15px);
+  padding-bottom: clamp(10px, 1.6vh, 15px);
+}
 /* Sidebar (app.html): on very low screens everything sits a bit closer. */
 @media (max-height: 640px) {
   .cc-side {
