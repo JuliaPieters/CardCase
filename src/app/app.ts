@@ -65,6 +65,16 @@ export class App {
   protected readonly update = inject(AppUpdate);
   protected readonly initial = computed(() => (this.user()?.displayName || this.user()?.email || '?').charAt(0).toUpperCase());
 
+  /** Card outlines floating up behind the home page: position, size, duration, start (negative: already on the way) and tilt. */
+  protected readonly floaters = [
+    ['6%', '64px', '52s', '-8s', '-10deg'],
+    ['22%', '88px', '64s', '-40s', '6deg'],
+    ['41%', '56px', '46s', '-22s', '-4deg'],
+    ['63%', '80px', '58s', '-50s', '12deg'],
+    ['80%', '68px', '50s', '-14s', '-14deg'],
+    ['92%', '52px', '44s', '-32s', '4deg'],
+  ].map(([x, w, t, d, r]) => ({ x, w, t, d, r }));
+
   protected openAccount() {
     this.store.setState({ authPanel: this.user() ? 'account' : 'login' });
   }

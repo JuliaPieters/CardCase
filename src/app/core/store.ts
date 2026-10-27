@@ -1,6 +1,7 @@
 // @ts-nocheck -- verbatim port of the untyped design-prototype logic; add types incrementally.
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService, authErrorMessage } from './auth';
+import { fromUrl, toUrl } from './url';
 import { CatalogService } from './catalog';
 import { IMG_DATA, compressImage, deleteLocalImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
 import { FriendsService } from './friends';
@@ -126,6 +127,7 @@ export class CardcaseStore {
   /** Window listeners and timers the prototype set up in componentDidMount. */
   init() {
     this.openLinks();
+    this.syncUrl();
     // Uploaded pictures kept in this browser: the library in the decorate panel, and the art on the binders.
     if (!CATALOG_MOCK) loadLocalImages().then(list => { this.setState(s => ({ uploads: [...list.map(i => ({ id: i.id, name: i.name.slice(0, 18), fill: 'img:' + i.id })), ...(s.uploads || []).filter(u => !list.some(i => i.id === u.id))] })); this.syncImages(); });
     const onResize = () => { const w = window.innerWidth >= 900; if (w !== this.state.wide) this.setState({ wide: w }); };
@@ -1000,6 +1002,22 @@ export class CardcaseStore {
     requestAnimationFrame(() => requestAnimationFrame(() => this.setState(s => ({ pflip: s.pflip && { ...s.pflip, angle: dir > 0 ? -180 : 0 } }))));
     clearTimeout(this.ft); this.ft = setTimeout(() => this.setState(done), 620);
   }
+  /** Keeps the address bar in step with the screen (see core/url), and goes back and forward with the browser. */
+  private syncUrl() {
+    const open = (fresh: boolean) => { const r = fromUrl(new URL(location.href), this.state, fresh); if (r) this.go(r[0], { foreign: null, foreignBack: null, ...r[1] }); };
+    // Opening the app, going back or forward: the address is already there, so it is corrected in place, not added.
+    let replace = true;
+    // A binder shared by link (?b=) keeps its address while it's open.
+    if (!this.state.linkLoading) open(true);
+    window.addEventListener('popstate', () => { if (this.state.foreign?.link) return; replace = true; open(false); });
+    effect(() => {
+      const st = this.state; if (st.foreign || st.linkLoading) return;
+      const url = toUrl(st); const here = location.pathname + location.search;
+      if (url && url !== here) history[replace || url.split('?')[0] === location.pathname ? 'replaceState' : 'pushState'](null, '', url);
+      replace = false;
+    });
+  }
+
   /**
    * Links into the app: ?b=<shareId> opens a binder shared by link (no account needed), ?invite=<code> makes you
    * friends with whoever sent it, once you're logged in and have a username.
@@ -1074,7 +1092,7 @@ export class CardcaseStore {
   renderVals() {
     this.catalog.priceTick(); // recompute when prices arrive
     const st = this.state; const { owned, added, screen } = st;
-    const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && ['editor', 'create', 'recipe', 'shift', 'moves', 'pageresult', 'crop', 'print'].includes(screen)) || (id === 'collection' && screen === 'value') || (id === 'friends' && screen === 'friend'); return { key: id, label, icon, go: () => this.go(id), bg: on ? '#FFFDF6' : 'transparent', fg: on ? '#1A1C22' : '#FFF4EC', bd: on ? '#1A1C22' : 'transparent', sh: on ? '3px 3px 0 #1A1C22' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
+    const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && ['editor', 'create', 'recipe', 'shift', 'moves', 'pageresult', 'crop', 'print'].includes(screen)) || (id === 'collection' && screen === 'value') || (id === 'friends' && screen === 'friend'); return { key: id, label, icon, go: () => this.go(id), on, bg: on ? '#FFFDF6' : null, fg: on ? '#1A1C22' : '#FFF4EC', bd: on ? '#1A1C22' : null, sh: on ? '3px 3px 0 #1A1C22' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
     const navAll = NAV.map(navItem);
     const ownedCards = CARDS.filter(c => tot(owned[c.id]) > 0);
     const totalCards = CARDS.reduce((a, c) => a + tot(owned[c.id]), 0);
@@ -1100,7 +1118,7 @@ export class CardcaseStore {
     // detail
     const dc = CARDS[st.detailId]; const dl = st.detailLang; const dAvail = dc.avail.includes(dl); const dOwn = owned[dc.id];
     const dBinders = []; st.binders.forEach(b => b.slots.forEach((x, i) => { if (x === dc.id) { const p = Math.floor(i / b.fmt); dBinders.push({ key: b.id + i, name: b.name, cover: b.cover, where: `Pagina ${p + 1} · slot ${i % b.fmt + 1} · ${b.fmt}-pocket`, open: () => this.go('editor', { edId: b.id, edSpread: Math.floor(p / 2) }) }); } }));
-    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: dc.typeName || TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), released: relLabel(dc), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: this.cv(dc, dl, !dAvail || !dOwn[dl]), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
+    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: dc.typeName || TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), released: relLabel(dc), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: sharp(this.cv(dc, dl, !dAvail || !dOwn[dl])), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
     const dTabs = LANGS.map(l => { const on = dl === l; const av = dc.avail.includes(l); return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? '#FFF8EE' : (av ? 'var(--ink)' : 'var(--muted)'), deco: av ? 'none' : 'line-through', sub: av ? (dOwn[l] ? '×' + dOwn[l] : '—') : 'n.v.t.', select: () => this.setState({ detailLang: l }) }; });
     // Other cards of the same Pokémon (Trainers and Energy have no dex number): owned first, then newest.
     const sameAll = dc.sp <= 1025 ? (BYSP[dc.sp] || []).filter(c => c.id !== dc.id).sort((a, b) => (tot(owned[b.id]) ? 1 : 0) - (tot(owned[a.id]) ? 1 : 0) || byNew(a, b)) : [];
@@ -1149,7 +1167,7 @@ export class CardcaseStore {
       ...this.recipeVals(),
       wide: st.wide, narrow: !st.wide, lcdPixels: this.lcdPixels,
       isHome: screen === 'home', isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
-      navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2, 4), navFriends: navAll[4],
+      goHome: () => this.go('home'), navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2, 4), navFriends: navAll[4],
       setOpts: SETS.map(x => ({ key: x.code, code: x.code, name: x.name })),
       setGroups: this.setGroups(st.screen === 'search' ? st.fLangs : []),
       rarGroups: this.rarGroups(),
@@ -1218,4 +1236,14 @@ export class CardcaseStore {
       addScan: () => this.addScan(), rescan: () => this.startScan(), closeScan: () => this.go('home'),
     };
   }
+}
+
+/**
+ * A card view with the large photo, for where the card is shown big (detail page): the small one (~250 px wide) is
+ * blurry there. The small one stays as the fallback.
+ */
+function sharp(cv) {
+  if (!cv.img) return cv;
+  const big = cv.img.replace(/\/low\.webp$/, '/high.webp').replace(/([?&]w=)250\b/, '$1700');
+  return big === cv.img ? cv : { ...cv, img: big, img2: cv.img2 || cv.img };
 }

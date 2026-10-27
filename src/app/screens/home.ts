@@ -9,12 +9,12 @@ import { Led, Leds, Trend } from '../shared/bits';
   imports: [Card, Led, Leds, Trend],
   template: `
     @let s = v();
-    <div class="flex flex-col gap-[30px]">
+    <div class="flex flex-col gap-12 pb-6">
       <div class="flex flex-col gap-[6px]">
         <div class="font-pixel text-[13px] leading-none text-muted tracking-[.1em]">DASHBOARD</div>
         <h1 class="m-0 text-[clamp(26px,4vw,38px)] font-black leading-[1.1] text-pretty">Welkom terug. Je collectie groeit.</h1>
       </div>
-      <div class="flex flex-wrap gap-5">
+      <div class="flex flex-wrap gap-6">
         <div
           class="flex-[2_1_340px] bg-device border-2 border-line rounded-[14px_14px_44px_14px] pt-3 px-[14px] pb-4 shadow-[4px_4px_0_var(--line)] flex flex-col gap-[10px]"
         >
@@ -101,7 +101,7 @@ import { Led, Leds, Trend } from '../shared/bits';
         >
       </button>
 
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4">
         <div class="flex items-baseline justify-between gap-3">
           <h2 class="m-0 font-pixel font-semibold text-[20px] leading-[1.2]">Recent toegevoegd</h2>
           <button (click)="s.goColl()" class="tap bg-transparent border-0 py-1 px-0 text-red font-extrabold text-[14px]">Hele collectie →</button>
@@ -116,9 +116,9 @@ import { Led, Leds, Trend } from '../shared/bits';
         </div>
       </div>
 
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4">
         <h2 class="m-0 font-pixel font-semibold text-[20px] leading-[1.2]">Voortgang per set</h2>
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5">
           @for (x of s.setProgress; track x.key) {
             <button (click)="x.open()" class="press-xy flex flex-col gap-3 text-left panel p-[14px]">
               <div class="flex items-center gap-[10px]">
