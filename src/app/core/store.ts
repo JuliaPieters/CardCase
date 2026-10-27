@@ -1197,7 +1197,7 @@ export class CardcaseStore {
       ...this.decoVals(),
       ...this.recipeVals(),
       wide: st.wide, narrow: !st.wide, lcdPixels: this.lcdPixels,
-      isHome: screen === 'home', isOnboarding: screen === 'onboarding', isOverview: screen === 'overview', goOverview: () => this.go('overview'), isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
+      isHome: screen === 'home', isOnboarding: screen === 'onboarding', showNav: screen !== 'onboarding', isOverview: screen === 'overview', goOverview: () => this.go('overview'), isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
       // The editions the scanner reads ("Engelse, Duitse en Japanse").
       scanLangs: (l => l.length > 1 ? l.slice(0, -1).join(', ') + ' en ' + l[l.length - 1] : l.join(''))(LANGS.map(x => (LNAME[x] || x).replace(/ees$/, 'es').replace(/s$/, 'se'))),
       exampleName: this.catalog.config?.exampleName || 'Pikachu', noun: NOUN,
