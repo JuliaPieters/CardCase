@@ -62,7 +62,7 @@ import { Led } from '../shared/bits';
           class="flex-1 min-h-0 mx-[14px] bg-device border-2 border-black rounded-[16px_16px_48px_16px] pt-3 px-[14px] pb-4 flex flex-col gap-[10px] shadow-[0_4px_0_#000]"
         >
           <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[var(--device-muted)] tracking-[.12em]">
-            <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">DOT-MATRIX CAM</span>
+            <cc-led color="#FF5A4E" [size]="9" />POWER
           </div>
           <div class="relative flex-1 min-h-0 bg-lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] overflow-hidden">
             <div class="absolute inset-0 bg-[repeating-linear-gradient(45deg,color-mix(in_srgb,var(--display-muted)_16%,_transparent)_0_10px,transparent_10px_20px)]"></div>

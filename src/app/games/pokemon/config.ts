@@ -81,7 +81,6 @@ export const config: GameConfig = {
     strips: { name: [0, 0.16], number: [0.86, 0.14] },
     match: matchCards,
   },
-  screenName: 'DEX-SCHERM',
   noun: { one: 'Pokémon', many: 'Pokémon' },
   recipes: [
     ['dex', 'Regio-dex', 'dex', 'Alle Pokémon uit een regio, op dex-nummer.', '#E3350D', '#FFF8EE'],

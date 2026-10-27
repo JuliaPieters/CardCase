@@ -41,7 +41,6 @@ export const config: GameConfig = {
     strips: { name: [0.54, 0.16], number: [0.92, 0.08] },
     match: matchLorcana,
   },
-  screenName: 'VERHALENBOEK',
   noun: { one: 'personage', many: 'personages' },
   recipes: [
     MASTER,

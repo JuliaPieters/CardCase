@@ -19,7 +19,7 @@ import { Led, Leds, Trend } from '../shared/bits';
           class="flex-[2_1_340px] bg-device border-2 border-line rounded-[14px_14px_44px_14px] pt-3 px-[14px] pb-4 shadow-[4px_4px_0_var(--line)] flex flex-col gap-[10px]"
         >
           <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[var(--device-muted)] tracking-[.12em]">
-            <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">{{ s.screenName }}</span>
+            <cc-led color="#FF5A4E" [size]="9" />POWER
           </div>
           <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] p-[18px] flex flex-wrap gap-x-8 gap-y-5 overflow-hidden">
             <div class="flex flex-col gap-1 min-w-[150px]">
