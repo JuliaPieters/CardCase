@@ -1,6 +1,7 @@
 import { buildCatalog } from '../games/pokemon/catalog';
 import { matchCards, parseNumber } from './card-match';
-import { CARDS, setCatalog } from './data';
+import { config } from '../games/pokemon/config';
+import { CARDS, applyGameConfig, setCatalog } from './data';
 
 const set = (code: string, lang: string, official: number) => ({ code, id: code, api: lang.toLowerCase(), lang, name: code, serie: 's', year: 2000, official, img: null, imgDE: null, hasDE: true });
 // Rows: [setIdx, localId, name, nameDE, rarity, type, dex, illus, imgFlags, category]

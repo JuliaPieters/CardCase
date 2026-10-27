@@ -18,6 +18,6 @@ class MagicSource implements CardSource {
 
 export default {
   // TODO: languages, filters and binder recipes.
-  config: { game: 'magic', languages: [{ code: 'EN', label: 'Engels' }] },
+  config: { game: 'magic', languages: [{ code: 'EN', label: 'Engels' }], types: {}, rarities: {}, basicRarities: [] },
   source: new MagicSource(),
 } satisfies GameModule;

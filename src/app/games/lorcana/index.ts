@@ -17,6 +17,6 @@ class LorcanaSource implements CardSource {
 }
 
 export default {
-  config: { game: 'lorcana', languages: [{ code: 'EN', label: 'Engels' }] },
+  config: { game: 'lorcana', languages: [{ code: 'EN', label: 'Engels' }], types: {}, rarities: {}, basicRarities: [] },
   source: new LorcanaSource(),
 } satisfies GameModule;

@@ -1,8 +1,12 @@
-import { CARDS } from './data';
+import { CARDS, GAME } from './data';
+import { isGame } from '../games/registry';
 
 /**
  * The address of every screen, so the browser's back button works and a screen can be linked to.
  * toUrl() writes the state as a URL; fromUrl() reads it back as the arguments for store.go().
+ *
+ * Every screen lives in its department: /pokemon/zoeken, /lorcana/binders/<id>, … (below without that prefix). Friends
+ * are above the departments (/vrienden). Addresses from before departments (/kaart/…) are Pokémon's.
  *
  *   /                          home                /binders                  binders
  *   /zoeken?q=&set=&rar=&taal= search              /binders/nieuw            create
@@ -30,6 +34,12 @@ const BINDER_SUB: Record<string, string> = {
 const RESTORABLE = new Set(['viewer', 'print']);
 
 export function toUrl(st: any): string | null {
+  const path = screenPath(st);
+  if (!path || path.startsWith('/vrienden')) return path;
+  return '/' + GAME + (path === '/' ? '' : path);
+}
+
+function screenPath(st: any): string | null {
   const q = new URLSearchParams();
   const qs = () => (q.toString() ? '?' + q : '');
   switch (st.screen) {
@@ -85,6 +95,13 @@ function cardKey(c: any): string {
 /** The screen at `url` as [screen, extra state] for store.go(), or null when the address means nothing here. */
 export function fromUrl(url: URL, st: any, fresh: boolean): [string, Record<string, unknown>] | null {
   const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+  // Another department's address (going back to it, or an old Pokémon link): see store.syncUrl.
+  if (isGame(parts[0])) {
+    if (parts[0] !== GAME) return ['game', { game: parts[0], path: url.pathname + url.search }];
+    parts.shift();
+  } else if (parts[0] && parts[0] !== 'vrienden' && GAME !== 'pokemon') {
+    return ['game', { game: 'pokemon', path: '/pokemon' + url.pathname + url.search }];
+  }
   const p = url.searchParams;
   const [a, b, c] = parts;
   if (!a) return ['home', {}];

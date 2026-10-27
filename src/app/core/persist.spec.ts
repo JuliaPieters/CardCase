@@ -1,5 +1,6 @@
 import { buildCatalog } from '../games/pokemon/catalog';
-import { CARDS, setCatalog, setGame, setLanguages } from './data';
+import { config } from '../games/pokemon/config';
+import { CARDS, applyGameConfig, setCatalog } from './data';
 import { deserializeUser, newest, serializeUser, shareForm } from './persist';
 
 const set = (code: string, lang: string, official: number) => ({ code, id: code, api: lang.toLowerCase(), lang, name: code, serie: 's', year: 2000, official, img: null, imgDE: null, hasDE: true });
@@ -26,8 +27,7 @@ const V1 = {
 
 describe('persist', () => {
   beforeEach(() => {
-    setGame('pokemon');
-    setLanguages(['EN', 'DE', 'JA', 'ZH'].map((code) => ({ code, label: code })));
+    applyGameConfig(config);
     const { sets, cards } = buildCatalog(RAW);
     setCatalog(sets, cards);
   });

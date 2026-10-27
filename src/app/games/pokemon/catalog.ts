@@ -1,4 +1,5 @@
-import { RARITIES, pad } from '../../core/data';
+import { pad } from '../../core/data';
+import { config } from './config';
 
 /**
  * The Pokémon catalog: public/catalog.json, built by `npm run sync-catalog` from TCGdex and completed with the official
@@ -127,7 +128,7 @@ function borrowJapaneseImages(cards: any[]) {
 function mapRarity(r: string | null): string {
   const x = (r || '').toLowerCase();
   if (!x) return 'X'; // TCGdex has no rarity for this card
-  const tier = RARITIES[r!]?.[2];
+  const tier = config.rarities[r!]?.[2];
   if (tier) return tier;
   if (x === 'common' || x === 'none' || x === 'one diamond') return 'C';
   if (x === 'uncommon' || x === 'two diamond') return 'U';

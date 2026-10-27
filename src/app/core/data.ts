@@ -61,8 +61,17 @@ export function setLanguages(langs: { code: string; label: string }[]) {
   for (const k of Object.keys(LNAME)) delete LNAME[k];
   langs.forEach(l => { LNAME[l.code] = l.label; });
 }
-/** Pokémon TCG energy types, with their English card names. */
-export const TYPES = { fire: ['Fire', 'oklch(0.80 0.11 40)'], water: ['Water', 'oklch(0.80 0.09 235)'], grass: ['Grass', 'oklch(0.83 0.10 140)'], electric: ['Lightning', 'oklch(0.88 0.11 95)'], psychic: ['Psychic', 'oklch(0.80 0.09 340)'], fighting: ['Fighting', 'oklch(0.76 0.09 60)'], dark: ['Darkness', 'oklch(0.64 0.05 290)'], metal: ['Metal', 'oklch(0.82 0.03 250)'], dragon: ['Dragon', 'oklch(0.75 0.09 285)'], colorless: ['Colorless', 'oklch(0.90 0.02 90)'] };
+
+/** Makes a department's settings the active ones (with its catalog, by CatalogService; in tests directly). */
+export function applyGameConfig(config: { game: string; languages: { code: string; label: string }[]; types: Record<string, [string, string]>; rarities: Record<string, [string, string, string]>; basicRarities: string[] }) {
+  setGame(config.game);
+  setLanguages(config.languages);
+  for (const k of Object.keys(TYPES)) delete TYPES[k];
+  Object.assign(TYPES, config.types);
+  for (const k of Object.keys(RARITIES)) delete RARITIES[k];
+  Object.assign(RARITIES, config.rarities);
+  BASIC_RARITIES.length = 0; BASIC_RARITIES.push(...config.basicRarities);
+}
 export const RAR = { C: ['Gewoon', '●'], U: ['Ongewoon', '◆'], R: ['Zeldzaam', '★'], HR: ['Holo-zeldzaam', '✦'], X: ['Onbekend', '?'] };
 export const CONDS = [['M', 'Mint'], ['NM', 'Near Mint'], ['EX', 'Excellent'], ['GD', 'Good'], ['PL', 'Played']];
 export const COLS = { 4: 2, 9: 3, 12: 3, 16: 4 };
@@ -70,50 +79,14 @@ export const isCard = x => typeof x === 'number';
 export const isRes = x => typeof x === 'string';
 export const COVERS = ['#E3350D', '#306230', '#E8B92E', '#3E6FB0', '#7A5BC7', '#2B2E36'];
 /**
- * Real rarities as TCGdex names them → [international abbreviation, Japanese/Chinese abbreviation, basic tier].
- * The same rarity has a different name in Asian sets (e.g. Illustration rare = IR internationally, AR in Japan).
+ * The active department's colour categories (Pokémon type, Lorcana ink: key → [label, oklch colour]) and rarities
+ * (name → [abbreviation, abbreviation in Asian editions, basic tier]); see games/config.ts. Set by applyGameConfig.
  */
-export const RARITIES: Record<string, [string, string, string]> = {
-  'Common': ['C', 'C', 'C'],
-  'Uncommon': ['U', 'U', 'U'],
-  'Rare': ['R', 'R', 'R'],
-  'Holo Rare': ['Holo', 'R', 'R'],
-  'Rare Holo': ['Holo', 'R', 'R'],
-  'Promo': ['PR', 'PR', 'R'],
-  'None': ['—', '—', 'C'],
-  'Double rare': ['RR', 'RR', 'HR'],
-  'Triple Rare': ['RRR', 'RRR', 'HR'],
-  'Illustration rare': ['IR', 'AR', 'HR'],
-  'Special illustration rare': ['SIR', 'SAR', 'HR'],
-  'Ultra Rare': ['UR', 'SR', 'HR'],
-  'Hyper rare': ['HR', 'UR', 'HR'],
-  'Mega Hyper Rare': ['MUR', 'MUR', 'HR'],
-  'Mega Attack Rare': ['MAR', 'MAR', 'HR'],
-  'Secret Rare': ['SCR', 'SCR', 'HR'],
-  'Shiny rare': ['S', 'S', 'HR'],
-  'Shiny Ultra Rare': ['SSR', 'SSR', 'HR'],
-  'Shiny rare V': ['SV', 'SV', 'HR'],
-  'Shiny rare VMAX': ['SVM', 'SVM', 'HR'],
-  'Character Rare': ['CHR', 'CHR', 'HR'],
-  'Character Super Rare': ['CSR', 'CSR', 'HR'],
-  'ACE SPEC Rare': ['ACE', 'ACE', 'HR'],
-  'Radiant Rare': ['RAD', 'K', 'HR'],
-  'Amazing Rare': ['A', 'A', 'HR'],
-  'Holo Rare V': ['V', 'V', 'HR'],
-  'Holo Rare VMAX': ['VMAX', 'VMAX', 'HR'],
-  'Holo Rare VSTAR': ['VSTAR', 'VSTAR', 'HR'],
-  'Rare Holo LV.X': ['LV.X', 'LV.X', 'HR'],
-  'Rare PRIME': ['PRIME', 'PRIME', 'HR'],
-  'LEGEND': ['LEGEND', 'LEGEND', 'HR'],
-  'Classic Collection': ['CLC', 'CLC', 'HR'],
-  'Pikachu Rare': ['PIKA', 'PIKA', 'HR'],
-  'RGB Rare': ['RGB', 'RGB', 'HR'],
-  'Black White Rare': ['BWR', 'BWR', 'HR'],
-  'Full Art Trainer': ['FA', 'FA', 'HR'],
-  'Futuristic Rare': ['FUT', 'FUT', 'HR'],
-};
-/** Rarities that are plain tiers; everything else counts as a special rarity. */
-export const BASIC_RARITIES = ['Common', 'Uncommon', 'Rare', 'Holo Rare', 'Rare Holo', 'Promo', 'None'];
+export const TYPES: Record<string, [string, string]> = {};
+export const RARITIES: Record<string, [string, string, string]> = {};
+/** Rarities that are plain tiers; everything else counts as a special rarity (shown as a badge). */
+export const BASIC_RARITIES: string[] = [];
+
 /** Abbreviation of a card's rarity in its own edition (IR vs AR), or the old tier symbol for mock cards. */
 export const rarAbbr = c => { const r = RARITIES[c.rarityName]; if (!r) return c.rarityName ? c.rarityName : RAR[c.rarity][1]; return c.avail[0] === 'EN' || c.avail[0] === 'DE' ? r[0] : r[1]; };
 /** "AR · Illustration rare" style label for a card. */
@@ -257,21 +230,22 @@ export const tot = o => o ? LANGS.reduce((a, l) => a + (o[l] || 0), 0) : 0;
 export let CATALOG_MOCK = true;
 
 export function setCatalog(sets: any[], cards: any[], updated?: string) {
-  CATALOG_MOCK = !cards[0]?.uid;
+  CATALOG_MOCK = !!cards.length && !cards[0].key;
   if (updated) UPDATED = updated;
   SETS.length = 0; SETS.push(...sets);
   CARDS.length = 0; cards.forEach((c, i) => CARDS.push(Object.assign(c, { id: i })));
   for (const k of Object.keys(BYSP)) delete BYSP[k];
   for (const k of Object.keys(BYSET)) delete BYSET[k];
   CARDS.forEach(c => { (BYSP[c.sp] = BYSP[c.sp] || []).push(c); (BYSET[c.set] = BYSET[c.set] || []).push(c); });
-  for (let d = 1; d <= 1025; d++) {
+  // Pokémon: a species per national dex number (other games group by name, with numbers above 1025).
+  if (CARDS.some(c => c.sp <= 1025)) for (let d = 1; d <= 1025; d++) {
     const list = (BYSP[d] || []).filter(x => x.variant !== 'form');
     // Species name per language: the shortest card name in that language (drops suffixes like "ex" / "V").
     const nameIn = l => list.filter(x => x.avail.includes(l)).map(x => x.names[l]).sort((a, b) => a.length - b.length)[0];
     const en = nameIn('EN') || nameIn('JA') || nameIn('ZH');
     SP[d] = en ? { name: { EN: en, DE: nameIn('DE') || en, JA: nameIn('JA') || en, ZH: nameIn('ZH') || en }, type: (list.find(x => x.category !== 1 && x.category !== 2) || list[0]).type } : { name: { EN: '#' + pad(d), DE: '#' + pad(d), JA: '#' + pad(d), ZH: '#' + pad(d) }, type: null };
   }
-  CARDS.forEach(c => { if (c.sp > 1025) SP[c.sp] = { name: c.names, type: c.type }; });
+  CARDS.forEach(c => { if (c.sp > 1025) SP[c.sp] = { name: c.spNames || c.names, type: c.type }; });
   for (const k of Object.keys(ILLUS_N)) delete ILLUS_N[k];
   CARDS.forEach(c => { if (c.illus) ILLUS_N[c.illus] = (ILLUS_N[c.illus] || 0) + 1; });
   // Most prolific illustrators first.

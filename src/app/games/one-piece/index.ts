@@ -18,6 +18,6 @@ class OnePieceSource implements CardSource {
 
 export default {
   // TODO: languages, filters and binder recipes.
-  config: { game: 'one-piece', languages: [{ code: 'EN', label: 'Engels' }] },
+  config: { game: 'one-piece', languages: [{ code: 'EN', label: 'Engels' }], types: {}, rarities: {}, basicRarities: [] },
   source: new OnePieceSource(),
 } satisfies GameModule;

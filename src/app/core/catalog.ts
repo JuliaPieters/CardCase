@@ -1,7 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-import { CARDS, mockCatalog, setCatalog, setGame, setLanguages } from './data';
+import { CARDS, applyGameConfig, mockCatalog, setCatalog } from './data';
 import type { GameConfig } from '../games/config';
-import { loadGame } from '../games/registry';
+import { applyGameChrome } from '../games/chrome';
+import { loadGame, rememberGame } from '../games/registry';
 import type { CardSource, Game, PriceEntry } from '../games/types';
 
 const PRICE_TTL = 24 * 60 * 60 * 1000;
@@ -39,8 +40,9 @@ export class CatalogService {
     this.config = mod.config;
     this.source = mod.source;
     this.prices = readPrices(game);
-    setGame(game);
-    setLanguages(mod.config.languages);
+    applyGameConfig(mod.config);
+    rememberGame(game);
+    applyGameChrome(game);
     try {
       const { sets, cards, version } = await mod.source.loadCatalog();
       catalogVersion = version;

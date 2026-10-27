@@ -1004,7 +1004,12 @@ export class CardcaseStore {
   }
   /** Keeps the address bar in step with the screen (see core/url), and goes back and forward with the browser. */
   private syncUrl() {
-    const open = (fresh: boolean) => { const r = fromUrl(new URL(location.href), this.state, fresh); if (r) this.go(r[0], { foreign: null, foreignBack: null, ...r[1] }); };
+    const open = (fresh: boolean) => {
+      const r = fromUrl(new URL(location.href), this.state, fresh); if (!r) return;
+      // Another department: it loads its own catalog, so the app starts again there.
+      if (r[0] === 'game') { this.flushSave().finally(() => location.replace(r[1]['path'] as string)); return; }
+      this.go(r[0], { foreign: null, foreignBack: null, ...r[1] });
+    };
     // Opening the app, going back or forward: the address is already there, so it is corrected in place, not added.
     let replace = true;
     // A binder shared by link (?b=) keeps its address while it's open.

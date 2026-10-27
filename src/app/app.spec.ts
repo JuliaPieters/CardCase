@@ -2,9 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideServiceWorker } from '@angular/service-worker';
 import { App } from './app';
 import { CardcaseStore } from './core/store';
-import { mockCatalog, setCatalog } from './core/data';
+import { applyGameConfig, mockCatalog, setCatalog } from './core/data';
+import { config } from './games/pokemon/config';
 
 // Tests run offline against the prototype's mock catalog.
+applyGameConfig(config);
 const mock = mockCatalog();
 setCatalog(mock.sets, mock.cards);
 
