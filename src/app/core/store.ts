@@ -6,7 +6,7 @@ import { CatalogService } from './catalog';
 import { IMG_DATA, compressImage, deleteLocalImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
 import { FriendsService } from './friends';
 import { binderFromSaved, deserializeUser, freshUser, ownedFromSaved, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, shareForm, writeLocal } from './persist';
-import { NOUN, spKeys, spLabel, SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
+import { NOUN, foilOf, totFoil, ownedValue, spKeys, spLabel, SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
 /**
  * Central app state + all derived view values, ported from the Cardcase design prototype.
@@ -351,7 +351,7 @@ export class CardcaseStore {
   clearScan() { clearTimeout(this.t1); }
   startScan() {
     this.clearScan();
-    this.setState(s => ({ scan: { phase: 'search', matches: [], sel: 0, lang: 'EN', cond: s.scan.cond, qty: 1 } }));
+    this.setState(s => ({ scan: { phase: 'search', matches: [], sel: 0, lang: LANGS[0], cond: s.scan.cond, qty: 1, foil: false } }));
   }
   /** The scanner recognised a card: show it briefly in the frame, then the matches sheet. `matches` is [{ id, conf }], best first. */
   scanFound(matches) {
@@ -370,13 +370,16 @@ export class CardcaseStore {
   addScan() {
     const s = this.state.scan; const m = s.matches[s.sel]; if (!m) return; const c = CARDS[m.id];
     const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;
-    this.setState(st => ({ owned: { ...st.owned, [c.id]: { ...st.owned[c.id], [lang]: (st.owned[c.id][lang] || 0) + s.qty } }, added: { ...st.added, [c.id]: Date.now() } }));
-    this.toast(`${c.names[lang]} toegevoegd · ${lang} · ${s.cond} · ×${s.qty}`);
+    const foil = !!s.foil && !!this.catalog.config?.hasFoil?.(c);
+    this.setState(st => { const o = st.owned[c.id]; return { owned: { ...st.owned, [c.id]: { ...o, [lang]: (o[lang] || 0) + s.qty, ...(foil ? { foil: { ...(o.foil || {}), [lang]: foilOf(o, lang) + s.qty } } : {}) } }, added: { ...st.added, [c.id]: Date.now() } }; });
+    this.toast(`${c.names[lang]} toegevoegd · ${lang}${foil ? ' · foil' : ''} · ${s.cond} · ×${s.qty}`);
     this.startScan();
   }
   cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, img2: c.imgAlt || null, big: c.imgBig ? (c.imgBig[l] || c.imgBig[c.avail[0]] || null) : null, art: spriteOf(c) }; }
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0], sameLimit: 20 }); }
-  setOwn(id, l, delta) { this.setState(s => ({ owned: { ...s.owned, [id]: { ...s.owned[id], [l]: Math.max(0, (s.owned[id][l] || 0) + delta) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added })); }
+  setOwn(id, l, delta) { this.setState(s => { const o = s.owned[id]; const n = Math.max(0, (o[l] || 0) + delta); return { owned: { ...s.owned, [id]: { ...o, [l]: n, ...(o.foil ? { foil: { ...o.foil, [l]: Math.min(o.foil[l] || 0, n) } } : {}) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added }; }); }
+  /** One more or fewer of the copies in language `l` counted as foil (never more than there are). */
+  setFoil(id, l, delta) { this.setState(s => { const o = s.owned[id]; const f = Math.max(0, Math.min((o[l] || 0), foilOf(o, l) + delta)); return { owned: { ...s.owned, [id]: { ...o, foil: { ...(o.foil || {}), [l]: f } } } }; }); }
 
   /**
    * The editor's side panel, about the open binder: the cards still missing (Nodig), cards you own that fit the
@@ -908,7 +911,7 @@ export class CardcaseStore {
   }
   valueVals() {
     const st = this.state; const { owned } = st; const own = CARDS.filter(c => tot(owned[c.id]) > 0);
-    const V = d => own.reduce((a, c) => a + tot(owned[c.id]) * priceAt(c, d), 0);
+    const V = d => own.reduce((a, c) => a + ownedValue(c, owned[c.id], d), 0);
     const v0 = V(0), v7 = V(7); const wk = (v0 - v7) / (v7 || 1) * 100;
     const bars = vals => { const mn = Math.min(...vals), mx = Math.max(...vals); return vals.map((v, i) => ({ key: i, h: Math.round(12 + 88 * (v - mn) / ((mx - mn) || 1)), bg: i === vals.length - 1 ? 'var(--display-text)' : 'var(--display-muted)' })); };
     const R = st.valRange; const ds = R === 'week' ? range(0, 7).map(i => 6 - i) : R === 'month' ? range(0, 30).map(i => 29 - i) : range(0, 52).map(i => (51 - i) * 7);
@@ -928,11 +931,11 @@ export class CardcaseStore {
       vRange: { start: R === 'week' ? '7 DAGEN GELEDEN' : R === 'month' ? '30 DAGEN GELEDEN' : '52 WEKEN GELEDEN', chg: pctf(rc) + ' IN DEZE PERIODE' },
       top10: [...own].sort((a, b) => b.trend - a.trend).slice(0, 10).map((c, i) => ({ key: c.id, rank: String(i + 1).padStart(2, '0'), cv: this.cv(c, 'EN'), name: c.names.EN, meta: c.setName + ' · ' + c.set + ' ' + pad(c.num), langs: LANGS.filter(l => owned[c.id][l]).join(' '), price: eur(c.trend), open: () => this.openDetail(c.id) })),
       gainers: [...withChg].sort((a, b) => b.chg - a.chg).slice(0, 3).map(mover), losers: [...withChg].sort((a, b) => a.chg - b.chg).slice(0, 3).map(mover),
-      bySet: hp(SETS.map(s => ({ key: s.code, label: s.name, v: own.filter(c => c.set === s.code).reduce((a, c) => a + tot(owned[c.id]) * (c.trend || 0), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 12)),
-      byType: hp(Object.entries(TYPES).map(([k, t]) => ({ key: k, label: t[0], v: own.filter(c => c.type === k).reduce((a, c) => a + tot(owned[c.id]) * (c.trend || 0), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v)), byTypeTitle: 'PER ' + STEPT.ptype[0].toUpperCase(),
+      bySet: hp(SETS.map(s => ({ key: s.code, label: s.name, v: own.filter(c => c.set === s.code).reduce((a, c) => a + ownedValue(c, owned[c.id]), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 12)),
+      byType: hp(Object.entries(TYPES).map(([k, t]) => ({ key: k, label: t[0], v: own.filter(c => c.type === k).reduce((a, c) => a + ownedValue(c, owned[c.id]), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v)), byTypeTitle: 'PER ' + STEPT.ptype[0].toUpperCase(),
       byLang: hp(LANGS.map(l => ({ key: l, label: l + ' · ' + LNAME[l], v: own.reduce((a, c) => a + (owned[c.id][l] || 0) * c.trend, 0) }))),
       byBinder: hp(st.binders.map(b => ({ key: b.id, label: b.name, v: b.slots.filter(x => isCard(x) && tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0) }))),
-      dv: { trend: eur(dp.trend), low: eur(dp.low), avg7: eur(dp.avg7), avg30: eur(dp.avg30), chg: pctf(dp.chg), up: dp.chg >= 0, down: dp.chg < 0, ...chgStyle(dp.chg, true), owned: dn ? dn + '× in bezit · ' + eur(dn * dp.trend) : 'Nog niet in bezit · vanaf ' + eur(dp.low), foil: dc.foil && (dc.foil.trend || dc.foil.low) ? { trend: eur(dc.foil.trend), low: eur(dc.foil.low), avg7: eur(dc.foil.avg7), avg30: eur(dc.foil.avg30) } : null, foilOnly: !!dc.foilOnly },
+      dv: { trend: eur(dp.trend), low: eur(dp.low), avg7: eur(dp.avg7), avg30: eur(dp.avg30), chg: pctf(dp.chg), up: dp.chg >= 0, down: dp.chg < 0, ...chgStyle(dp.chg, true), owned: dn ? dn + '× in bezit' + (totFoil(owned[dc.id]) ? ' (' + totFoil(owned[dc.id]) + ' foil)' : '') + ' · ' + eur(ownedValue(dc, owned[dc.id])) : 'Nog niet in bezit · vanaf ' + eur(dp.low), foil: dc.foil && (dc.foil.trend || dc.foil.low) ? { trend: eur(dc.foil.trend), low: eur(dc.foil.low), avg7: eur(dc.foil.avg7), avg30: eur(dc.foil.avg30) } : null, foilOnly: !!dc.foilOnly },
       dBars: bars(dp.series).map((b, i) => { const ago = dp.series.length - 1 - i; return { ...b, price: eur(dp.series[i]), when: ago ? DAYF.format(Date.now() - ago * 864e5).replace('.', '').toUpperCase() + ' · GESCHAT' : 'VANDAAG · TRENDPRIJS', approx: ago > 0 }; }), tip: st.tip, toggleTip: () => this.setState(s => ({ tip: !s.tip })),
       fSort: st.fSort, onFSort: e => this.setState({ fSort: e.target.value }),
       hasCollNeed: st.missingOnly && missC.length > 0, collNeedText: (st.collSet ? 'Nog nodig om ' + setNm + ' compleet te maken: ' : 'Nog nodig om alle sets compleet te maken: ') + costLabel(missC),
@@ -1162,7 +1165,8 @@ export class CardcaseStore {
     // Other cards of the same Pokémon (Trainers and Energy have no dex number): owned first, then newest.
     const sameAll = dc.sp <= 1025 ? (BYSP[dc.sp] || []).filter(c => c.id !== dc.id).sort((a, b) => (tot(owned[b.id]) ? 1 : 0) - (tot(owned[a.id]) ? 1 : 0) || byNew(a, b)) : [];
     const dSame = sameAll.slice(0, st.sameLimit).map(c => { const n = tot(owned[c.id]); return { key: c.id, cv: this.cv(c, c.avail[0], !n), name: c.names[c.avail[0]], meta: c.set + ' · ' + relLabel(c, true), price: eur(c.trend), qtyLabel: n ? '×' + n : '', open: () => this.openDetail(c.id) }; });
-    const dOwnRows = dc.avail.map(l => ({ key: l, code: l, lname: LNAME[l], name: dc.names[l], n: dOwn[l] || 0, inc: () => this.setOwn(dc.id, l, 1), dec: () => this.setOwn(dc.id, l, -1) }));
+    const hasFoil = !!this.catalog.config?.hasFoil?.(dc);
+    const dOwnRows = dc.avail.map(l => ({ key: l, code: l, lname: LNAME[l], name: dc.names[l], n: dOwn[l] || 0, inc: () => this.setOwn(dc.id, l, 1), dec: () => this.setOwn(dc.id, l, -1), hasFoil: hasFoil && (dOwn[l] || 0) > 0, foil: foilOf(dOwn, l), foilInc: () => this.setFoil(dc.id, l, 1), foilDec: () => this.setFoil(dc.id, l, -1) }));
 
     // collection
     let cl = CARDS.filter(c => st.missingOnly ? !tot(owned[c.id]) : tot(owned[c.id]) > 0);
@@ -1277,6 +1281,7 @@ export class CardcaseStore {
       statusText: sc.phase === 'search' ? 'ZOEKEN NAAR KAART…' : sc.phase === 'found' ? 'KAART GEVONDEN…' : ms.length === 1 ? '1 MATCH GEVONDEN' : ms.length + ' MATCHES GEVONDEN', matchCount: ms.length,
       statusDotColor: sc.phase === 'search' ? 'var(--display-muted)' : 'var(--display-text)', statusDotBlink: sc.phase !== 'sheet',
       matches, langOpts, condOpts, scanQty: sc.qty,
+      scanHasFoil: !!(selCard && this.catalog.config?.hasFoil?.(selCard)), scanFoil: !!sc.foil, setScanFoil: f => this.setScan({ foil: f }),
       qtyInc: () => this.setScan({ qty: sc.qty + 1 }), qtyDec: () => this.setScan({ qty: Math.max(1, sc.qty - 1) }),
       addScan: () => this.addScan(), rescan: () => this.startScan(), closeScan: () => this.go('home'),
     };

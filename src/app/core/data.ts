@@ -233,6 +233,19 @@ export const ILLUS_N: Record<string, number> = {};
 export const REGIONS = [['kanto', 'Kanto', 1, 151], ['johto', 'Johto', 152, 251], ['hoenn', 'Hoenn', 252, 386], ['sinnoh', 'Sinnoh', 387, 493], ['unova', 'Unova', 494, 649], ['kalos', 'Kalos', 650, 721], ['alola', 'Alola', 722, 809], ['galar', 'Galar', 810, 905], ['paldea', 'Paldea', 906, 1025]];
 export const VARL = { regular: 'Standaard', holo: 'Holo', fullart: 'Full art', illus: 'Illustration rare', promo: 'Promo', form: 'Regionale vorm' };
 export const tot = o => o ? LANGS.reduce((a, l) => a + (o[l] || 0), 0) : 0;
+/**
+ * Foil copies: an owned entry is { EN: 3, …, foil?: { EN: 1 } }, the foil counts being part of the language counts
+ * (3 English cards, one of them foil). Departments without foil prices never set them.
+ */
+export const foilOf = (o, l) => Math.min(o?.foil?.[l] || 0, o?.[l] || 0);
+export const totFoil = o => o ? LANGS.reduce((a, l) => a + foilOf(o, l), 0) : 0;
+/** Value of the copies of a card in an owned entry, `d` days ago: foil copies at the foil price when it has one. */
+export function ownedValue(c, o, d = 0) {
+  const n = tot(o); if (!n) return 0;
+  const p = priceAt(c, d); const f = totFoil(o);
+  const fp = c.foil?.trend ? (c.trend ? p * c.foil.trend / c.trend : c.foil.trend) : p;
+  return (n - f) * p + f * fp;
+}
 
 /**
  * Replace the catalog. Cards need: set, setName, num, numStr, names{EN,DE,JA,ZH}, type, rarity, avail, sp, year, variant,

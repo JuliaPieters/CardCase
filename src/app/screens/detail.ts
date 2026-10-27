@@ -193,6 +193,16 @@ import { Trend } from '../shared/bits';
                   <button (click)="o.inc()" class="w-11 h-10 border-0 bg-transparent font-black text-[18px]">+</button>
                 </div>
               </div>
+              @if (o.hasFoil) {
+                <div class="flex items-center gap-3 -mt-1 pl-[42px]">
+                  <span class="flex-1 font-bold text-[13px] text-muted">waarvan foil</span>
+                  <div class="flex items-center border-2 border-line rounded-[9px] overflow-hidden bg-bg">
+                    <button (click)="o.foilDec()" class="w-9 h-8 border-0 bg-transparent font-black text-[16px]">−</button>
+                    <span class="w-7 text-center font-pixel font-semibold text-[14px] leading-none">{{ o.foil }}</span>
+                    <button (click)="o.foilInc()" class="w-9 h-8 border-0 bg-transparent font-black text-[16px]">+</button>
+                  </div>
+                </div>
+              }
             }
           </div>
 

@@ -1,5 +1,5 @@
 // @ts-nocheck -- works on the untyped store state; see store.ts.
-import { CARDS, GAME, LANGS, isCard, mkB, tot } from './data';
+import { CARDS, GAME, LANGS, isCard, mkB, ownedValue, tot } from './data';
 
 /**
  * The user's own data: per department (game) a collection and binders, plus the departments they collect and settings.
@@ -93,7 +93,7 @@ function summarize(st: UserData): GameSummary {
     if (!n) return;
     cards += n;
     unique++;
-    value += n * (c.trend || 0);
+    value += ownedValue(c, st.owned[id]);
   });
   return { cards, unique, value: Math.round(value * 100) / 100 };
 }
