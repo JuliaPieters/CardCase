@@ -127,14 +127,14 @@
         }
       </div>
     }
+    <!-- Wide screens: a bar of the app itself with the department switcher in the corner (narrow: in the header). -->
+    @if (s.wide && s.showNav) {
+      <div class="relative z-20 flex-none flex items-center justify-end gap-3 h-[58px] px-4 border-b-2 border-line bg-surface">
+        <cc-game-switcher [labeled]="true" />
+      </div>
+    }
     <main #main class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain">
       <!-- The binder editor gets the full width: a bigger binder is easier to edit. -->
-      <!-- Wide screens: the department switcher top right, out of the busy sidebar (narrow: in the header). -->
-      @if (s.wide && s.showNav) {
-        <div class="relative z-20 mx-auto flex justify-end pt-3 -mb-2 px-[clamp(14px,3vw,36px)]" [style.max-width]="s.isEditor ? '1800px' : '1400px'">
-          <cc-game-switcher [labeled]="true" />
-        </div>
-      }
       <div class="mx-auto pt-[22px] pb-10 px-[clamp(14px,3vw,36px)]" [style.max-width]="s.isEditor ? '1800px' : '1400px'">
         @if (s.isHome) {
           <cc-home />
