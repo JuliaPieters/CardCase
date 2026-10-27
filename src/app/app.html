@@ -131,7 +131,7 @@
       <!-- The binder editor gets the full width: a bigger binder is easier to edit. -->
       <!-- Wide screens: the department switcher top right, out of the busy sidebar (narrow: in the header). -->
       @if (s.wide && s.showNav) {
-        <div class="relative z-20 flex justify-end pt-3 -mb-3 px-[clamp(14px,3vw,36px)]">
+        <div class="relative z-20 mx-auto flex justify-end pt-3 -mb-2 px-[clamp(14px,3vw,36px)]" [style.max-width]="s.isEditor ? '1800px' : '1400px'">
           <cc-game-switcher [labeled]="true" />
         </div>
       }
