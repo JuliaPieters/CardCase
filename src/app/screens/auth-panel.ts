@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AuthService, authErrorMessage } from '../core/auth';
 import { FriendsService, USERNAME } from '../core/friends';
+import { lastAccount } from '../core/persist';
 import { CardcaseStore } from '../core/store';
 import { Leds } from '../shared/bits';
 
@@ -249,8 +250,15 @@ export class AuthPanel {
   protected readonly busy = signal(false);
   /** Chose "continue as guest" on this device (remembered until logging out). */
   private readonly guest = signal(readGuest());
-  /** Not logged in and no guest choice yet: show the welcome page. */
-  protected readonly welcome = computed(() => this.auth.enabled && this.auth.ready() && !this.user() && !this.guest() && !this.store.state.foreign && !this.store.state.linkLoading);
+  /** Someone was logged in on this device last time: their session is probably restored once Firebase has loaded. */
+  private readonly hadAccount = !!lastAccount();
+  /**
+   * Not logged in and no guest choice yet: show the welcome page. It doesn't wait for Firebase (which loads after the
+   * app) when nobody was logged in here, so the app doesn't flash by before it.
+   */
+  protected readonly welcome = computed(
+    () => this.auth.enabled && (this.auth.ready() || !this.hadAccount) && !this.user() && !this.guest() && !this.store.state.foreign && !this.store.state.linkLoading,
+  );
   protected readonly error = signal('');
   protected readonly info = signal('');
 
