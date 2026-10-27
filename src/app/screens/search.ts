@@ -15,7 +15,7 @@ import { Card } from '../shared/card';
         <input
           [value]="s.q"
           (input)="s.onQ($event)"
-          placeholder="Naam of nummer, bv. Pikachu, ピカチュウ of 皮卡丘"
+          [placeholder]="'Naam of nummer, bv. ' + s.exampleName"
           class="flex-1 min-w-0 border-0 outline-none bg-transparent py-3 text-[16px] font-bold"
         />
       </div>
@@ -53,6 +53,14 @@ import { Card } from '../shared/card';
               </optgroup>
             }
           </select>
+          @for (f of s.gameFilters; track f.key) {
+            <select class="select w-full sm:w-auto" [class.!border-red]="!!f.value" (change)="f.onChange($event)" [attr.aria-label]="f.label">
+              <option value="" [selected]="!f.value">{{ f.label }} ▾</option>
+              @for (o of f.options; track o[0]) {
+                <option [value]="o[0]" [selected]="o[0] === f.value">{{ o[1] }}</option>
+              }
+            </select>
+          }
           <select class="select w-full sm:w-auto" [value]="s.fSort" (change)="s.onFSort($event)">
             <option value="">Sorteer: set ▾</option>
             <option value="value">Sorteer: waarde ▾</option>

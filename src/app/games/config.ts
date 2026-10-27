@@ -34,8 +34,15 @@ export interface GameConfig {
   prefs: [string, string, string, string][];
   /** Label of the department's "screen" on the dashboard (Pokémon: DEX-SCHERM). */
   screenName: string;
+  /** A card name to show as an example in search fields. */
+  exampleName?: string;
   /** Example for the "describe your binder" field of the recipe screen. */
   recipeExample?: string;
+  /**
+   * Extra search filters, each a select: its options as [value, label] (from the loaded catalog), and whether a card
+   * matches a chosen value.
+   */
+  filters?: { key: string; label: string; options: () => [string, string][]; match: (card: any, value: string) => boolean }[];
   /** Game facts shown on the card page (cost, lore…), in the card's language. */
   cardFacts?: (card: any, lang: string) => { label: string; value: string; color?: string }[];
   /** Rules text of the card, in its language. */

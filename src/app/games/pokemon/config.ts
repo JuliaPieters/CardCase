@@ -70,6 +70,7 @@ export const config: GameConfig = {
     ['ZH', 'Chinees', 'Chinese sets', ['ZH']],
   ],
   recipeExample: 'alle Kanto-Pokémon, één per Pokémon, liefst full art',
+  exampleName: 'Pikachu, ピカチュウ of 皮卡丘',
   screenName: 'DEX-SCHERM',
   noun: { one: 'Pokémon', many: 'Pokémon' },
   recipes: [

@@ -110,7 +110,7 @@ export class CardcaseStore {
     screen: 'home', prev: 'home', dark: u.dark, authPanel: null, importOffer: null,
     wide: typeof window !== 'undefined' && window.innerWidth >= 900,
     ...userParts(u), detailId: 1, detailLang: CARDS[1]?.avail[0] ?? LANGS[0],
-    q: '', fLangs: [], fSet: '', fRar: '',
+    q: '', fLangs: [], fSet: '', fRar: '', fx: {},
     view: 'grid', sort: 'set', collSet: '', missingOnly: false,
     binders: u.binders, edId: u.binders[0].id, edSpread: 0, edSide: 0, vSide: 0, pflip: null, autoSet: '', fillMenu: false, sideQ: '', sideSet: '',
     drag: null, over: null, sel: null, actSlot: null, sideOver: false,
@@ -1121,7 +1121,10 @@ export class CardcaseStore {
 
     // search
     const ql = st.q.trim().toLowerCase(); const langs = st.fLangs.length ? st.fLangs : LANGS; const qMatch = this.searchMatch(ql, langs);
-    const resultsRaw = CARDS.filter(c => (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && qMatch(c));
+    // The department's own filters (Lorcana: ink, card type, cost…), each a select with a value or empty.
+    const gameFilters = this.catalog.config?.filters || []; const fx = st.fx || {};
+    const fxMatch = c => gameFilters.every(f => !fx[f.key] || f.match(c, fx[f.key]));
+    const resultsRaw = CARDS.filter(c => fxMatch(c) && (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && qMatch(c));
     const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || c.avail[0]; };
     const byValue = (a, b) => (b.trend ?? -1) - (a.trend ?? -1);
     const byNew = (a, b) => relKey(b).localeCompare(relKey(a)) || a.id - b.id, byOld = (a, b) => relKey(a).localeCompare(relKey(b)) || a.id - b.id;
@@ -1186,6 +1189,7 @@ export class CardcaseStore {
       // What the department calls its "screen", and the editions its scanner reads ("Engelse, Duitse en Japanse").
       screenName: this.catalog.config?.screenName || 'DEX-SCHERM',
       scanLangs: (l => l.length > 1 ? l.slice(0, -1).join(', ') + ' en ' + l[l.length - 1] : l.join(''))(LANGS.map(x => (LNAME[x] || x).replace(/ees$/, 'es').replace(/s$/, 'se'))),
+      exampleName: this.catalog.config?.exampleName || 'Pikachu', noun: NOUN,
       goHome: () => this.go('home'), navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2, 4), navFriends: navAll[4],
       setOpts: SETS.map(x => ({ key: x.code, code: x.code, name: x.name })),
       setGroups: this.setGroups(st.screen === 'search' ? st.fLangs : []),
@@ -1198,7 +1202,8 @@ export class CardcaseStore {
       recent, setProgress,
       q: st.q, onQ: e => this.setState({ q: e.target.value }), fSet: st.fSet, onFSet: e => this.setState({ fSet: e.target.value }), fRar: st.fRar, onFRar: e => this.setState({ fRar: e.target.value }),
       langChips, results, resultsShown: results.slice(0, st.searchLimit).map(toResult), hasMoreResults: results.length > st.searchLimit, moreResults: () => this.setState(s => ({ searchLimit: s.searchLimit + 60 })), resultCount: `${results.length} ${results.length === 1 ? 'resultaat' : 'resultaten'}`,
-      hasFilters: !!(st.q || st.fLangs.length || st.fSet || st.fRar), clearFilters: () => this.setState({ q: '', fLangs: [], fSet: '', fRar: '' }),
+      gameFilters: gameFilters.map(f => ({ key: f.key, label: f.label, value: fx[f.key] || '', options: f.options(), onChange: e => this.setState(x => ({ fx: { ...(x.fx || {}), [f.key]: e.target.value } })) })),
+      hasFilters: !!(st.q || st.fLangs.length || st.fSet || st.fRar || Object.values(fx).some(Boolean)), clearFilters: () => this.setState({ q: '', fLangs: [], fSet: '', fRar: '', fx: {} }),
       d, dTabs, dOwnRows, dBinders, dSame, hasDSame: dSame.length > 0, dSameName: (SP[dc.sp] || { name: { EN: dc.names.EN } }).name.EN, dSameCount: sameAll.length, hasMoreSame: sameAll.length > st.sameLimit, moreSame: () => this.setState(s => ({ sameLimit: s.sameLimit + 20 })), noDBinders: !dBinders.length, back: () => this.go(st.prev || 'home'),
       collItems, collShown: collItems.slice(0, st.collLimit).map(toCollItem), hasMoreColl: collItems.length > st.collLimit, moreColl: () => this.setState(s => ({ collLimit: s.collLimit + 60 })), collCount: st.missingOnly ? `${collItems.length} ontbrekend` : `${collItems.length} uniek · ${totalCards} totaal`,
       isGrid: st.view === 'grid', isList: st.view === 'list', setGrid: () => this.setState({ view: 'grid' }), setList: () => this.setState({ view: 'list' }),

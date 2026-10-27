@@ -1,3 +1,4 @@
+import { CARDS } from '../../core/data';
 import type { GameConfig } from '../config';
 import { EMPTY, ILLUSTRATOR, MASTER, PREF_OLDEST, PREF_OWNED, PREF_SET, SHARED_STEPS, prefValue } from '../recipes';
 
@@ -32,6 +33,7 @@ export const config: GameConfig = {
   },
   basicRarities: ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary'],
   recipeExample: 'alles uit De kleine zeemeermin, één per personage, liefst Enchanted',
+  exampleName: 'Ariel of Stitch',
   screenName: 'VERHALENBOEK',
   noun: { one: 'personage', many: 'personages' },
   recipes: [
@@ -57,6 +59,14 @@ export const config: GameConfig = {
     PREF_OLDEST,
     prefValue('personage'),
     PREF_SET,
+  ],
+  filters: [
+    { key: 'ink', label: 'Alle inkkleuren', options: () => Object.entries(config.types).map(([k, v]) => [k, v[0]]), match: (c, v) => c.inks.includes(v) },
+    { key: 'cardType', label: 'Alle kaartsoorten', options: () => Object.entries(CARD_TYPES), match: (c, v) => c.cardType === v },
+    { key: 'cost', label: 'Alle kosten', options: () => [...new Set(CARDS.map((c) => c.cost).filter((x) => x != null))].sort((a, b) => a - b).map((n) => [String(n), n + ' inkt']), match: (c, v) => String(c.cost) === v },
+    { key: 'inkwell', label: 'Inkwell: alle', options: () => [['1', 'Inkwell: ja'], ['0', 'Inkwell: nee']], match: (c, v) => (c.inkwell ? '1' : '0') === v },
+    { key: 'story', label: 'Alle verhalen', options: () => [...new Set(CARDS.map((c) => c.story).filter(Boolean))].sort().map((x) => [x, x]), match: (c, v) => c.story === v },
+    { key: 'variant', label: 'Alle varianten', options: () => [['regular', 'Gewoon'], ['fullart', 'Enchanted / Epic / Iconic'], ['promo', 'Promo'], ['foil', 'Heeft foil']], match: (c, v) => (v === 'foil' ? c.foilTypes.some((f: string) => f !== 'None') : c.variant === v) },
   ],
   cardFacts: (c) => {
     const ink = c.inks.map((i: string) => config.types[i]?.[0] || i).join(' / ');

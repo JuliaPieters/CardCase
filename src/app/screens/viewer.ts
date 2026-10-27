@@ -104,7 +104,7 @@ import { PageTurn } from '../shared/page-turn';
         @if (s.v.warns) {
           <div class="flex items-center gap-2 text-[13px] font-bold text-muted text-pretty max-w-[560px]">
             <span class="flex-none bg-amber text-coal border-[1.5px] border-line rounded-[4px] px-[5px] py-[3px] font-pixel text-[10px] leading-none">{{ s.v.warnLabel }}</span
-            >Van die Pokémon bestaat deze versie niet, daar staat hun gewone kaart.
+            >Van die {{ s.noun.many }} bestaat deze versie niet, daar staat hun gewone kaart.
           </div>
         }
         @if (s.wide) {

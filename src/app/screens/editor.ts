@@ -197,7 +197,7 @@ import { Pix, Switch } from '../shared/bits';
                       type="search"
                       [value]="s.sideQ"
                       (input)="s.onSideQ($event)"
-                      placeholder="Zoek een kaart, bv. Pikachu"
+                      [placeholder]="'Zoek een kaart, bv. ' + s.exampleName"
                       aria-label="Zoek een kaart"
                       class="flex-1 min-w-0 border-0 outline-none bg-transparent py-[9px] font-bold text-[14px] [&::-webkit-search-cancel-button]:hidden"
                     />
