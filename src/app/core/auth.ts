@@ -2,10 +2,11 @@ import { Injectable, signal } from '@angular/core';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './firebase.config';
+import { REMOTE_FIELD, remoteUser } from './persist';
 
 export type SyncStatus = 'guest' | 'loading' | 'saving' | 'saved' | 'error';
 
-/** Firebase Authentication + the user's document in Firestore (users/{uid}, field `cardcase`). */
+/** Firebase Authentication + the user's document in Firestore (users/{uid}, field REMOTE_FIELD; see core/persist). */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   /** False while firebase.config.ts is not filled in: the app then only offers guest mode. */
@@ -62,7 +63,7 @@ export class AuthService {
   async loadRemote(uid: string): Promise<Record<string, unknown> | null> {
     const { fsMod } = await this.requireSdk();
     const snap = await fsMod.getDoc(fsMod.doc(this.db!, 'users', uid));
-    return (snap.data()?.['cardcase'] as Record<string, unknown> | undefined) ?? null;
+    return remoteUser(snap.data());
   }
 
   /**
@@ -74,19 +75,19 @@ export class AuthService {
     return fsMod.onSnapshot(
       fsMod.doc(this.db!, 'users', uid),
       (snap) => {
-        if (!snap.metadata.hasPendingWrites) onChange((snap.data()?.['cardcase'] as Record<string, unknown> | undefined) ?? null);
+        if (!snap.metadata.hasPendingWrites) onChange(remoteUser(snap.data()));
       },
       (err) => console.warn('[sync] live bijwerken gestopt', err),
     );
   }
 
   /**
-   * Writes the Cardcase data into users/{uid}, leaving any other fields in that document alone. `cardcase` is replaced
+   * Writes the Cardcase data into users/{uid}, leaving any other fields in that document alone. The field is replaced
    * as a whole: with `merge: true` its maps would be merged, so a removed card would stay in the account.
    */
   async saveRemote(uid: string, data: Record<string, unknown>) {
     const { fsMod } = await this.requireSdk();
-    await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid), { cardcase: data, updatedAt: fsMod.serverTimestamp() }, { mergeFields: ['cardcase', 'updatedAt'] });
+    await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid), { [REMOTE_FIELD]: data, updatedAt: fsMod.serverTimestamp() }, { mergeFields: [REMOTE_FIELD, 'updatedAt'] });
   }
 
   /** Stores an uploaded picture in its own document, users/{uid}/images/{id} (see core/images). */

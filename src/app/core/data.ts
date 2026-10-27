@@ -52,6 +52,10 @@ export const SETS: any[] = [];
 export const LANGS: string[] = ['EN', 'DE', 'JA', 'ZH'];
 export const LNAME: Record<string, string> = { EN: 'Engels', DE: 'Duits', JA: 'Japans', ZH: 'Chinees' };
 
+/** The active department (set with its catalog by CatalogService). */
+export let GAME = 'pokemon';
+export function setGame(game: string) { GAME = game; }
+
 export function setLanguages(langs: { code: string; label: string }[]) {
   LANGS.length = 0; LANGS.push(...langs.map(l => l.code));
   for (const k of Object.keys(LNAME)) delete LNAME[k];

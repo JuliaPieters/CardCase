@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { CARDS, mockCatalog, setCatalog, setLanguages } from './data';
+import { CARDS, mockCatalog, setCatalog, setGame, setLanguages } from './data';
 import type { GameConfig } from '../games/config';
 import { loadGame } from '../games/registry';
 import type { CardSource, Game, PriceEntry } from '../games/types';
@@ -39,6 +39,7 @@ export class CatalogService {
     this.config = mod.config;
     this.source = mod.source;
     this.prices = readPrices(game);
+    setGame(game);
     setLanguages(mod.config.languages);
     try {
       const { sets, cards, version } = await mod.source.loadCatalog();

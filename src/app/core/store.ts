@@ -5,7 +5,7 @@ import { fromUrl, toUrl } from './url';
 import { CatalogService } from './catalog';
 import { IMG_DATA, compressImage, deleteLocalImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
 import { FriendsService } from './friends';
-import { binderFromSaved, deserializeUser, freshUser, ownedFromSaved, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, writeLocal } from './persist';
+import { binderFromSaved, deserializeUser, freshUser, ownedFromSaved, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, shareForm, writeLocal } from './persist';
 import { SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
 /**
@@ -103,13 +103,13 @@ export class CardcaseStore {
     if (!CATALOG_MOCK) { this.account = this.auth.enabled ? lastAccount() : null; return deserializeUser(readLocal(this.account)) ?? freshUser(); }
     const r = initOwned(); const now = Date.now(); const added = {};
     Object.entries(r.d).forEach(([id, days]) => { added[id] = now - days * 864e5; });
-    return { owned: r.o, added, binders: initBinders(r.o), dark: false };
+    return { owned: r.o, added, binders: initBinders(r.o), dark: false, games: ['pokemon'], otherGames: {}, summary: {} };
   }
 
   private initialState() { const u = this.initialUser(); return {
     screen: 'home', prev: 'home', dark: u.dark, authPanel: null, importOffer: null,
     wide: typeof window !== 'undefined' && window.innerWidth >= 900,
-    owned: u.owned, added: u.added, detailId: 1, detailLang: CARDS[1].avail[0],
+    ...userParts(u), detailId: 1, detailLang: CARDS[1].avail[0],
     q: '', fLangs: [], fSet: '', fRar: '',
     view: 'grid', sort: 'set', collSet: '', missingOnly: false,
     binders: u.binders, edId: u.binders[0].id, edSpread: 0, edSide: 0, vSide: 0, pflip: null, autoSet: '', fillMenu: false, sideQ: '', sideSet: '',
@@ -162,7 +162,7 @@ export class CardcaseStore {
     // Save the user's collection and binders (debounced) whenever they change.
     effect(() => {
       const st = this.state; if (CATALOG_MOCK) return;
-      const key = [st.owned, st.added, st.binders, st.dark];
+      const key = savedParts(st);
       if (key.every((x, i) => x === this.lastSaved[i])) return;
       this.lastSaved = key;
       if (this.syncReady) untracked(() => this.scheduleSave());
@@ -207,7 +207,7 @@ export class CardcaseStore {
         if (this.account !== acc) return;
         if (!this.saveT && !this.remoteT) this.savePending = false;
         this.auth.syncStatus.set('saved');
-        this.friends.publish(acc, saved).catch(err => console.warn('[share]', err));
+        this.friends.publish(acc, shareForm(saved)).catch(err => console.warn('[share]', err));
       }).catch(err => { console.warn('[sync]', err); this.auth.syncStatus.set('error'); });
     };
     if (!remoteDelay) return send();
@@ -226,8 +226,8 @@ export class CardcaseStore {
       writeLocal(uid, remote);
       const ids = new Set(u.binders.map(b => b.id)); const keep = id => ids.has(id) ? id : u.binders[0].id;
       this.undoStack = [];
-      this.setQuiet(s => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, edId: keep(s.edId), vId: keep(s.vId), ps: { ...s.ps, binderId: keep(s.ps.binderId) } }));
-      const st = this.state; this.lastSaved = [st.owned, st.added, st.binders, st.dark];
+      this.setQuiet(s => ({ ...userParts(u), edId: keep(s.edId), vId: keep(s.vId), ps: { ...s.ps, binderId: keep(s.ps.binderId) } }));
+      this.lastSaved = savedParts(this.state);
       this.syncImages();
     }).then(stop => { if (this.account === uid) this.unwatch = stop; else stop(); }).catch(err => console.warn('[sync]', err));
   }
@@ -236,8 +236,8 @@ export class CardcaseStore {
   applyUser(u) {
     const id = u.binders[0].id;
     this.undoStack = [];
-    this.setQuiet(s => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, edId: id, vId: id, edSpread: 0, vSpread: 0, ps: { ...s.ps, binderId: id }, sel: null, verSheet: null }));
-    const st = this.state; this.lastSaved = [st.owned, st.added, st.binders, st.dark];
+    this.setQuiet(s => ({ ...userParts(u), edId: id, vId: id, edSpread: 0, vSpread: 0, ps: { ...s.ps, binderId: id }, sel: null, verSheet: null }));
+    this.lastSaved = savedParts(this.state);
     this.syncImages();
   }
   /**
@@ -304,7 +304,7 @@ export class CardcaseStore {
     if (this.account !== uid) return;
     if (remote) {
       this.applyUser(deserializeUser(remote) ?? freshUser()); writeLocal(uid, remote);
-      this.friends.publish(uid, remote).catch(err => console.warn('[share]', err));
+      this.friends.publish(uid, shareForm(remote)).catch(err => console.warn('[share]', err));
       this.syncReady = true; this.auth.syncStatus.set('saved'); this.watch(uid);
       this.toast('Welkom ' + name + ' · ' + savedCardCount(remote) + ' kaarten geladen');
       return;
@@ -1247,3 +1247,8 @@ function sharp(cv) {
   const big = cv.img.replace(/\/low\.webp$/, '/high.webp').replace(/([?&]w=)250\b/, '$1700');
   return big === cv.img ? cv : { ...cv, img: big, img2: cv.img2 || cv.img };
 }
+
+/** The parts of the state that are saved (core/persist): a change in one of them is saved. */
+const savedParts = st => [st.owned, st.added, st.binders, st.dark, st.games, st.otherGames, st.summary];
+/** A user's data (core/persist UserData) as state. */
+const userParts = u => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, games: u.games, otherGames: u.otherGames, summary: u.summary });
