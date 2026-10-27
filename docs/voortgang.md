@@ -4,14 +4,25 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 
 | Stap | Branch | Status |
 | --- | --- | --- |
-| 0 · Docs en plan | `lorcana` | ✅ Docs geschreven (product, datamodel, design-systeem), implementatieplan klaar. Wacht op beslissingen over de open punten. |
-| 1 · Datamodel en CardSource | `lorcana` | ⏳ Nog niet begonnen |
-| 2 · Routing, thema's, configuratie | `lorcana` | ⏳ |
-| 3 · Wisselaar, onboarding, overzicht | `lorcana` | ⏳ |
-| 4a · Lorcana | `lorcana` | ⏳ |
+| 0 · Docs en plan | `lorcana` | ✅ |
+| 1 · Datamodel en CardSource | `lorcana` | ✅ Opslag v2 met migratie en tests, `CardSource` per spel. ⏳ Momentopnames van de waarde nog niet. |
+| 2 · Routing, thema's, configuratie | `lorcana` | ✅ `/<afdeling>/…`, `data-game`, thema-tokens, config per afdeling, logo-component, favicon. ⏳ Tokens nog niet hernoemd naar voluit geschreven namen. |
+| 3 · Wisselaar, onboarding, overzicht | `lorcana` | ✅ |
+| 4a · Lorcana | `lorcana` | 🟡 Catalogus, prijzen, thema, filters, recepten, kaartpagina en scanner staan. Zie open punten. |
 | → merge `lorcana` naar `main` | | ⏳ |
 | 4b · Magic | `magic` | ⏳ |
 | 4c · One Piece | `one-piece` | ⏳ |
+
+## Open punten Lorcana
+
+- **Foil in de collectie bijhouden:** een kaart staat nu per taal in je collectie, nog niet als gewoon of foil. De prijzen zijn er wel apart.
+- **Scanner:** het scankader is nog het retroscherm, nog geen boekpagina. De herkenning is getest met unit tests, nog niet met een echte camera.
+- **Momentopnames van de waarde** (stap 1f) en een waardegrafiek in "Mijn Cardcase".
+- **Decoratiemateriaal** in sprookjesstijl (papier, inktspetters, gouden kaders, stickers) in de decoratiemodus.
+- **Snel scannen** (een stapel achter elkaar) en de schermen voor mislukte scans.
+- **Loginscherm** toont nog het Pokémon-logo.
+- **Vrienden en delen** werken voor Pokémon; Lorcana-binders worden nog niet gedeeld.
+- **Bij de merge:** Firestore-veld omzetten van `cardcaseV2` naar het echte veld (§0 van het plan), en `firestore.rules` nalopen.
 
 ## Logboek
 
@@ -26,3 +37,8 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
   - `data-game` moet op `<html>`, want overlays renderen buiten de route.
   - De Angular-router komt terug (vervangt `core/url.ts`).
 - Aangeleverde logo's (`public/icons/cardcase-logo`) verplaatst naar `public/logos/<afdeling>/`, met de route als mapnaam (`piraat` → `one-piece`, `tovenaar` → `magic`, `sprookje` → `lorcana`). README en kleurtokens staan in `docs/logos/`.
+- Code opgedeeld per spel in `src/app/games/<spel>/` (config, source, catalogus, scanner); algemene code vraagt alles via de config.
+- Opslag v2 schrijft naar `cardcaseV2`; het veld `cardcase` van de live versie blijft onaangeroerd.
+- Lorcana: catalogus uit LorcanaJSON (3.556 kaarten, EN/FR/DE/IT) via `npm run sync-lorcana`; Cardmarket-prijzen (gewoon en foil) via een rewrite in `vercel.json`.
+- Thema-tokens per afdeling; Pokémon ziet er hetzelfde uit, Lorcana in inktblauw, roomwit en goud.
+- Afdelingswisselaar, onboarding "Wat verzamel jij?" en overzicht "Mijn Cardcase" gebouwd.
