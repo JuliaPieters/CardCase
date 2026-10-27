@@ -10,7 +10,7 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 | 3 · Wisselaar, onboarding, overzicht | `lorcana` | ✅ |
 | 4a · Lorcana | `lorcana` | 🟡 Alles gebouwd: catalogus, prijzen (ook in de catalogus), thema, filters, recepten, kaartpagina, foil, waardegeschiedenis, scanner (boekpagina, snel scannen, tips), decoratie, delen. Nog testen: camera, mobiel, echt account. |
 | → merge `lorcana` naar `main` | | ✅ 27-10-2026 |
-| 4b · Magic | `magic` | ⏳ |
+| 4b · Magic | `magic` | 🟡 Catalogus (Scryfall, 97.781 prints), prijzen, thema, filters, recepten, kaartpagina, decks met formaten en Commander. Nog: scanner testen, telefoonformaat nalopen. |
 | 4c · One Piece | `one-piece` | ⏳ |
 
 ## Open punten Lorcana
@@ -40,3 +40,4 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 - Afdelingswisselaar, onboarding "Wat verzamel jij?" en overzicht "Mijn Cardcase" gebouwd.
 - Foil per taal in de collectie, waardegeschiedenis per dag, snel scannen, tips bij mislukte scans, Lorcana-decoratie, delen per afdeling. Alle Lorcana-schermen in de browser doorgelopen (desktop, als gast).
 - Decks voor Lorcana (bouwen, inlezen, controle, speelstijl, genereren, sparen). Op telefoonformaat nagelopen. Gemerged naar `main`.
+- Magic: The Gathering op branch `magic`: catalogus uit Scryfall (`npm run sync-magic`, 4,7 MB gecomprimeerd), decks per formaat (Standard t/m Vintage, Pauper, Commander).

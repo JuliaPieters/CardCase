@@ -45,7 +45,7 @@ export interface SavedGame {
   added: Record<string, number>;
   binders: any[];
   /** Decks to play with: cards by key → copies. */
-  decks?: { id: string; name: string; cards: Record<string, number>; created: number; origin?: string }[];
+  decks?: { id: string; name: string; cards: Record<string, number>; created: number; origin?: string; format?: string; commander?: string | null }[];
 }
 
 export interface GameSummary {
@@ -88,7 +88,7 @@ function serializeGame(st: UserData): SavedGame {
   });
   const toKey = (x) => (isCard(x) ? 'U:' + CARDS[x].key : x);
   const binders = st.binders.map((b) => ({ ...b, game: b.game || GAME, slots: b.slots.map(toKey), dismissed: (b.dismissed || []).map(toKey) }));
-  const decks = (st.decks || []).map((d) => ({ ...d, cards: Object.fromEntries(Object.entries(d.cards).filter(([id]) => CARDS[id]).map(([id, n]) => [CARDS[id].key, n])) }));
+  const decks = (st.decks || []).map((d) => ({ ...d, commander: d.commander != null && CARDS[d.commander] ? CARDS[d.commander].key : null, cards: Object.fromEntries(Object.entries(d.cards).filter(([id]) => CARDS[id]).map(([id, n]) => [CARDS[id].key, n])) }));
   return { owned, added, binders, ...(decks.length ? { decks } : {}) };
 }
 
@@ -182,7 +182,7 @@ export function deserializeUser(raw: SavedUser | null): UserData | null {
     if (id != null) added[id] = t;
   }
   const binders = (mine?.binders || []).map(binderFromSaved);
-  const decks = (mine?.decks || []).map((d) => ({ ...d, cards: Object.fromEntries(Object.entries(d.cards).map(([k, n]) => [indexOf(k), n]).filter(([id]) => id != null)) }));
+  const decks = (mine?.decks || []).map((d) => ({ ...d, commander: d.commander ? (indexOf(d.commander) ?? null) : null, cards: Object.fromEntries(Object.entries(d.cards).map(([k, n]) => [indexOf(k), n]).filter(([id]) => id != null)) }));
   // Departments with cards in them count as chosen, also when the list itself is missing or empty.
   const games = [...(u.games || [])];
   for (const [g, d] of Object.entries(u.data || {})) if (!games.includes(g) && Object.keys((d as SavedGame).owned || {}).length) games.push(g);

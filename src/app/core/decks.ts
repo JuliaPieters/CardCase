@@ -14,6 +14,10 @@ export interface Deck {
   created: number;
   /** How it was made: by hand, imported from a list, or generated (with the options). */
   origin?: string;
+  /** The format it is built for, in departments with several (Magic: standard, commander…). */
+  format?: string;
+  /** The commander (catalog index), in a format that has one. */
+  commander?: number | null;
 }
 
 export interface DeckLine {
@@ -39,6 +43,8 @@ export interface GenerateOptions {
   ownedOnly: boolean;
   /** Only cards allowed in the current (rotating) format. */
   currentFormat: boolean;
+  /** The format to build for (departments with several). */
+  format?: string;
   style: string;
   /** Copies you own of a card (any printing of it counts). */
   owned: (card: any) => number;
@@ -48,16 +54,25 @@ export interface DeckRules {
   /** Smallest legal deck. */
   size: number;
   maxCopies: number;
+  /** Formats to choose from ([key, label]); without them the department has one set of rules. */
+  formats?: [string, string][];
+  /** Deck size in a format (Commander: 100). */
+  sizeFor?(format?: string): number;
+  /** The format has a commander. */
+  hasCommander?(format?: string): boolean;
+  /** Whether a card can lead the deck as its commander. */
+  canCommand?(card: any): boolean;
   /** The name copies are counted by (all printings of a card share it). */
   nameOf(card: any): string;
   /** What makes the deck not legal yet, as sentences; empty when it is. */
-  problems(lines: DeckLine[]): string[];
-  analyze(lines: DeckLine[]): DeckAnalysis;
+  problems(lines: DeckLine[], deck?: Deck): string[];
+  analyze(lines: DeckLine[], deck?: Deck): DeckAnalysis;
   /** Play styles the generator can aim for: [key, label]. */
   styles: [string, string][];
   /** How many colour categories a deck can have (Lorcana: 2). */
   maxTypes: number;
-  generate(opts: GenerateOptions): DeckLine[];
+  /** A deck for the options; with a commander when the format has one. */
+  generate(opts: GenerateOptions): DeckLine[] & { commander?: any };
 }
 
 export const linesOf = (deck: Deck): DeckLine[] =>

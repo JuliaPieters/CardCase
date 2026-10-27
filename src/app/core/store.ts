@@ -345,9 +345,9 @@ export class CardcaseStore {
     this.toast(yes ? 'Collectie van dit apparaat in je account gezet' : 'Je begint met een lege collectie');
   }
   /** Decks to play with (departments with GameConfig.decks). `lines` from an import or the generator. */
-  newDeck(name, lines: any[] = [], origin = 'hand') {
+  newDeck(name, lines: any[] = [], origin = 'hand', extra = {}) {
     const id = this.newId('d'); const cards = {}; lines.forEach(l => { cards[l.card.id] = (cards[l.card.id] || 0) + l.n; });
-    this.setState(s => ({ decks: [...(s.decks || []), { id, name, cards, created: Date.now(), origin }] }));
+    this.setState(s => ({ decks: [...(s.decks || []), { id, name, cards, created: Date.now(), origin, ...extra }] }));
     this.go('deck', { deckId: id });
   }
   updDeck(id, f) { this.setState(s => ({ decks: (s.decks || []).map(d => d.id === id ? f({ ...d, cards: { ...d.cards } }) : d) })); }

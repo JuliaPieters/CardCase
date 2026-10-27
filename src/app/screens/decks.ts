@@ -45,8 +45,18 @@ import { Card } from '../shared/card';
       @if (mode() === 'generate') {
         <div class="panel p-4 flex flex-col gap-4">
           <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">Genereer een deck</h2>
+          @if (rules()?.formats; as formats) {
+            <div class="flex flex-col gap-2">
+              <span class="text-[13px] font-extrabold text-muted">Formaat</span>
+              <div class="flex flex-wrap gap-2">
+                @for (f of formats; track f[0]) {
+                  <button (click)="format.set(f[0])" class="chip" [style.background]="(format() || formats[0][0]) === f[0] ? 'var(--ink)' : 'var(--surface)'" [style.color]="(format() || formats[0][0]) === f[0] ? 'var(--bg)' : 'var(--ink)'">{{ f[1] }}</button>
+                }
+              </div>
+            </div>
+          }
           <div class="flex flex-col gap-2">
-            <span class="text-[13px] font-extrabold text-muted">Inkkleuren (1 of {{ rules()?.maxTypes }})</span>
+            <span class="text-[13px] font-extrabold text-muted">{{ typeLabel() }} (1{{ (rules()?.maxTypes || 2) > 1 ? ' tot ' + rules()?.maxTypes : '' }})</span>
             <div class="flex flex-wrap gap-2">
               @for (t of typeChips(); track t.key) {
                 <button (click)="toggleType(t.key)" class="chip !py-[5px] !pl-[5px] !pr-[10px]" [style.background]="t.on ? 'var(--display)' : 'var(--surface)'" [style.color]="t.on ? 'var(--display-text)' : 'var(--ink)'">
@@ -64,7 +74,9 @@ import { Card } from '../shared/card';
             </div>
           </div>
           <label class="flex items-center gap-2 font-bold text-[14px]"><input type="checkbox" [checked]="ownedOnly()" (change)="ownedOnly.set(!ownedOnly())" /> Alleen kaarten die ik heb</label>
-          <label class="flex items-center gap-2 font-bold text-[14px]"><input type="checkbox" [checked]="core()" (change)="core.set(!core())" /> Alleen kaarten uit het huidige formaat (Core)</label>
+          @if (!rules()?.formats) {
+            <label class="flex items-center gap-2 font-bold text-[14px]"><input type="checkbox" [checked]="core()" (change)="core.set(!core())" /> Alleen kaarten uit het huidige formaat (Core)</label>
+          }
           <button (click)="generate()" [disabled]="!types().length" class="self-start btn bg-red text-cream disabled:opacity-50"><span class="icon text-[19px]">auto_awesome</span>Maak deck</button>
         </div>
       }
@@ -81,7 +93,7 @@ import { Card } from '../shared/card';
                 </div>
                 <div class="flex-1 min-w-0 flex flex-col gap-1">
                   <span class="font-black text-[17px] truncate">{{ d.name }}</span>
-                  <span class="text-[13px] font-bold text-muted">{{ d.size }} kaarten · {{ d.style }}</span>
+                  <span class="text-[13px] font-bold text-muted">{{ d.format ? d.format + ' · ' : '' }}{{ d.size }} kaarten · {{ d.style }}</span>
                   <span class="flex gap-1">
                     @for (t of d.inks; track t) {
                       <span class="w-4 h-4 rounded-full border-2 border-line" [style.background]="t"></span>
@@ -116,10 +128,14 @@ export class DecksScreen {
   protected readonly style = signal('midrange');
   protected readonly ownedOnly = signal(false);
   protected readonly core = signal(true);
+  protected readonly format = signal('');
+  /** What the colour categories are called ("Inkkleuren", "Kleuren"). */
+  protected readonly typeLabel = computed(() => (this.catalog.game() === 'lorcana' ? 'Inkkleuren' : 'Kleuren'));
 
   protected readonly typeChips = computed(() =>
     Object.entries(TYPES)
-      .filter(([k]) => k !== 'none')
+      // Only real colours: not "no ink", "multicoloured" or "colourless".
+      .filter(([k]) => !['none', 'multi', 'colorless'].includes(k))
       .map(([k, [label, color]]) => ({ key: k, label, color, on: this.types().includes(k) })),
   );
 
@@ -128,14 +144,15 @@ export class DecksScreen {
     const rules = this.rules();
     return (st.decks || []).map((d: Deck) => {
       const lines = linesOf(d);
-      const a = rules?.analyze(lines);
+      const a = rules?.analyze(lines, d);
       const needs = rules ? deckNeeds(lines, rules.nameOf, st.owned) : null;
       return {
         id: d.id,
         name: d.name,
         size: deckSize(d),
         style: lines.length ? a?.playstyle : 'leeg',
-        legal: !!rules && !rules.problems(lines).length,
+        legal: !!rules && !rules.problems(lines, d).length,
+        format: rules?.formats?.find((f) => f[0] === d.format)?.[1] || '',
         inks: [...new Set(lines.flatMap((l) => l.card.inks))].filter((i) => i !== 'none').map((i) => TYPES[i]?.[1]),
         missing: needs && needs.missing.length ? `mist ${needs.missing.reduce((a2, m) => a2 + m.n, 0)} · ${eur(needs.cost)}` : lines.length ? 'alles in bezit' : '',
         preview: [...lines].sort((x, y) => (y.card.trend ?? 0) - (x.card.trend ?? 0)).slice(0, 3).map((l) => ({ key: l.card.id, cv: this.store.cv(l.card, LANGS[0], false) })),
@@ -152,7 +169,9 @@ export class DecksScreen {
     const { lines, unknown } = parseDeckList(text, this.store.state.owned);
     this.importUnknown.set(unknown);
     if (!lines.length) return;
-    this.store.newDeck('Ingelezen deck', lines, 'import');
+    // A list of 100 single cards is a Commander deck.
+    const commander = this.rules()?.formats?.some((f) => f[0] === 'commander') && lines.length >= 90 && lines.every((l) => l.n === 1 || l.card.basicLand);
+    this.store.newDeck('Ingelezen deck', lines, 'import', this.rules()?.formats ? { format: commander ? 'commander' : this.rules()!.formats![0][0] } : {});
     if (unknown.length) this.store.toast(unknown.length + ' regels niet herkend');
   }
 
@@ -160,11 +179,15 @@ export class DecksScreen {
     const rules = this.rules();
     if (!rules) return;
     const owned = ownedByName(rules.nameOf, this.store.state.owned);
-    const lines = rules.generate({ types: this.types(), ownedOnly: this.ownedOnly(), currentFormat: this.core(), style: this.style(), owned });
-    const name = this.types().map((t) => TYPES[t][0]).join('-') + ' ' + (rules.styles.find((s) => s[0] === this.style())?.[1].split(' ')[0] || '');
-    this.store.newDeck(name, lines, 'generated');
+    const format = this.format() || rules.formats?.[0][0];
+    const lines = rules.generate({ types: this.types(), ownedOnly: this.ownedOnly(), currentFormat: this.core(), style: this.style(), owned, format });
+    const style = rules.styles.find((s) => s[0] === this.style())?.[1].split(' ')[0] || '';
+    const name = lines.commander ? lines.commander.names.EN : this.types().map((t) => TYPES[t][0]).join('-') + ' ' + style;
+    this.store.newDeck(name, lines, 'generated', { format, commander: lines.commander?.id ?? null });
     const n = lines.reduce((a, l) => a + l.n, 0);
-    if (n < rules.size) this.store.toast(`${n} kaarten: met alleen je eigen kaarten lukt een volledig deck nog niet`);
+    const size = rules.sizeFor?.(format) ?? rules.size;
+    if (rules.hasCommander?.(format) && !lines.commander) this.store.toast('Geen commander gevonden in precies deze kleuren · kies er zelf een');
+    else if (n < size) this.store.toast(`${n} kaarten: met alleen je eigen kaarten lukt een volledig deck nog niet`);
   }
 }
 
@@ -184,6 +207,13 @@ export class DecksScreen {
             (change)="rename($any($event.target).value)"
             class="flex-1 min-w-0 basis-[200px] bg-transparent border-0 border-b-2 border-dashed border-soft outline-none font-black text-[clamp(22px,3.4vw,30px)]"
           />
+          @if (d.formats) {
+            <select class="select" (change)="setFormat($any($event.target).value)" aria-label="Formaat">
+              @for (f of d.formats; track f[0]) {
+                <option [value]="f[0]" [selected]="f[0] === d.format">{{ f[1] }}</option>
+              }
+            </select>
+          }
           <button (click)="copy()" class="btn"><span class="icon text-[19px]">content_copy</span>Kopieer lijst</button>
           <button (click)="store.deleteDeck(d.id)" class="btn-icon" title="Deck verwijderen"><span class="icon text-[20px]">delete</span></button>
         </div>
@@ -228,6 +258,9 @@ export class DecksScreen {
                   <button (click)="store.openDetail(l.key, null)" class="w-9 flex-none aspect-[63/88]" [title]="l.name"><cc-card [card]="l.cv" /></button>
                   <span class="w-7 h-7 flex-none rounded-full border-2 border-line flex items-center justify-center font-pixel text-[13px]" [style.background]="l.color">{{ l.cost }}</span>
                   <button (click)="store.openDetail(l.key, null)" class="flex-1 min-w-0 text-left font-bold text-[14px] truncate">{{ l.name }}</button>
+                  @if (l.canCommand || l.isCommander) {
+                    <button (click)="setCommander(l.key)" [title]="l.isCommander ? 'De commander' : 'Maak commander'" class="icon text-[20px] flex-none" [class.text-red]="l.isCommander" [class.opacity-40]="!l.isCommander">crown</button>
+                  }
                   @if (l.short) {
                     <span class="text-[12px] font-extrabold text-red" title="Zoveel heb je nog niet">mist {{ l.short }}</span>
                   }
@@ -317,15 +350,19 @@ export class DeckScreen {
     const lines = linesOf(deck);
     const needs = deckNeeds(lines, rules.nameOf, st.owned);
     const short = new Map(needs.missing.map((m) => [m.card.id, m.n]));
-    const a = rules.analyze(lines);
+    const a = rules.analyze(lines, deck);
     const mx = Math.max(...a.curve, 1);
+    const withCommander = !!rules.hasCommander?.(deck.format);
     return {
       id: deck.id,
       name: deck.name,
       size: deckSize(deck),
-      target: rules.size,
-      problems: rules.problems(lines),
-      lines: lines.map((l) => ({ key: l.card.id, n: l.n, name: l.card.names.EN, cost: l.card.cost ?? '–', color: TYPES[l.card.type]?.[1], short: short.get(l.card.id) || 0, cv: this.store.cv(l.card, LANGS[0], !tot(st.owned[l.card.id])) })),
+      target: rules.sizeFor?.(deck.format) ?? rules.size,
+      problems: rules.problems(lines, deck),
+      formats: rules.formats || null,
+      format: deck.format || rules.formats?.[0][0] || '',
+      withCommander,
+      lines: lines.map((l) => ({ key: l.card.id, n: l.n, name: l.card.names.EN, cost: l.card.cost ?? (l.card.cmc != null ? Math.floor(l.card.cmc) : '–'), color: TYPES[l.card.type]?.[1], short: short.get(l.card.id) || 0, cv: this.store.cv(l.card, LANGS[0], !tot(st.owned[l.card.id])), isCommander: deck.commander === l.card.id, canCommand: withCommander && !!rules.canCommand?.(l.card) })),
       analysis: a,
       curve: a.curve.map((n, i) => ({ cost: i === 6 ? '7+' : String(i + 1), n, h: Math.round((n / mx) * 100) })),
       have: needs.have,
@@ -343,6 +380,16 @@ export class DeckScreen {
       .slice(0, 24)
       .map((c) => ({ key: c.id, name: c.names.EN, cv: this.store.cv(c, LANGS[0], !tot(owned[c.id])) }));
   });
+
+  protected setFormat(format: string) {
+    const d = this.model();
+    if (d) this.store.updDeck(d.id, (x: Deck) => ({ ...x, format }));
+  }
+
+  protected setCommander(cardId: number) {
+    const d = this.model();
+    if (d) this.store.updDeck(d.id, (x: Deck) => ({ ...x, commander: x.commander === cardId ? null : cardId }));
+  }
 
   protected rename(name: string) {
     const d = this.model();
