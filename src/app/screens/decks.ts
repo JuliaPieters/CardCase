@@ -182,14 +182,14 @@ export class DecksScreen {
           <input
             [value]="d.name"
             (change)="rename($any($event.target).value)"
-            class="flex-1 min-w-[200px] bg-transparent border-0 border-b-2 border-dashed border-soft outline-none font-black text-[clamp(22px,3.4vw,30px)]"
+            class="flex-1 min-w-0 basis-[200px] bg-transparent border-0 border-b-2 border-dashed border-soft outline-none font-black text-[clamp(22px,3.4vw,30px)]"
           />
           <button (click)="copy()" class="btn"><span class="icon text-[19px]">content_copy</span>Kopieer lijst</button>
           <button (click)="store.deleteDeck(d.id)" class="btn-icon" title="Deck verwijderen"><span class="icon text-[20px]">delete</span></button>
         </div>
 
-        <div class="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-start">
-          <div class="flex flex-col gap-4">
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-start">
+          <div class="flex flex-col gap-4 min-w-0">
             <div class="panel p-4 flex flex-col gap-3">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">{{ d.size }} / {{ d.target }} kaarten</h2>
@@ -260,7 +260,7 @@ export class DecksScreen {
             </div>
           </div>
 
-          <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-4 min-w-0">
             <div class="panel p-4 flex flex-col gap-3">
               <div class="kicker">SPEELSTIJL</div>
               <div class="font-black text-[24px] leading-none">{{ d.analysis.playstyle }}</div>

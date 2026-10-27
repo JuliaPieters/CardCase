@@ -101,7 +101,7 @@ export class OnboardingScreen {
         <div class="flex-[1_1_240px] flex flex-col gap-2 min-w-0">
           @for (t of o.tiles; track t.game) {
             <div class="flex items-center gap-2 text-[13px] font-extrabold">
-              <span class="w-20 flex-none truncate">{{ t.name }}</span>
+              <span class="w-28 flex-none truncate">{{ t.name }}</span>
               <div class="flex-1 h-3 rounded-full bg-soft border-2 border-line overflow-hidden">
                 <div class="h-full bg-red" [style.width.%]="t.share"></div>
               </div>
