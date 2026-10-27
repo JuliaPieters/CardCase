@@ -1,0 +1,45 @@
+/* Cardcase – kleurtokens per afdeling.
+   Zet data-game="pokemon|piraat|tovenaar|sprookje" op de root van elke afdelingsroute.
+   Gebruik in Tailwind v4 via @theme of rechtstreeks als CSS-variabelen. */
+
+:root,
+[data-game="pokemon"] {
+  --color-merk-card: #E3350D;
+  --color-afdeling-accent: #9BBC0F;
+  --color-afdeling-primair: #E3350D;
+  --color-afdeling-primair-donker: #B82A0A;
+  --color-afdeling-achtergrond: #1A1C22;
+  --color-afdeling-oppervlak: #F7F3E8;
+  --color-scherm-licht: #9BBC0F;
+  --color-scherm: #8BAC0F;
+  --color-scherm-donker: #306230;
+  --color-scherm-donkerst: #0F380F;
+  --color-omlijning: #0B0C10;
+}
+
+[data-game="piraat"] {
+  --color-afdeling-accent: #D4A63A;
+  --color-afdeling-primair: #1F3A5F;
+  --color-afdeling-primair-donker: #142A47;
+  --color-afdeling-achtergrond: #EFE3C4;
+  --color-afdeling-oppervlak: #F7EFD9;
+  --color-afdeling-extra: #3A2618;
+}
+
+[data-game="tovenaar"] {
+  --color-afdeling-accent: #C9B6FF;
+  --color-afdeling-primair: #4B2A7B;
+  --color-afdeling-primair-donker: #321A57;
+  --color-afdeling-achtergrond: #141634;
+  --color-afdeling-oppervlak: #1C1F4A;
+  --color-afdeling-extra: #9FE3FF;
+}
+
+[data-game="sprookje"] {
+  --color-afdeling-accent: #E2B53A;
+  --color-afdeling-primair: #233A7A;
+  --color-afdeling-primair-donker: #172757;
+  --color-afdeling-achtergrond: #F6F1E4;
+  --color-afdeling-oppervlak: #FFFDF7;
+  --color-afdeling-extra: #3A5BD9;
+}
