@@ -14,7 +14,6 @@
       <button (click)="s.goHome()" title="Home" class="block w-full border-2 border-coal rounded-lg overflow-hidden transition-[filter] hover:brightness-110">
         <cc-logo [size]="27" />
       </button>
-      <cc-game-switcher [wide]="true" />
       <button
         (click)="s.goScan()"
         class="press flex items-center justify-center gap-[10px] bg-lcd text-lcd-ink border-2 border-coal rounded-xl shadow-[0_5px_0_var(--coal)] p-3 font-pixel font-semibold text-[18px] leading-none"
@@ -130,6 +129,12 @@
     }
     <main #main class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain">
       <!-- The binder editor gets the full width: a bigger binder is easier to edit. -->
+      <!-- Wide screens: the department switcher top right, out of the busy sidebar (narrow: in the header). -->
+      @if (s.wide) {
+        <div class="relative z-20 flex justify-end pt-3 -mb-3 px-[clamp(14px,3vw,36px)]">
+          <cc-game-switcher [labeled]="true" />
+        </div>
+      }
       <div class="mx-auto pt-[22px] pb-10 px-[clamp(14px,3vw,36px)]" [style.max-width]="s.isEditor ? '1800px' : '1400px'">
         @if (s.isHome) {
           <cc-home />

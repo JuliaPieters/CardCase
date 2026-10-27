@@ -35,8 +35,6 @@ export interface CardSource {
 export interface GameInfo {
   game: Game;
   name: string;
-  /** Shown in the switcher and onboarding: what the department feels like. */
-  tagline: string;
   /** Ready to use; a department under construction stays out of onboarding and the switcher. */
   enabled: boolean;
   logos: { mascot: string; favicon: string; favicon32: string; appleTouch: string };

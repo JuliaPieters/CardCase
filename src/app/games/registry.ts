@@ -9,10 +9,10 @@ const logos = (dir: string) => ({
 
 /** All departments, in the order they are offered. */
 export const GAMES: readonly GameInfo[] = [
-  { game: 'pokemon', name: 'Pokémon', tagline: 'Retro handheld', enabled: true, logos: logos('pokemon') },
-  { game: 'lorcana', name: 'Lorcana', tagline: 'Sprookjesboek van inkt en goud', enabled: true, logos: logos('lorcana') },
-  { game: 'magic', name: 'Magic', tagline: 'Tovenaarstoren', enabled: false, logos: logos('magic') },
-  { game: 'one-piece', name: 'One Piece', tagline: 'Piratenschip', enabled: false, logos: logos('one-piece') },
+  { game: 'pokemon', name: 'Pokémon', enabled: true, logos: logos('pokemon') },
+  { game: 'lorcana', name: 'Disney Lorcana', enabled: true, logos: logos('lorcana') },
+  { game: 'magic', name: 'Magic', enabled: false, logos: logos('magic') },
+  { game: 'one-piece', name: 'One Piece', enabled: false, logos: logos('one-piece') },
 ];
 
 export const isGame = (x: unknown): x is Game => GAMES.some((g) => g.game === x);

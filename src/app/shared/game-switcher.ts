@@ -21,8 +21,8 @@ import type { Game } from '../games/types';
       [class.w-full]="wide()"
     >
       <img [src]="current().logos.mascot" alt="" class="w-8 h-9 flex-none" />
-      @if (wide()) {
-        <span class="flex-1 text-left font-extrabold text-[14px] leading-tight">{{ current().name }}</span>
+      @if (wide() || labeled()) {
+        <span class="text-left font-extrabold text-[14px] leading-tight" [class.flex-1]="wide()">{{ current().name }}</span>
       }
       <span class="icon text-[20px]">{{ open() ? 'expand_less' : 'expand_more' }}</span>
     </button>
@@ -53,10 +53,7 @@ import type { Game } from '../games/types';
           @for (g of more(); track g.game) {
             <button (click)="go(g.game)" class="flex items-center gap-3 rounded-[10px] px-2 py-[7px] text-left hover:bg-soft">
               <img [src]="g.mascot" alt="" class="w-9 h-10 flex-none opacity-80" />
-              <span class="flex-1 min-w-0 flex flex-col gap-[2px]">
-                <span class="font-extrabold text-[15px]">{{ g.name }}</span>
-                <span class="text-[12px] font-bold text-muted">{{ g.tagline }}</span>
-              </span>
+              <span class="flex-1 min-w-0 font-extrabold text-[15px]">{{ g.name }}</span>
               <span class="icon text-[20px] text-muted">add</span>
             </button>
           }
@@ -68,6 +65,8 @@ import type { Game } from '../games/types';
 export class GameSwitcher {
   /** In the sidebar: full width with the department's name. */
   readonly wide = input(false);
+  /** Shows the department's name next to the mascot. */
+  readonly labeled = input(false);
   protected readonly open = signal(false);
   private readonly store = inject(CardcaseStore);
   private readonly game = inject(CatalogService).game;
@@ -81,7 +80,7 @@ export class GameSwitcher {
     return GAMES.filter((g) => g.enabled).map((g) => {
       const sum = g.game === active ? { cards: v.totalCards, value: null } : st.summary?.[g.game];
       const stats = sum ? `${sum.cards} kaarten · ${g.game === active ? v.vTotal : eur(sum.value)}` : 'Nog leeg';
-      return { game: g.game, name: g.name, tagline: g.tagline, mascot: g.logos.mascot, active: g.game === active, mine: chosen.includes(g.game) || g.game === active, stats };
+      return { game: g.game, name: g.name, mascot: g.logos.mascot, active: g.game === active, mine: chosen.includes(g.game) || g.game === active, stats };
     });
   });
   protected readonly mine = computed(() => this.rows().filter((r) => r.mine));

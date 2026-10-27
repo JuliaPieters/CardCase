@@ -27,10 +27,7 @@ import type { Game } from '../games/types';
             [attr.aria-pressed]="picked().includes(g.game)"
           >
             <img [src]="g.logos.mascot" alt="" class="w-14 h-16 flex-none" />
-            <span class="flex-1 min-w-0 flex flex-col gap-1">
-              <span class="font-black text-[18px]">{{ g.name }}</span>
-              <span class="text-[13px] font-bold text-muted">{{ g.tagline }}</span>
-            </span>
+            <span class="flex-1 min-w-0 font-black text-[18px]">{{ g.name }}</span>
             <span class="icon text-[26px]" [class.text-red]="picked().includes(g.game)">{{ picked().includes(g.game) ? 'check_circle' : 'radio_button_unchecked' }}</span>
           </button>
         }
