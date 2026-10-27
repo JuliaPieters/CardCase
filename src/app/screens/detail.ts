@@ -93,7 +93,7 @@ import { Trend } from '../shared/bits';
               }
             </div>
             <div class="bg-device border-2 border-line rounded-[10px] p-[6px]">
-              <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_#8BAC0F] p-[14px] flex flex-col gap-3 overflow-hidden">
+              <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] p-[14px] flex flex-col gap-3 overflow-hidden">
                 @let pick = picked();
                 <div class="flex flex-wrap items-end justify-between gap-[10px]">
                   <div>
@@ -117,9 +117,9 @@ import { Trend } from '../shared/bits';
                 >
                   @for (b of s.dBars; track b.key; let i = $index) {
                     <div
-                      class="flex-1 bg-[repeating-linear-gradient(0deg,transparent_0_4px,rgba(155,188,15,.35)_4px_5px)]"
+                      class="flex-1 bg-[repeating-linear-gradient(0deg,transparent_0_4px,color-mix(in_srgb,var(--display)_35%,_transparent)_4px_5px)]"
                       [style.height.%]="b.h"
-                      [style.background-color]="pick ? (i === pick.i ? '#0F380F' : '#4E7A2E') : b.bg"
+                      [style.background-color]="pick ? (i === pick.i ? 'var(--display-text)' : '#4E7A2E') : b.bg"
                     ></div>
                   }
                 </div>

@@ -22,13 +22,13 @@ import { Card } from '../shared/card';
           <div class="lcd rounded-[5px] px-3 py-[9px] text-[14px] leading-[1.3]">{{ s.rs.summary }}</div>
         </div>
         <div class="flex flex-wrap gap-2">
-          <span class="flex items-center gap-[5px] bg-lcd-mid text-[#F7F3E8] border-2 border-line rounded-full py-1 pl-[6px] pr-[10px] text-[12px] font-black">
+          <span class="flex items-center gap-[5px] bg-lcd-mid text-[var(--device-text)] border-2 border-line rounded-full py-1 pl-[6px] pr-[10px] text-[12px] font-black">
             <span class="icon text-[15px]">check</span>Klopt
           </span>
           <span class="flex items-center gap-[5px] bg-amber text-coal border-2 border-line rounded-full py-1 pl-[6px] pr-[10px] text-[12px] font-black">
             <span class="icon text-[15px]">question_mark</span>Twijfel
           </span>
-          <span class="flex items-center gap-[5px] bg-[#E3350D] text-cream border-2 border-line rounded-full py-1 pl-[6px] pr-[10px] text-[12px] font-black">
+          <span class="flex items-center gap-[5px] bg-[var(--red)] text-cream border-2 border-line rounded-full py-1 pl-[6px] pr-[10px] text-[12px] font-black">
             <span class="icon text-[15px]">close</span>Fout of leeg
           </span>
         </div>

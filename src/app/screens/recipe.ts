@@ -71,7 +71,7 @@ import { Pix } from '../shared/bits';
             </div>
           </div>
           <div class="bg-device border-2 border-line rounded-[14px_14px_36px_14px] pt-[10px] px-3 pb-[14px] shadow-hard">
-            <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_#8BAC0F] px-4 py-[14px] flex flex-col gap-[6px] overflow-hidden">
+            <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] px-4 py-[14px] flex flex-col gap-[6px] overflow-hidden">
               <div class="text-[11px] leading-none tracking-[.1em]">LIVE SAMENVATTING</div>
               <div class="font-semibold text-[clamp(17px,2.6vw,22px)] leading-[1.25] text-pretty">{{ s.rcSummary }}</div>
               <div class="text-[12px] leading-[1.3]">{{ s.rcLabel }}</div>

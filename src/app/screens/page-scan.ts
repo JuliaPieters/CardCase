@@ -13,19 +13,19 @@ import { Led } from '../shared/bits';
   imports: [Led],
   template: `
     @let s = v();
-    <div class="fixed inset-0 z-50 bg-[#0B0C0F] flex justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <div class="relative w-full max-w-[560px] h-full flex flex-col gap-3 overflow-hidden bg-[#14161B] pb-4">
-        <div class="flex items-center gap-3 px-[14px] pt-3 text-[#F7F3E8]">
+    <div class="fixed inset-0 z-50 bg-[var(--device-backdrop)] flex justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div class="relative w-full max-w-[560px] h-full flex flex-col gap-3 overflow-hidden bg-[var(--device-shell)] pb-4">
+        <div class="flex items-center gap-3 px-[14px] pt-3 text-[var(--device-text)]">
           <button
             (click)="s.closePageScan()"
             title="Sluiten"
-            class="w-11 h-11 flex-none rounded-xl bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center"
+            class="w-11 h-11 flex-none rounded-xl bg-[var(--device-raised)] text-[var(--device-text)] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center"
           >
             <span class="icon text-[22px]">close</span>
           </button>
           <div class="flex flex-col gap-[3px] min-w-0">
             <div class="font-pixel font-semibold text-[18px] leading-none tracking-[.06em]">PAGINASCAN</div>
-            <div class="text-[12px] font-bold text-[#A8A497] whitespace-nowrap overflow-hidden text-ellipsis">{{ s.psv.sub }}</div>
+            <div class="text-[12px] font-bold text-[var(--device-muted)] whitespace-nowrap overflow-hidden text-ellipsis">{{ s.psv.sub }}</div>
           </div>
           <div class="ml-auto grid grid-cols-2 gap-[2px] bg-black border-2 border-black rounded-[9px] overflow-hidden">
             <button (click)="s.goScan()" class="border-0 px-[10px] py-[9px] font-pixel text-[12px] leading-none" [style.background]="s.modeCardBg" [style.color]="s.modeCardFg">
@@ -61,11 +61,11 @@ import { Led } from '../shared/bits';
         <div
           class="flex-1 min-h-0 mx-[14px] bg-device border-2 border-black rounded-[16px_16px_48px_16px] pt-3 px-[14px] pb-4 flex flex-col gap-[10px] shadow-[0_4px_0_#000]"
         >
-          <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[#A8A497] tracking-[.12em]">
+          <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[var(--device-muted)] tracking-[.12em]">
             <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">DOT-MATRIX CAM</span>
           </div>
-          <div class="relative flex-1 min-h-0 bg-lcd rounded-md shadow-[inset_0_0_0_3px_#8BAC0F] overflow-hidden">
-            <div class="absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(48,98,48,.16)_0_10px,transparent_10px_20px)]"></div>
+          <div class="relative flex-1 min-h-0 bg-lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] overflow-hidden">
+            <div class="absolute inset-0 bg-[repeating-linear-gradient(45deg,color-mix(in_srgb,var(--display-muted)_16%,_transparent)_0_10px,transparent_10px_20px)]"></div>
             <video #video class="absolute inset-0 w-full h-full object-cover" autoplay muted playsinline></video>
             <div class="absolute inset-[6%_5%] flex items-center justify-center">
               <div #grid class="relative max-h-full max-w-full" [style.aspect-ratio]="s.psv.aspect" [style.height]="'100%'">
@@ -101,35 +101,35 @@ import { Led } from '../shared/bits';
           <div class="flex flex-col items-center gap-[5px]">
             <button
               (click)="s.closePageScan()"
-              class="w-[50px] h-[50px] rounded-full bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_4px_0_#000] font-pixel font-semibold text-[15px] leading-none"
+              class="w-[50px] h-[50px] rounded-full bg-[var(--device-raised)] text-[var(--device-text)] border-2 border-black shadow-[0_4px_0_#000] font-pixel font-semibold text-[15px] leading-none"
             >
               B
             </button>
-            <span class="font-pixel text-[11px] leading-none text-[#A8A497]">TERUG</span>
+            <span class="font-pixel text-[11px] leading-none text-[var(--device-muted)]">TERUG</span>
           </div>
           <div class="flex flex-col items-center gap-[5px]">
             <button
               (click)="capture()"
               [disabled]="s.psv.capOp < 1"
-              class="w-[74px] h-[74px] rounded-full bg-[#E3350D] text-cream border-[3px] border-black shadow-[0_5px_0_#000] font-pixel font-semibold text-[20px] leading-none active:translate-y-1 active:shadow-[0_1px_0_#000]"
+              class="w-[74px] h-[74px] rounded-full bg-[var(--red)] text-cream border-[3px] border-black shadow-[0_5px_0_#000] font-pixel font-semibold text-[20px] leading-none active:translate-y-1 active:shadow-[0_1px_0_#000]"
               [style.opacity]="s.psv.capOp"
             >
               A
             </button>
-            <span class="font-pixel text-[11px] leading-none text-[#A8A497]">CONTROLEER</span>
+            <span class="font-pixel text-[11px] leading-none text-[var(--device-muted)]">CONTROLEER</span>
           </div>
           <div class="flex flex-col items-center gap-[5px]">
             <label
-              class="w-[50px] h-[50px] rounded-full bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_4px_0_#000] flex items-center justify-center cursor-pointer"
+              class="w-[50px] h-[50px] rounded-full bg-[var(--device-raised)] text-[var(--device-text)] border-2 border-black shadow-[0_4px_0_#000] flex items-center justify-center cursor-pointer"
               [style.opacity]="reading() ? 0.6 : 1"
             >
               <span class="icon text-[22px]">add_photo_alternate</span>
               <input type="file" accept="image/*" class="hidden" [disabled]="reading()" (change)="onPhoto($event)" />
             </label>
-            <span class="font-pixel text-[11px] leading-none text-[#A8A497]">FOTO</span>
+            <span class="font-pixel text-[11px] leading-none text-[var(--device-muted)]">FOTO</span>
           </div>
         </div>
-        <div class="text-center text-[13px] font-bold text-[#A8A497] px-5 text-pretty">{{ hint() }}</div>
+        <div class="text-center text-[13px] font-bold text-[var(--device-muted)] px-5 text-pretty">{{ hint() }}</div>
       </div>
     </div>
   `,

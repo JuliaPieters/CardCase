@@ -30,11 +30,11 @@ import { Card } from '../shared/card';
               <div class="absolute left-0 top-0 bottom-0 w-[22px] bg-[rgba(0,0,0,.28)] border-r-2 border-line"></div>
               <div class="absolute left-[34px] right-[14px] top-[14px] flex justify-between items-center">
                 <span class="flex gap-[6px] items-center">
-                  <span class="font-pixel font-semibold text-[12px] leading-none bg-coal text-[#F7F3E8] px-[7px] py-[5px] rounded-[5px]">{{ b.fmt }}</span>
+                  <span class="font-pixel font-semibold text-[12px] leading-none bg-coal text-[var(--device-text)] px-[7px] py-[5px] rounded-[5px]">{{ b.fmt }}</span>
                   @if (b.hasNewSug) {
                     <span
                       title="Nieuwe kaarten passen bij dit recept"
-                      class="min-w-[22px] h-[22px] px-[5px] rounded-full bg-paper text-[#E3350D] border-2 border-coal flex items-center justify-center font-pixel font-semibold text-[12px] leading-none"
+                      class="min-w-[22px] h-[22px] px-[5px] rounded-full bg-paper text-[var(--red)] border-2 border-coal flex items-center justify-center font-pixel font-semibold text-[12px] leading-none"
                       >{{ b.newCount }}</span
                     >
                   }
@@ -58,12 +58,12 @@ import { Card } from '../shared/card';
                 }
               </div>
               <div class="absolute left-[34px] right-[14px] bottom-[14px] bg-paper border-2 border-coal rounded-lg px-[10px] py-[9px] text-left text-coal">
-                <div class="font-pixel text-[10px] leading-[1.2] text-[#6A6558] tracking-[.06em] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.kindLabel }}</div>
+                <div class="font-pixel text-[10px] leading-[1.2] text-[var(--muted)] tracking-[.06em] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.kindLabel }}</div>
                 <div class="font-black text-[15px] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.name }}</div>
                 @if (b.note) {
-                  <div class="text-[11.5px] font-bold text-[#6A6558] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.note }}</div>
+                  <div class="text-[11.5px] font-bold text-[var(--muted)] whitespace-nowrap overflow-hidden text-ellipsis">{{ b.note }}</div>
                 }
-                <div class="text-[11.5px] font-bold text-[#6A6558]">{{ b.stats }}</div>
+                <div class="text-[11.5px] font-bold text-[var(--muted)]">{{ b.stats }}</div>
               </div>
             </button>
             <div class="flex items-center gap-[10px]">

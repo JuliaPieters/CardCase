@@ -114,20 +114,20 @@ const DEMO = {
               </div>
             }
             @if (s.isNew) {
-              <div class="absolute -inset-1 border-[3px] border-lcd rounded-[9px] shadow-[0_0_0_2px_#306230] pointer-events-none"></div>
+              <div class="absolute -inset-1 border-[3px] border-lcd rounded-[9px] shadow-[0_0_0_2px_var(--display-muted)] pointer-events-none"></div>
               <div class="absolute left-1/2 -top-[9px] -translate-x-1/2 bg-lcd text-lcd-ink border-2 border-lcd-ink font-pixel text-[10px] leading-none px-[5px] py-[3px] rounded pointer-events-none">
                 NIEUW
               </div>
             }
             @if (s.isDropOver) {
-              <div class="absolute -inset-1 z-[3] border-[3px] border-lcd rounded-[9px] bg-[rgba(155,188,15,.35)] shadow-[0_0_0_2px_#306230] pointer-events-none"></div>
+              <div class="absolute -inset-1 z-[3] border-[3px] border-lcd rounded-[9px] bg-[color-mix(in_srgb,var(--display)_35%,_transparent)] shadow-[0_0_0_2px_var(--display-muted)] pointer-events-none"></div>
             }
             @if (s.isTarget) {
-              <div class="absolute -inset-[2px] border-2 border-dashed border-lcd-mid rounded-lg bg-[rgba(155,188,15,.12)] pointer-events-none"></div>
+              <div class="absolute -inset-[2px] border-2 border-dashed border-lcd-mid rounded-lg bg-[color-mix(in_srgb,var(--display)_12%,_transparent)] pointer-events-none"></div>
             }
             @if (s.isOver) {
               <div
-                class="absolute -inset-1 border-[3px] border-lcd rounded-[9px] bg-[rgba(155,188,15,.28)] shadow-[0_0_0_3px_#306230,0_0_18px_rgba(155,188,15,.8)] flex items-center justify-center font-pixel font-semibold text-[30cqw] leading-none text-lcd-ink pointer-events-none"
+                class="absolute -inset-1 border-[3px] border-lcd rounded-[9px] bg-[color-mix(in_srgb,var(--display)_28%,_transparent)] shadow-[0_0_0_3px_var(--display-muted),0_0_18px_color-mix(in_srgb,var(--display)_80%,_transparent)] flex items-center justify-center font-pixel font-semibold text-[30cqw] leading-none text-lcd-ink pointer-events-none"
               >
                 +
               </div>
@@ -187,7 +187,7 @@ const DEMO = {
             [style.top]="'calc(' + im.t + ')'"
             [style.width]="'calc(' + im.w + ')'"
             [style.height]="'calc(' + im.h + ')'"
-            [style.outline]="im.selected ? '3px solid #9BBC0F' : 'none'"
+            [style.outline]="im.selected ? '3px solid var(--display)' : 'none'"
             [style.outline-offset]="'2px'"
             (pointerdown)="im.onDown($event)"
           >
@@ -220,14 +220,14 @@ const DEMO = {
             [style.transform]="'translate(-50%,-50%) rotate(' + st.rot + 'deg)'"
             [style.pointer-events]="st.pe"
             [style.cursor]="st.cursor"
-            [style.outline]="st.selected ? '2px dashed #306230' : 'none'"
+            [style.outline]="st.selected ? '2px dashed var(--display-muted)' : 'none'"
             (pointerdown)="st.onDown?.($event)"
           >
             @if (st.isPixel) {
-              <cc-pix [shadow]="st.shadow" class="drop-shadow-[2px_2px_0_rgba(26,28,34,.55)]" />
+              <cc-pix [shadow]="st.shadow" class="drop-shadow-[2px_2px_0_color-mix(in_srgb,var(--coal)_55%,_transparent)]" />
             }
             @if (st.isText) {
-              <div class="border-2 border-coal rounded-[5px] px-2 py-1 font-pixel text-[13px] leading-none whitespace-nowrap shadow-[2px_2px_0_#1A1C22]" [style.background]="st.bg" [style.color]="st.fg">{{ st.text }}</div>
+              <div class="border-2 border-coal rounded-[5px] px-2 py-1 font-pixel text-[13px] leading-none whitespace-nowrap shadow-[2px_2px_0_var(--coal)]" [style.background]="st.bg" [style.color]="st.fg">{{ st.text }}</div>
             }
           </div>
         }

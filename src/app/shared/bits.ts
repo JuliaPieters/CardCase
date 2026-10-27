@@ -54,7 +54,7 @@ export class Trend {
 @Component({
   selector: 'cc-switch',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'relative block flex-none w-[46px] h-[26px] rounded-full border-2 border-line', '[style.background]': 'on() ? "#9BBC0F" : "var(--soft)"' },
+  host: { class: 'relative block flex-none w-[46px] h-[26px] rounded-full border-2 border-line', '[style.background]': 'on() ? "var(--display)" : "var(--soft)"' },
   template: `<span
     class="absolute top-[2px] w-[18px] h-[18px] rounded-full bg-surface border-2 border-line transition-[left] duration-150"
     [style.left]="on() ? '22px' : '2px'"

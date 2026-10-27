@@ -39,7 +39,7 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
           <div class="font-pixel text-[9cqw] leading-none text-coal flex-none">{{ c().rar }}</div>
         </div>
         <div
-          class="relative flex-1 min-h-0 border-[1.5px] border-[rgba(26,28,34,.65)] rounded-[3cqw] flex items-end p-[3cqw] font-mono font-medium text-[6.5cqw] leading-none text-[rgba(26,28,34,.55)] bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.5)_0_4px,rgba(255,255,255,.18)_4px_8px)]"
+          class="relative flex-1 min-h-0 border-[1.5px] border-[color-mix(in_srgb,var(--coal)_65%,_transparent)] rounded-[3cqw] flex items-end p-[3cqw] font-mono font-medium text-[6.5cqw] leading-none text-[color-mix(in_srgb,var(--coal)_55%,_transparent)] bg-[repeating-linear-gradient(135deg,rgba(255,255,255,.5)_0_4px,rgba(255,255,255,.18)_4px_8px)]"
         >
           @if (c().art && !c().img) {
             <img
@@ -55,8 +55,8 @@ const DEMO: CardView = { name: 'Flarekit', num: 'EMB 001/014', bg: 'oklch(0.80 0
           }
         </div>
         <div class="flex flex-col gap-[2.5cqw]">
-          <div class="h-[3cqw] w-4/5 rounded-[2cqw] bg-[rgba(26,28,34,.16)]"></div>
-          <div class="h-[3cqw] w-[55%] rounded-[2cqw] bg-[rgba(26,28,34,.16)]"></div>
+          <div class="h-[3cqw] w-4/5 rounded-[2cqw] bg-[color-mix(in_srgb,var(--coal)_16%,_transparent)]"></div>
+          <div class="h-[3cqw] w-[55%] rounded-[2cqw] bg-[color-mix(in_srgb,var(--coal)_16%,_transparent)]"></div>
         </div>
         <div class="flex justify-between items-baseline gap-[2cqw] text-coal">
           <span class="font-sans font-bold text-[7cqw] leading-none whitespace-nowrap overflow-hidden text-ellipsis">{{ c().typeLabel }}</span>

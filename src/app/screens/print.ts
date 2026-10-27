@@ -31,7 +31,7 @@ import { ArtPiece } from '../shared/art-piece';
                 @for (pc of sh.pieces; track pc.key) {
                   <div class="absolute" [style.left.%]="pc.l" [style.top.%]="pc.t" [style.width.%]="pc.w" [style.height.%]="pc.h">
                     <cc-art-piece [p]="pc.art" />
-                    <div class="absolute border border-dashed border-[rgba(26,28,34,.85)]" [style.inset]="pc.inset">
+                    <div class="absolute border border-dashed border-[color-mix(in_srgb,var(--coal)_85%,_transparent)]" [style.inset]="pc.inset">
                       <div class="absolute -left-[9px] -top-px w-[6px] h-px bg-coal" [style.opacity]="pc.tick"></div>
                       <div class="absolute -left-px -top-[9px] w-px h-[6px] bg-coal" [style.opacity]="pc.tick"></div>
                       <div class="absolute -right-[9px] -top-px w-[6px] h-px bg-coal" [style.opacity]="pc.tick"></div>
@@ -100,7 +100,7 @@ import { ArtPiece } from '../shared/art-piece';
           @for (pc of sh.pieces; track pc.key) {
             <div class="absolute" [style.left.%]="pc.l" [style.top.%]="pc.t" [style.width.%]="pc.w" [style.height.%]="pc.h">
               <cc-art-piece [p]="pc.art" />
-              <div class="absolute border-[0.2mm] border-dashed border-[rgba(26,28,34,.85)]" [style.inset]="pc.inset"></div>
+              <div class="absolute border-[0.2mm] border-dashed border-[color-mix(in_srgb,var(--coal)_85%,_transparent)]" [style.inset]="pc.inset"></div>
               @if (s.pr.bleed) {
                 <!-- In the bleed, so it's cut off with it. -->
                 <div class="absolute left-[3mm] bottom-[0.4mm] bg-white text-black font-pixel text-[5pt] leading-none px-[0.5mm]">{{ pc.label }}</div>

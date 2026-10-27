@@ -5,12 +5,12 @@ import { Pix } from './bits';
 
 const DEMO = {
   cols: 3,
-  bg: 'linear-gradient(160deg,#D8F5A2,#9BBC0F)',
+  bg: 'linear-gradient(160deg,#D8F5A2,var(--display))',
   radius: '10px',
   outline: 'none',
   align: 'flex-start',
   num: 'PAGINA 1',
-  cells: Array.from({ length: 9 }, (_, i) => ({ key: i, border: '1.5px dashed rgba(106,101,88,.55)', pocket: 'rgba(255,255,255,.22)' })),
+  cells: Array.from({ length: 9 }, (_, i) => ({ key: i, border: '1.5px dashed color-mix(in srgb, var(--muted) 55%, transparent)', pocket: 'rgba(255,255,255,.22)' })),
   images: [],
   stickers: [],
 };
@@ -83,7 +83,7 @@ const DEMO = {
                 <div class="absolute inset-0"><cc-card [card]="c.cv" /></div>
               }
               @if (c.isOver) {
-                <div class="absolute -inset-1 border-[3px] border-lcd rounded-lg bg-[rgba(155,188,15,.35)] shadow-[0_0_0_2px_#306230]"></div>
+                <div class="absolute -inset-1 border-[3px] border-lcd rounded-lg bg-[color-mix(in_srgb,var(--display)_35%,_transparent)] shadow-[0_0_0_2px_var(--display-muted)]"></div>
               }
             </div>
           }
@@ -110,11 +110,11 @@ const DEMO = {
             (pointerdown)="s.onDown?.($event)"
           >
             @if (s.isPixel) {
-              <cc-pix [shadow]="s.shadow" class="drop-shadow-[2px_2px_0_rgba(26,28,34,.55)]" />
+              <cc-pix [shadow]="s.shadow" class="drop-shadow-[2px_2px_0_color-mix(in_srgb,var(--coal)_55%,_transparent)]" />
             }
             @if (s.isText) {
               <div
-                class="border-2 border-coal rounded-[5px] px-2 py-1 font-pixel text-[13px] leading-none whitespace-nowrap shadow-[2px_2px_0_#1A1C22]"
+                class="border-2 border-coal rounded-[5px] px-2 py-1 font-pixel text-[13px] leading-none whitespace-nowrap shadow-[2px_2px_0_var(--coal)]"
                 [style.background]="s.bg"
                 [style.color]="s.fg"
               >

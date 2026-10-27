@@ -18,10 +18,10 @@ import { Led, Leds, Trend } from '../shared/bits';
         <div
           class="flex-[2_1_340px] bg-device border-2 border-line rounded-[14px_14px_44px_14px] pt-3 px-[14px] pb-4 shadow-[4px_4px_0_var(--line)] flex flex-col gap-[10px]"
         >
-          <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[#A8A497] tracking-[.12em]">
+          <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[var(--device-muted)] tracking-[.12em]">
             <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">DEX-SCHERM</span>
           </div>
-          <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_#8BAC0F] p-[18px] flex flex-wrap gap-x-8 gap-y-5 overflow-hidden">
+          <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] p-[18px] flex flex-wrap gap-x-8 gap-y-5 overflow-hidden">
             <div class="flex flex-col gap-1 min-w-[150px]">
               <div class="text-[13px] leading-none tracking-[.08em]">KAARTEN TOTAAL</div>
               <div class="font-bold text-[68px] leading-none">{{ s.totalCards }}</div>
@@ -89,7 +89,7 @@ import { Led, Leds, Trend } from '../shared/bits';
           <div class="flex items-end gap-[2px] h-16">
             @for (b of s.monthBars; track b.key) {
               <div
-                class="flex-1 bg-[repeating-linear-gradient(0deg,transparent_0_4px,rgba(155,188,15,.35)_4px_5px)]"
+                class="flex-1 bg-[repeating-linear-gradient(0deg,transparent_0_4px,color-mix(in_srgb,var(--display)_35%,_transparent)_4px_5px)]"
                 [style.height.%]="b.h"
                 [style.background-color]="b.bg"
               ></div>

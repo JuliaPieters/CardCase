@@ -14,13 +14,13 @@ import { Led } from '../shared/bits';
   imports: [Card, Led],
   template: `
     @let s = v();
-    <div class="fixed inset-0 z-50 bg-[#0B0C0F] flex justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <div class="relative w-full max-w-[520px] h-full flex flex-col overflow-hidden bg-[#14161B]">
-        <div class="flex items-center gap-3 px-[14px] py-3 text-[#F7F3E8]">
+    <div class="fixed inset-0 z-50 bg-[var(--device-backdrop)] flex justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div class="relative w-full max-w-[520px] h-full flex flex-col overflow-hidden bg-[var(--device-shell)]">
+        <div class="flex items-center gap-3 px-[14px] py-3 text-[var(--device-text)]">
           <button
             (click)="s.closeScan()"
             title="Sluiten"
-            class="w-11 h-11 rounded-xl bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center"
+            class="w-11 h-11 rounded-xl bg-[var(--device-raised)] text-[var(--device-text)] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center"
           >
             <span class="icon text-[22px]">close</span>
           </button>
@@ -33,7 +33,7 @@ import { Led } from '../shared/bits';
                   role="radio"
                   [attr.aria-checked]="lang() === l.key"
                   class="border border-black rounded px-2 py-[6px] font-pixel text-[12px] leading-none"
-                  [class]="lang() === l.key ? 'bg-lcd text-lcd-ink' : 'bg-[#2A2D35] text-[#A8A497]'"
+                  [class]="lang() === l.key ? 'bg-lcd text-lcd-ink' : 'bg-[var(--device-raised)] text-[var(--device-muted)]'"
                 >
                   {{ l.label }}
                 </button>
@@ -58,12 +58,12 @@ import { Led } from '../shared/bits';
               (click)="toggleTorch()"
               title="Flitser"
               class="w-11 h-11 rounded-xl border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center"
-              [class]="torch() ? 'bg-lcd text-lcd-ink' : 'bg-[#2A2D35] text-[#F7F3E8]'"
+              [class]="torch() ? 'bg-lcd text-lcd-ink' : 'bg-[var(--device-raised)] text-[var(--device-text)]'"
             >
               <span class="icon text-[22px]">{{ torch() ? 'flash_on' : 'flash_off' }}</span>
             </button>
           }
-          <label title="Foto kiezen" class="w-11 h-11 rounded-xl bg-[#2A2D35] text-[#F7F3E8] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center cursor-pointer">
+          <label title="Foto kiezen" class="w-11 h-11 rounded-xl bg-[var(--device-raised)] text-[var(--device-text)] border-2 border-black shadow-[0_3px_0_#000] flex items-center justify-center cursor-pointer">
             <span class="icon text-[22px]">add_photo_alternate</span>
             <input type="file" accept="image/*" class="hidden" (change)="onPhoto($event)" />
           </label>
@@ -74,14 +74,14 @@ import { Led } from '../shared/bits';
           <video #video class="absolute inset-0 w-full h-full object-cover" autoplay muted playsinline></video>
           <div #guide class="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-[min(62%,280px)] max-h-[80%] aspect-[63/88]">
             @if (s.scanLocked) {
-              <div class="absolute inset-[5%] border-2 border-[rgba(155,188,15,.7)] rounded-[10px] bg-[rgba(155,188,15,.14)]"></div>
+              <div class="absolute inset-[5%] border-2 border-[color-mix(in_srgb,var(--display)_70%,_transparent)] rounded-[10px] bg-[color-mix(in_srgb,var(--display)_14%,_transparent)]"></div>
             }
             <div class="absolute left-0 top-0 w-[24%] h-[18%] border-t-[5px] border-l-[5px] rounded-tl-[14px]" [style.border-color]="s.frameColor"></div>
             <div class="absolute right-0 top-0 w-[24%] h-[18%] border-t-[5px] border-r-[5px] rounded-tr-[14px]" [style.border-color]="s.frameColor"></div>
             <div class="absolute left-0 bottom-0 w-[24%] h-[18%] border-b-[5px] border-l-[5px] rounded-bl-[14px]" [style.border-color]="s.frameColor"></div>
             <div class="absolute right-0 bottom-0 w-[24%] h-[18%] border-b-[5px] border-r-[5px] rounded-br-[14px]" [style.border-color]="s.frameColor"></div>
             @if (s.scanSearching) {
-              <div class="absolute left-[6%] right-[6%] h-[3px] top-[4%] bg-lcd shadow-[0_0_14px_3px_rgba(155,188,15,.75)] animate-scan"></div>
+              <div class="absolute left-[6%] right-[6%] h-[3px] top-[4%] bg-lcd shadow-[0_0_14px_3px_color-mix(in_srgb,var(--display)_75%,_transparent)] animate-scan"></div>
             }
           </div>
           <div class="absolute bottom-[18px] left-1/2 -translate-x-1/2 bg-device border-2 border-black rounded-[9px] p-1">
@@ -90,7 +90,7 @@ import { Led } from '../shared/bits';
             </div>
           </div>
         </div>
-        <div class="px-5 pt-[14px] pb-5 text-center text-[13px] font-bold text-[#A8A497] text-pretty">{{ hint() }}</div>
+        <div class="px-5 pt-[14px] pb-5 text-center text-[13px] font-bold text-[var(--device-muted)] text-pretty">{{ hint() }}</div>
 
         @if (s.scanSheet) {
           <div class="absolute inset-0 bg-[rgba(0,0,0,.45)] pointer-events-none"></div>

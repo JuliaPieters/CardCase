@@ -120,7 +120,7 @@ const PAGE = 60;
         <div class="panel p-4 flex flex-col gap-3">
           <div class="font-black text-[16px]">Zoek op gebruikersnaam</div>
           <input
-            class="border-2 border-line rounded-[10px] bg-surface px-3 py-[10px] font-extrabold text-[16px] outline-none focus:shadow-[0_0_0_3px_#9BBC0F]"
+            class="border-2 border-line rounded-[10px] bg-surface px-3 py-[10px] font-extrabold text-[16px] outline-none focus:shadow-[0_0_0_3px_var(--display)]"
             placeholder="@gebruikersnaam"
             autocapitalize="off"
             autocomplete="off"

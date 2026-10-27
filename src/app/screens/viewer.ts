@@ -15,7 +15,7 @@ import { PageTurn } from '../shared/page-turn';
         <button
           (click)="s.closeViewer()"
           title="Terug"
-          class="w-10 h-10 rounded-[10px] bg-paper text-coal border-2 border-coal shadow-[0_3px_0_#1A1C22] flex items-center justify-center"
+          class="w-10 h-10 rounded-[10px] bg-paper text-coal border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
         >
           <span class="icon text-[20px]">arrow_back</span>
         </button>

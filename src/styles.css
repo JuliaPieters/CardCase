@@ -23,7 +23,19 @@ html {
   zoom: var(--z);
 }
 
-/* Design tokens from the Cardcase prototype. Light by default, `body.cc-dark` for dark mode. */
+/*
+ * Design tokens. Every department (data-game on <html>, see games/chrome.ts) has its own values, light by default and
+ * `body.cc-dark` for dark mode; components only use the tokens (docs/design-systeem.md). Pokémon is the default.
+ *
+ *   --bg, --surface, --soft       page, panels, soft fills          --ink, --muted      text
+ *   --line                        borders and the hard shadows      --red               accent (sidebar, buttons)
+ *   --on-accent                   text on the accent                --highlight         second accent (badges)
+ *   --display, --display-edge, --display-muted, --display-text      the "screen" (Pokémon: green LCD)
+ *   --device, --device-raised, --device-shell, --device-backdrop, --device-text, --device-muted   the casing around it
+ *   --coal                        dark outlines on light parts      --paper             light surfaces on the casing
+ *   --page, --pocket              binder page and pockets           --logo-card, --logo-case   the two words of the logo
+ *   --font-display-family         titles, labels and numbers
+ */
 body {
   --bg: #f7f3e8;
   --surface: #fffdf6;
@@ -32,8 +44,25 @@ body {
   --muted: #6a6558;
   --line: #1a1c22;
   --red: #e3350d;
+  --on-accent: #fff8ee;
+  --highlight: #f6c945;
   --page: #fbf8ef;
   --pocket: #ece6d6;
+  --display: #9bbc0f;
+  --display-edge: #8bac0f;
+  --display-muted: #306230;
+  --display-text: #0f380f;
+  --device: #2b2e36;
+  --device-raised: #2a2d35;
+  --device-shell: #14161b;
+  --device-backdrop: #0b0c0f;
+  --device-text: #f7f3e8;
+  --device-muted: #a8a497;
+  --coal: #1a1c22;
+  --paper: #fffdf6;
+  --logo-card: #e3350d;
+  --logo-case: #9bbc0f;
+  --font-display-family: 'Pixelify Sans';
 }
 body.cc-dark {
   --bg: #1a1c22;
@@ -46,7 +75,52 @@ body.cc-dark {
   --pocket: #202228;
 }
 
-/* inline: utilities reference the body-level tokens directly, so dark mode swaps them. */
+/*
+ * Lorcana: an illustrated storybook of ink and gold. Ink blue for the accent and the casing, cream paper for the screen
+ * (a book page with a gold edge), gold as the second accent. Dark: deep ink blue.
+ */
+[data-game='lorcana'] body {
+  --bg: #f6f1e4;
+  --surface: #fffdf7;
+  --soft: #ece4cf;
+  --ink: #172757;
+  --muted: #5d6689;
+  --line: #172757;
+  --red: #233a7a;
+  --on-accent: #fffdf7;
+  --highlight: #e2b53a;
+  --page: #fbf7ec;
+  --pocket: #ece4d0;
+  --display: #fffdf7;
+  --display-edge: #e2b53a;
+  --display-muted: #3a5bd9;
+  --display-text: #172757;
+  --device: #233a7a;
+  --device-raised: #2c4791;
+  --device-shell: #172757;
+  --device-backdrop: #0e1838;
+  --device-text: #f6f1e4;
+  --device-muted: #c3cbea;
+  --coal: #172757;
+  --paper: #fffdf7;
+  --logo-case: #233a7a;
+}
+[data-game='lorcana'] body.cc-dark {
+  --bg: #0f1a3d;
+  --surface: #172757;
+  --soft: #1e3168;
+  --ink: #f6f1e4;
+  --muted: #aeb7d8;
+  --line: #070d22;
+  --page: #1a2b5e;
+  --pocket: #13214a;
+  --display: #1e3168;
+  --display-text: #f6f1e4;
+  --display-muted: #e2b53a;
+  --logo-case: #e2b53a;
+}
+
+/* inline: utilities reference the body-level tokens directly, so departments and dark mode swap them. */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -57,6 +131,16 @@ body.cc-dark {
   --color-red: var(--red);
   --color-page: var(--page);
   --color-pocket: var(--pocket);
+  --color-lcd: var(--display);
+  --color-lcd-edge: var(--display-edge);
+  --color-lcd-mid: var(--display-muted);
+  --color-lcd-ink: var(--display-text);
+  --color-device: var(--device);
+  --color-cream: var(--on-accent);
+  --color-paper: var(--paper);
+  --color-coal: var(--coal);
+  --color-gold: var(--highlight);
+  --font-pixel: var(--font-display-family), monospace;
 
   --shadow-hard: 4px 4px 0 var(--line);
   --shadow-hard-sm: 2px 2px 0 var(--line);
@@ -65,21 +149,10 @@ body.cc-dark {
 
 @theme {
   --font-sans: Nunito, 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', sans-serif;
-  --font-pixel: 'Pixelify Sans', monospace;
   --font-mono: ui-monospace, Menlo, monospace;
 
-  /* Fixed palette (same in light and dark). */
-  --color-lcd: #9bbc0f;
-  --color-lcd-edge: #8bac0f;
-  --color-lcd-mid: #306230;
-  --color-lcd-ink: #0f380f;
-  --color-device: #2b2e36;
-  --color-cream: #fff8ee;
-  --color-paper: #fffdf6;
-  --color-coal: #1a1c22;
+  /* Fixed colours (the same everywhere). */
   --color-amber: #f0a030;
-  --color-gold: #f6c945;
-
 
   --animate-blink: cc-blink 1.4s steps(1) infinite;
   --animate-scan: cc-scan 1.6s ease-in-out infinite alternate;
@@ -271,21 +344,21 @@ body.cc-dark {
   }
   /* LCD-green screen on a dark bezel. */
   .lcd {
-    background: #9bbc0f;
-    color: #0f380f;
-    font-family: var(--font-pixel);
+    background: var(--display);
+    color: var(--display-text);
+    font-family: var(--font-display-family), monospace;
   }
   .lcd-pixels {
     position: absolute;
     inset: 0;
     pointer-events: none;
     background-image:
-      linear-gradient(rgba(15, 56, 15, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(15, 56, 15, 0.1) 1px, transparent 1px);
+      linear-gradient(color-mix(in srgb, var(--display-text) 10%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--display-text) 10%, transparent) 1px, transparent 1px);
     background-size: 3px 3px;
   }
   .kicker {
-    font: 400 12px/1 var(--font-pixel);
+    font: 400 12px/1 var(--font-display-family), monospace;
     color: var(--muted);
     letter-spacing: 0.1em;
   }
@@ -369,7 +442,7 @@ body.cc-dark {
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(38% 46% at 18% 22%, color-mix(in srgb, var(--color-lcd) 34%, transparent), transparent 70%),
+    radial-gradient(38% 46% at 18% 22%, color-mix(in srgb, var(--display) 34%, transparent), transparent 70%),
     radial-gradient(34% 42% at 82% 72%, color-mix(in srgb, var(--red) 16%, transparent), transparent 70%);
   background-size: 160% 160%;
   animation: cc-glow 36s ease-in-out infinite alternate;

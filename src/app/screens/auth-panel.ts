@@ -44,7 +44,7 @@ const GUEST_KEY = 'cc-guest';
               <div class="lcd rounded px-3 py-[6px] text-[14px] leading-none tracking-[.06em]">{{ title() }}</div>
             </div>
             @if (!offer && !gate && !needsProfile()) {
-              <button (click)="close()" title="Sluiten" class="w-9 h-9 rounded-full bg-device text-[#F7F3E8] border-2 border-coal flex items-center justify-center">
+              <button (click)="close()" title="Sluiten" class="w-9 h-9 rounded-full bg-device text-[var(--device-text)] border-2 border-coal flex items-center justify-center">
                 <span class="icon text-[20px]">close</span>
               </button>
             }
@@ -216,7 +216,7 @@ const GUEST_KEY = 'cc-guest';
       outline: none;
     }
     .field:focus {
-      box-shadow: 0 0 0 3px #9bbc0f;
+      box-shadow: 0 0 0 3px var(--display);
     }
     /* Creating an account: on a wide screen the panel is wider and the fields sit two by two, so nothing scrolls. */
     @media (min-width: 700px) {

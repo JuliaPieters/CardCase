@@ -191,7 +191,7 @@ import { Pix, Switch } from '../shared/bits';
           @if (s.toolCards) {
                 @if (s.side; as sp) {
                   <!-- Search every card, always in view: typing shows the results below. -->
-                  <label class="flex items-center gap-2 bg-bg border-2 border-line rounded-[10px] px-[10px] flex-none focus-within:shadow-[0_0_0_3px_#9BBC0F]">
+                  <label class="flex items-center gap-2 bg-bg border-2 border-line rounded-[10px] px-[10px] flex-none focus-within:shadow-[0_0_0_3px_var(--display)]">
                     <span class="icon text-[20px] text-muted">search</span>
                     <input
                       type="search"
@@ -460,7 +460,7 @@ import { Pix, Switch } from '../shared/bits';
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-[10px]">
                   @for (g of s.bgThumbs; track g.key) {
                     <button (click)="g.apply()" class="flex flex-col gap-1 bg-transparent border-0 p-0 text-left">
-                      <div class="w-full aspect-[3/4] border-2 border-line rounded-[7px] bg-[#FBF8EF] bg-cover shadow-hard-sm" [style.background-image]="g.fill"></div>
+                      <div class="w-full aspect-[3/4] border-2 border-line rounded-[7px] bg-[var(--page)] bg-cover shadow-hard-sm" [style.background-image]="g.fill"></div>
                       <span class="text-[11px] font-extrabold">{{ g.name }}</span>
                     </button>
                   }
@@ -514,7 +514,7 @@ import { Pix, Switch } from '../shared/bits';
                       (dragstart)="st.onDragStart($event)"
                       (dragend)="st.onDragEnd()"
                       (click)="st.onClick()"
-                      class="border-2 border-coal rounded-[5px] px-[9px] py-[5px] font-pixel text-[13px] leading-none cursor-grab shadow-[2px_2px_0_#1A1C22]"
+                      class="border-2 border-coal rounded-[5px] px-[9px] py-[5px] font-pixel text-[13px] leading-none cursor-grab shadow-[2px_2px_0_var(--coal)]"
                       [style.background]="st.bg"
                       [style.color]="st.fg"
                     >
@@ -559,7 +559,7 @@ import { Pix, Switch } from '../shared/bits';
           </div>
           <label class="flex flex-col gap-[6px]">
             <span class="text-[13px] font-extrabold text-muted">Naam</span>
-            <input [value]="s.ed.name" (change)="s.onEdName($event)" maxlength="40" class="border-2 border-line rounded-[9px] bg-surface px-3 py-2 font-extrabold text-[15px] outline-none focus:shadow-[0_0_0_3px_#9BBC0F]" />
+            <input [value]="s.ed.name" (change)="s.onEdName($event)" maxlength="40" class="border-2 border-line rounded-[9px] bg-surface px-3 py-2 font-extrabold text-[15px] outline-none focus:shadow-[0_0_0_3px_var(--display)]" />
           </label>
           <label class="flex flex-col gap-[6px]">
             <span class="text-[13px] font-extrabold text-muted">Beschrijving</span>
@@ -569,7 +569,7 @@ import { Pix, Switch } from '../shared/bits';
               maxlength="140"
               rows="2"
               placeholder="Waar gaat deze binder over? Bv. mijn favoriete Kanto-IR's, op dex-volgorde"
-              class="border-2 border-line rounded-[9px] bg-surface px-3 py-2 font-bold text-[14px] outline-none resize-none focus:shadow-[0_0_0_3px_#9BBC0F]"
+              class="border-2 border-line rounded-[9px] bg-surface px-3 py-2 font-bold text-[14px] outline-none resize-none focus:shadow-[0_0_0_3px_var(--display)]"
             ></textarea>
           </label>
           @if (s.hasRecipe) {

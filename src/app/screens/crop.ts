@@ -62,7 +62,7 @@ import { CardcaseStore } from '../core/store';
             <span class="flex justify-between text-[12.5px] font-extrabold text-muted">
               <span>Zoom</span><span class="font-pixel font-normal">{{ s.cropv.zoomVal }}%</span>
             </span>
-            <input type="range" min="100" max="300" [value]="s.cropv.zoomVal" (input)="s.onCropZoom($event)" class="accent-[#E3350D]" />
+            <input type="range" min="100" max="300" [value]="s.cropv.zoomVal" (input)="s.onCropZoom($event)" class="accent-[var(--red)]" />
           </label>
           <button (click)="s.cropReset()" class="chip self-start bg-bg text-ink"><span class="icon text-[16px]">restart_alt</span>Centreer opnieuw</button>
           <div class="bg-device border-2 border-line rounded-[9px] p-1">

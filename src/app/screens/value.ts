@@ -20,10 +20,10 @@ import { Led, Trend } from '../shared/bits';
       </div>
 
       <div class="bg-device border-2 border-line rounded-[14px_14px_44px_14px] pt-3 px-[14px] pb-[18px] shadow-[4px_4px_0_var(--line)] flex flex-col gap-[10px]">
-        <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[#A8A497] tracking-[.12em]">
+        <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[var(--device-muted)] tracking-[.12em]">
           <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">WAARDE-SCHERM</span>
         </div>
-        <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_#8BAC0F] p-[18px] flex flex-col gap-[14px] overflow-hidden">
+        <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] p-[18px] flex flex-col gap-[14px] overflow-hidden">
           <div class="flex flex-wrap items-end justify-between gap-[14px]">
             <div>
               <div class="text-[13px] leading-none tracking-[.08em]">TOTALE WAARDE</div>
@@ -53,7 +53,7 @@ import { Led, Trend } from '../shared/bits';
           <div class="flex items-end gap-[2px] h-[130px]">
             @for (b of s.vBars; track b.key) {
               <div
-                class="flex-1 bg-[repeating-linear-gradient(0deg,transparent_0_4px,rgba(155,188,15,.35)_4px_5px)]"
+                class="flex-1 bg-[repeating-linear-gradient(0deg,transparent_0_4px,color-mix(in_srgb,var(--display)_35%,_transparent)_4px_5px)]"
                 [style.height.%]="b.h"
                 [style.background-color]="b.bg"
               ></div>
