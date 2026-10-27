@@ -108,7 +108,7 @@ export class CardcaseStore {
     if (!CATALOG_MOCK) { this.account = this.auth.enabled ? lastAccount() : null; return deserializeUser(readLocal(this.account)) ?? freshUser(); }
     const r = initOwned(); const now = Date.now(); const added = {};
     Object.entries(r.d).forEach(([id, days]) => { added[id] = now - days * 864e5; });
-    return { owned: r.o, added, binders: initBinders(r.o), dark: false, games: ['pokemon'], otherGames: {}, summary: {}, history: {} };
+    return { owned: r.o, added, binders: initBinders(r.o), decks: [], dark: false, games: ['pokemon'], otherGames: {}, summary: {}, history: {} };
   }
 
   private initialState() { const u = this.initialUser(); return {
@@ -344,6 +344,16 @@ export class CardcaseStore {
     this.syncReady = true; this.scheduleSave(0); if (this.account) { this.watch(this.account); if (yes) this.pushImages(); }
     this.toast(yes ? 'Collectie van dit apparaat in je account gezet' : 'Je begint met een lege collectie');
   }
+  /** Decks to play with (departments with GameConfig.decks). `lines` from an import or the generator. */
+  newDeck(name, lines: any[] = [], origin = 'hand') {
+    const id = this.newId('d'); const cards = {}; lines.forEach(l => { cards[l.card.id] = (cards[l.card.id] || 0) + l.n; });
+    this.setState(s => ({ decks: [...(s.decks || []), { id, name, cards, created: Date.now(), origin }] }));
+    this.go('deck', { deckId: id });
+  }
+  updDeck(id, f) { this.setState(s => ({ decks: (s.decks || []).map(d => d.id === id ? f({ ...d, cards: { ...d.cards } }) : d) })); }
+  /** One more or fewer copy of a card in a deck (none: off the list). */
+  deckAdd(id, cardId, delta) { this.updDeck(id, d => { const n = Math.max(0, (d.cards[cardId] || 0) + delta); if (n) d.cards[cardId] = n; else delete d.cards[cardId]; return d; }); }
+  deleteDeck(id) { this.setState(s => ({ decks: (s.decks || []).filter(d => d.id !== id) })); this.go('decks'); this.toast('Deck verwijderd'); }
   /** Opens another department (it loads its own catalog, so the app starts again there), adding it to yours. */
   switchGame(game) {
     if (!(this.state.games || []).includes(game)) this.setState(s => ({ games: [...new Set([...(s.games || []), this.catalog.game(), game])] }));
@@ -1153,8 +1163,9 @@ export class CardcaseStore {
   renderVals() {
     this.catalog.priceTick(); // recompute when prices arrive
     const st = this.state; const { owned, added, screen } = st;
-    const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && ['editor', 'create', 'recipe', 'shift', 'moves', 'pageresult', 'crop', 'print'].includes(screen)) || (id === 'collection' && screen === 'value') || (id === 'friends' && screen === 'friend'); return { key: id, label, icon, go: () => this.go(id), on, bg: on ? 'var(--paper)' : null, fg: on ? 'var(--coal)' : 'var(--on-accent)', bd: on ? 'var(--coal)' : null, sh: on ? '3px 3px 0 var(--coal)' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
-    const navAll = NAV.map(navItem);
+    const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && ['editor', 'create', 'recipe', 'shift', 'moves', 'pageresult', 'crop', 'print'].includes(screen)) || (id === 'collection' && screen === 'value') || (id === 'friends' && screen === 'friend') || (id === 'decks' && screen === 'deck'); return { key: id, label, icon, go: () => this.go(id), on, bg: on ? 'var(--paper)' : null, fg: on ? 'var(--coal)' : 'var(--on-accent)', bd: on ? 'var(--coal)' : null, sh: on ? '3px 3px 0 var(--coal)' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
+    // Departments where people play get Decks after Binders.
+    const navAll = (this.catalog.config?.decks ? [...NAV.slice(0, 4), ['decks', 'Decks', 'stacks'], ...NAV.slice(4)] : NAV).map(navItem);
     const ownedCards = CARDS.filter(c => tot(owned[c.id]) > 0);
     const totalCards = CARDS.reduce((a, c) => a + tot(owned[c.id]), 0);
     const langN = LANGS.map(l => CARDS.reduce((a, c) => a + (owned[c.id][l] || 0), 0)); const maxL = Math.max(...langN, 1);
@@ -1232,11 +1243,11 @@ export class CardcaseStore {
       ...this.decoVals(),
       ...this.recipeVals(),
       wide: st.wide, narrow: !st.wide, lcdPixels: this.lcdPixels,
-      isHome: screen === 'home', isOnboarding: screen === 'onboarding', showNav: screen !== 'onboarding', isOverview: screen === 'overview', goOverview: () => this.go('overview'), isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
+      isHome: screen === 'home', isOnboarding: screen === 'onboarding', isDecks: screen === 'decks', isDeck: screen === 'deck', showNav: screen !== 'onboarding', isOverview: screen === 'overview', goOverview: () => this.go('overview'), isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
       // The editions the scanner reads ("Engelse, Duitse en Japanse").
       scanLangs: (l => l.length > 1 ? l.slice(0, -1).join(', ') + ' en ' + l[l.length - 1] : l.join(''))(LANGS.map(x => (LNAME[x] || x).replace(/ees$/, 'es').replace(/s$/, 'se'))),
       exampleName: this.catalog.config?.exampleName || 'Pikachu', noun: NOUN,
-      goHome: () => this.go('home'), navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2, 4), navFriends: navAll[4],
+      goHome: () => this.go('home'), navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2, 4), navFriends: navAll.find(n => n.key === 'friends'), navDecks: navAll.find(n => n.key === 'decks'),
       setOpts: SETS.map(x => ({ key: x.code, code: x.code, name: x.name })),
       setGroups: this.setGroups(st.screen === 'search' ? st.fLangs : []),
       rarGroups: this.rarGroups(),
@@ -1327,9 +1338,9 @@ function sharp(cv) {
 }
 
 /** The parts of the state that are saved (core/persist): a change in one of them is saved. */
-const savedParts = st => [st.owned, st.added, st.binders, st.dark, st.games, st.otherGames, st.summary, st.history];
+const savedParts = st => [st.owned, st.added, st.binders, st.decks, st.dark, st.games, st.otherGames, st.summary, st.history];
 /** A user's data (core/persist UserData) as state. */
-const userParts = u => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, games: u.games, otherGames: u.otherGames, summary: u.summary, history: u.history || {} });
+const userParts = u => ({ owned: u.owned, added: u.added, binders: u.binders, decks: u.decks || [], dark: u.dark, games: u.games, otherGames: u.otherGames, summary: u.summary, history: u.history || {} });
 
 /** Stories (franchises) of the catalog's cards with their number of cards, most first; empty for games without them. */
 let storyCache = { n: -1, first: null, list: [] };

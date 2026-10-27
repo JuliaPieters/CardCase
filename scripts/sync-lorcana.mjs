@@ -10,6 +10,7 @@
 //           t (type), sub (subtypes), c (cost), iw (inkwell 0/1), l (lore), st (strength), w (willpower), mv (move cost),
 //           r (rarity), story, art (artists), foil (foil types), cm (Cardmarket product id),
 //           base (LorcanaJSON id of the regular print, for Enchanted/Epic/Iconic), p (prices on the day of the build),
+//           kw (keywords: Rush, Evasive, Shift…), core (1 = allowed in the Core format),
 //           i18n: { EN: [name, version, text, thumbnail path, full image path], FR: […], … } }
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
@@ -103,6 +104,8 @@ for (const c of en.cards) {
     foil: c.foilTypes || [],
     cm: c.externalLinks?.cardmarketId ?? null,
     base: c.baseId ?? null,
+    kw: [...new Set((c.keywordAbilities || []).map((k) => (k.endsWith('Shift') ? 'Shift' : k)))],
+    core: c.allowedInFormats?.Core?.allowed ? 1 : 0,
     i18n,
   });
 }

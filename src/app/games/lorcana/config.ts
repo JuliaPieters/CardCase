@@ -1,6 +1,7 @@
 import { CARDS } from '../../core/data';
 import type { GameConfig } from '../config';
 import { matchLorcana } from './scan';
+import { rules as deckRules } from './decks';
 import { EMPTY, ILLUSTRATOR, MASTER, PREF_OLDEST, PREF_OWNED, PREF_SET, SHARED_STEPS, prefValue } from '../recipes';
 
 export const config: GameConfig = {
@@ -73,6 +74,7 @@ export const config: GameConfig = {
     { key: 'story', label: 'Alle films en series', options: () => [...new Set(CARDS.map((c) => c.story).filter(Boolean))].sort().map((x) => [x, x]), match: (c, v) => c.story === v },
     { key: 'inkwell', label: 'Inkwell: alle', options: () => [['1', 'Inkwell: ja'], ['0', 'Inkwell: nee']], match: (c, v) => (c.inkwell ? '1' : '0') === v },
   ],
+  decks: deckRules,
   hasFoil: (c) => !c.foilOnly && c.foilTypes.some((f: string) => f !== 'None'),
   cardNumber: (c) => c.numStr + ' · ' + c.set,
   cardFacts: (c) => {

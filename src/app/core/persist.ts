@@ -26,6 +26,8 @@ export interface UserData {
   owned: Record<number, Record<string, number>>;
   added: Record<number, number>;
   binders: any[];
+  /** Decks of the active department, cards by catalog index (see core/decks). */
+  decks: any[];
   dark: boolean;
   /** Departments the user collects, in their order; empty until they chose (onboarding). */
   games: string[];
@@ -41,6 +43,8 @@ export interface SavedGame {
   owned: Record<string, Record<string, number>>;
   added: Record<string, number>;
   binders: any[];
+  /** Decks to play with: cards by key → copies. */
+  decks?: { id: string; name: string; cards: Record<string, number>; created: number; origin?: string }[];
 }
 
 export interface GameSummary {
@@ -57,7 +61,7 @@ const denseOwned = () => CARDS.map(() => zeros());
 
 /** Empty collection with one empty binder to start from. */
 export function freshUser(): UserData {
-  return { owned: denseOwned(), added: {}, binders: [firstBinder()], dark: false, games: [], otherGames: {}, summary: {}, history: {} };
+  return { owned: denseOwned(), added: {}, binders: [firstBinder()], decks: [], dark: false, games: [], otherGames: {}, summary: {}, history: {} };
 }
 
 const firstBinder = () => Object.assign(mkB('b1', 'Mijn eerste binder', 9, 2, '#E3350D', []), { kind: 'free', desc: 'Vrije indeling', game: GAME });
@@ -83,7 +87,8 @@ function serializeGame(st: UserData): SavedGame {
   });
   const toKey = (x) => (isCard(x) ? 'U:' + CARDS[x].key : x);
   const binders = st.binders.map((b) => ({ ...b, game: b.game || GAME, slots: b.slots.map(toKey), dismissed: (b.dismissed || []).map(toKey) }));
-  return { owned, added, binders };
+  const decks = (st.decks || []).map((d) => ({ ...d, cards: Object.fromEntries(Object.entries(d.cards).filter(([id]) => CARDS[id]).map(([id, n]) => [CARDS[id].key, n])) }));
+  return { owned, added, binders, ...(decks.length ? { decks } : {}) };
 }
 
 function summarize(st: UserData): GameSummary {
@@ -176,10 +181,11 @@ export function deserializeUser(raw: SavedUser | null): UserData | null {
     if (id != null) added[id] = t;
   }
   const binders = (mine?.binders || []).map(binderFromSaved);
+  const decks = (mine?.decks || []).map((d) => ({ ...d, cards: Object.fromEntries(Object.entries(d.cards).map(([k, n]) => [indexOf(k), n]).filter(([id]) => id != null)) }));
   // Departments with cards in them count as chosen, also when the list itself is missing or empty.
   const games = [...(u.games || [])];
   for (const [g, d] of Object.entries(u.data || {})) if (!games.includes(g) && Object.keys((d as SavedGame).owned || {}).length) games.push(g);
-  return { owned, added, binders: binders.length ? binders : [firstBinder()], dark: !!u.dark, games, otherGames, summary: u.summary || {}, history: u.history || {} };
+  return { owned, added, binders: binders.length ? binders : [firstBinder()], decks, dark: !!u.dark, games, otherGames, summary: u.summary || {}, history: u.history || {} };
 }
 
 /** Number of distinct cards in a saved collection, over all departments. */

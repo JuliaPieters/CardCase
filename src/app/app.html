@@ -2,7 +2,7 @@
 <!-- fixed inset-0, not h-dvh: in an iOS home-screen app with a translucent status bar, 100dvh is short by the status bar height. -->
 <div class="fixed inset-0 flex bg-bg text-ink overflow-hidden">
   @if (s.wide && s.showNav) {
-    <aside class="cc-side w-[264px] flex-none bg-red border-r-2 border-line flex flex-col gap-5 px-4 py-5 overflow-auto">
+    <aside class="cc-side w-[264px] flex-none bg-red border-r-2 border-line flex flex-col gap-6 px-4 py-6 overflow-auto">
       <div class="flex items-center gap-3">
         <button
           (click)="s.goHome()"
@@ -18,7 +18,7 @@
       >
         <span class="icon text-[22px]">photo_camera</span>Scan kaart
       </button>
-      <nav class="flex flex-col gap-[6px]">
+      <nav class="flex flex-col gap-2">
         @for (n of s.navAll; track n.key) {
           <button
             (click)="n.go()"
@@ -33,23 +33,6 @@
           </button>
         }
       </nav>
-      <!-- Takes the room that's left and scrolls within it (at least one binder stays in view). -->
-      <div class="cc-side-list flex flex-col gap-[6px] min-h-[96px] overflow-y-auto overscroll-contain -mx-1 px-1 pb-1">
-        <span class="font-pixel text-[12px] leading-none text-cream tracking-[.1em]">MIJN BINDERS</span>
-        @for (b of s.binderCards.slice(0, 6); track b.key) {
-          <button (click)="b.edit()" class="flex items-center gap-[10px] bg-[rgba(0,0,0,.18)] hover:bg-[rgba(0,0,0,.28)] border-2 border-[color-mix(in_srgb,var(--coal)_50%,_transparent)] rounded-[10px] px-[9px] py-[7px] text-left text-cream">
-            <span class="w-[14px] h-[20px] flex-none rounded-[3px] border-2 border-coal" [style.background]="b.cover"></span>
-            <span class="flex-1 min-w-0 flex flex-col gap-1">
-              <span class="font-extrabold text-[14px] leading-none truncate">{{ b.name }}</span>
-              <span class="h-[5px] rounded-full bg-[rgba(0,0,0,.3)] overflow-hidden"><span class="block h-full bg-lcd" [style.width.%]="b.pct"></span></span>
-            </span>
-            <span class="font-pixel text-[11px] leading-none flex-none">{{ b.pct }}%</span>
-          </button>
-        }
-        @if (s.binderCards.length > 6) {
-          <button (click)="s.goBinders()" class="text-left text-cream font-extrabold text-[13px] px-1">Alle {{ s.binderCards.length }} binders →</button>
-        }
-      </div>
       <div class="mt-auto flex items-center justify-between gap-3 pt-[10px]">
         <div class="cc-dpad relative w-[54px] h-[54px]">
           <div class="absolute left-[18px] top-0 w-[18px] h-[54px] bg-coal rounded"></div>
@@ -83,10 +66,22 @@
     @if (s.narrow && s.showNav) {
       <header class="bg-red border-b-2 border-line px-[14px] pb-[10px] pt-[calc(10px+env(safe-area-inset-top))] flex items-center gap-[10px] flex-none">
         <cc-game-switcher [logo]="18" class="flex-none" />
+        @if (s.navDecks) {
+          <button
+            (click)="s.navDecks.go()"
+            title="Decks"
+            class="ml-auto w-[38px] h-[38px] rounded-full border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
+            [style.background]="s.isDecks || s.isDeck ? 'var(--paper)' : 'var(--device)'"
+            [style.color]="s.isDecks || s.isDeck ? 'var(--coal)' : 'var(--device-text)'"
+          >
+            <span class="icon text-[19px]">stacks</span>
+          </button>
+        }
         <button
-          (click)="s.navFriends.go()"
+          (click)="s.navFriends?.go()"
           title="Vrienden"
-          class="ml-auto w-[38px] h-[38px] rounded-full border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
+          [class.ml-auto]="!s.navDecks"
+          class="w-[38px] h-[38px] rounded-full border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
           [style.background]="s.isFriends ? 'var(--paper)' : 'var(--device)'"
           [style.color]="s.isFriends ? 'var(--coal)' : 'var(--device-text)'"
         >
@@ -169,6 +164,12 @@
         }
         @if (s.isFriends) {
           <cc-friends />
+        }
+        @if (s.isDecks) {
+          <cc-decks />
+        }
+        @if (s.isDeck) {
+          <cc-deck />
         }
         @if (s.isOnboarding) {
           <cc-onboarding />

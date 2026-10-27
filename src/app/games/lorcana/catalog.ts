@@ -86,6 +86,9 @@ export function buildCatalog(raw: any) {
       foilTypes: x.foil,
       /** Only printed as foil (Enchanted, Epic, Iconic…): its price is the foil price. */
       foilOnly: !x.foil.includes('None'),
+      keywords: x.kw || [],
+      /** Allowed in the Core format (the rotating one); every card is allowed in Infinity. */
+      core: !!x.core,
       cardmarketId: x.cm,
       trend: null,
     };

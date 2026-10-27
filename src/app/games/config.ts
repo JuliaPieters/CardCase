@@ -52,6 +52,8 @@ export interface GameConfig {
     strips: import('../core/scanner').CardStrips;
     match: (text: string, opts: { numText?: string; lang?: string; limit?: number; prefer?: Set<number>; expect?: number | null }) => import('../core/text').CardMatch[];
   };
+  /** Decks to play with (departments where people build them): the rules, analysis and generator. */
+  decks?: import('../core/decks').DeckRules;
   /** The card also exists as a foil with its own price, so the collection asks regular or foil. */
   hasFoil?: (card: any) => boolean;
   /** The number as shown on a card tile (default: set and number). */

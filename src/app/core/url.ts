@@ -63,6 +63,10 @@ function screenPath(st: any): string | null {
       return '/collectie/waarde';
     case 'binders':
       return '/binders';
+    case 'decks':
+      return '/decks';
+    case 'deck':
+      return '/decks/' + encodeURIComponent(st.deckId);
     case 'create':
       return '/binders/nieuw';
     case 'recipe':
@@ -125,6 +129,7 @@ export function fromUrl(url: URL, st: any, fresh: boolean): [string, Record<stri
   if (a === 'welkom' && !b) return ['onboarding', {}];
   if (a === 'overzicht' && !b) return ['overview', {}];
   // Opened fresh, the scanner would ask for the camera before anything is on screen.
+  if (a === 'decks') return b && (st.decks || []).some((d: { id: string }) => d.id === b) ? ['deck', { deckId: b }] : ['decks', {}];
   if (a === 'scan' && !b) return [fresh ? 'home' : 'scan', {}];
   if (a !== 'binders') return null;
   if (!b) return ['binders', {}];

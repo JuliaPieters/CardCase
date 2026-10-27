@@ -6,6 +6,7 @@ import { Leds } from './shared/bits';
 import { Logo } from './shared/logo';
 import { GameSwitcher } from './shared/game-switcher';
 import { OnboardingScreen, OverviewScreen } from './screens/departments';
+import { DeckScreen, DecksScreen } from './screens/decks';
 import { HomeScreen } from './screens/home';
 import { SearchScreen } from './screens/search';
 import { DetailScreen } from './screens/detail';
@@ -39,6 +40,8 @@ import { AppUpdate } from './core/app-update';
     Logo,
     GameSwitcher,
     OnboardingScreen,
+    DecksScreen,
+    DeckScreen,
     OverviewScreen,
     HomeScreen,
     SearchScreen,
