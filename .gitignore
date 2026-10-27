@@ -45,3 +45,6 @@ Thumbs.db
 
 # Firebase web config: generated from env vars at build time (scripts/write-firebase-config.mjs)
 /public/firebase-config.json
+
+# Downloads of scripts/sync-lorcana.mjs (~40 MB)
+/scripts/cache/lorcana/

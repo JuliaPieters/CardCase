@@ -8,8 +8,11 @@ export type Game = 'pokemon' | 'lorcana' | 'magic' | 'one-piece';
 /** A card's id across all games: "<game>:<set>-<number>", e.g. "pokemon:sv08-250". Opaque: never split it. */
 export type CardKey = string;
 
-/** Cardmarket-style price of one card: [fetchedAt, trend, low, avg1, avg7, avg30], in EUR. */
-export type PriceEntry = [number, number | null, number | null, number | null, number | null, number | null];
+/**
+ * Cardmarket-style price of one card in EUR: [fetchedAt, trend, low, avg1, avg7, avg30], followed by the same five for
+ * its foil print when that is priced apart.
+ */
+export type PriceEntry = [number, number | null, number | null, number | null, number | null, number | null, ...(number | null)[]];
 
 /** A catalog as the app works with it (see setCatalog in core/data.ts). */
 export interface LoadedCatalog {

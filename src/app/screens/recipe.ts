@@ -29,7 +29,7 @@ import { Pix } from '../shared/bits';
                 [value]="s.rcText"
                 (input)="s.onRcText($event)"
                 (keydown)="s.onRcKey($event)"
-                placeholder="alle Kanto-Pokémon, één per Pokémon, liefst full art"
+                [placeholder]="s.rcExample"
                 class="flex-1 min-w-0 border-0 outline-none bg-transparent py-[10px] text-[15px] font-bold"
               />
               <button
@@ -183,7 +183,7 @@ import { Pix } from '../shared/bits';
                     <input
                       [value]="s.rcSpQ"
                       (input)="s.onRcSpQ($event)"
-                      placeholder="Zoek op naam of dex-nummer…"
+                      [placeholder]="s.spPlaceholder"
                       class="border-2 border-line rounded-[10px] bg-bg px-3 py-[10px] font-extrabold text-[15px] outline-none"
                     />
                     <div class="flex flex-wrap gap-[6px]">
@@ -191,6 +191,13 @@ import { Pix } from '../shared/bits';
                         <button (click)="o.select()" class="chip" [style.background]="o.bg" [style.color]="o.fg">{{ o.label }}</button>
                       }
                     </div>
+                  </div>
+                }
+                @if (s.qStory) {
+                  <div class="flex flex-wrap gap-[6px]">
+                    @for (o of s.storyChips; track o.key) {
+                      <button (click)="o.select()" class="chip" [style.background]="o.bg" [style.color]="o.fg">{{ o.label }}</button>
+                    }
                   </div>
                 }
                 @if (s.qIllus) {

@@ -1,0 +1,8 @@
+{
+  "/cardmarket": {
+    "target": "https://downloads.s3.cardmarket.com",
+    "pathRewrite": { "^/cardmarket": "/productCatalog" },
+    "changeOrigin": true,
+    "secure": true
+  }
+}

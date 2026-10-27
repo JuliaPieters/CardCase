@@ -104,6 +104,8 @@ function applyPrice(c: any, p: PriceEntry) {
   c.avg1 = p[3];
   c.avg7 = p[4];
   c.avg30 = p[5];
+  // The foil print, when it has a price of its own.
+  c.foil = p.length > 6 ? { trend: p[6], low: p[7], avg1: p[8], avg7: p[9], avg30: p[10] } : null;
 }
 
 const today = () => new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });

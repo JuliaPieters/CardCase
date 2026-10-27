@@ -18,6 +18,14 @@
       }
     },
     {
+      "name": "catalogs",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": ["/catalogs/**", "/logos/**"]
+      }
+    },
+    {
       "name": "fonts",
       "installMode": "lazy",
       "updateMode": "lazy",

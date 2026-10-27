@@ -1,4 +1,5 @@
 import type { GameModule } from '../registry';
+import { STUB_RECIPES } from '../recipes';
 import type { CardKey, CardSource, LoadedCatalog, PriceEntry } from '../types';
 
 /** Not built yet (docs/implementatieplan.md, stap 4): the department is switched off in games/registry.ts. */
@@ -18,6 +19,6 @@ class OnePieceSource implements CardSource {
 
 export default {
   // TODO: languages, filters and binder recipes.
-  config: { game: 'one-piece', languages: [{ code: 'EN', label: 'Engels' }], types: {}, rarities: {}, basicRarities: [] },
+  config: { game: 'one-piece', languages: [{ code: 'EN', label: 'Engels' }], types: { none: ['Kaart', 'oklch(0.90 0.02 90)'] }, rarities: {}, basicRarities: [], ...STUB_RECIPES },
   source: new OnePieceSource(),
 } satisfies GameModule;

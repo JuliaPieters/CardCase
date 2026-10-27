@@ -63,7 +63,7 @@ export function setLanguages(langs: { code: string; label: string }[]) {
 }
 
 /** Makes a department's settings the active ones (with its catalog, by CatalogService; in tests directly). */
-export function applyGameConfig(config: { game: string; languages: { code: string; label: string }[]; types: Record<string, [string, string]>; rarities: Record<string, [string, string, string]>; basicRarities: string[] }) {
+export function applyGameConfig(config: import('../games/config').GameConfig) {
   setGame(config.game);
   setLanguages(config.languages);
   for (const k of Object.keys(TYPES)) delete TYPES[k];
@@ -71,6 +71,18 @@ export function applyGameConfig(config: { game: string; languages: { code: strin
   for (const k of Object.keys(RARITIES)) delete RARITIES[k];
   Object.assign(RARITIES, config.rarities);
   BASIC_RARITIES.length = 0; BASIC_RARITIES.push(...config.basicRarities);
+  RECIPES.length = 0; RECIPES.push(...config.recipes);
+  for (const k of Object.keys(RSTEPS)) delete RSTEPS[k];
+  Object.assign(RSTEPS, config.recipeSteps);
+  PREFS.length = 0; PREFS.push(...config.prefs);
+  Object.assign(NOUN, config.noun);
+  // Step titles name the department's unit ("Kaarten per Pokémon", "Welk personage?").
+  for (const k of Object.keys(STEPT)) delete STEPT[k];
+  for (const [k, [a, q]] of Object.entries(BASE_STEPT)) STEPT[k] = [a.replace('...', config.noun.one), q.replace('...', config.noun.one)];
+  Object.assign(STEPT, config.stepTitles || {});
+  Object.assign(PIX, config.icons || {});
+  DEFRECIPE.type = config.recipes[0][0];
+  DEFRECIPE.ptype = Object.keys(config.types)[0];
 }
 export const RAR = { C: ['Gewoon', '●'], U: ['Ongewoon', '◆'], R: ['Zeldzaam', '★'], HR: ['Holo-zeldzaam', '✦'], X: ['Onbekend', '?'] };
 export const CONDS = [['M', 'Mint'], ['NM', 'Near Mint'], ['EX', 'Excellent'], ['GD', 'Good'], ['PL', 'Played']];
@@ -250,6 +262,7 @@ export function setCatalog(sets: any[], cards: any[], updated?: string) {
   CARDS.forEach(c => { if (c.illus) ILLUS_N[c.illus] = (ILLUS_N[c.illus] || 0) + 1; });
   // Most prolific illustrators first.
   ILLUS.length = 0; ILLUS.push(...Object.keys(ILLUS_N).sort((a, b) => ILLUS_N[b] - ILLUS_N[a]));
+  DEFRECIPE.sp = +Object.keys(BYSP).sort((a, b) => BYSP[b].length - BYSP[a].length)[0] || 25;
   DEFRECIPE.set = SETS[0]?.code; DEFRECIPE.prefSet = (SETS[1] || SETS[0])?.code; DEFRECIPE.illus = ILLUS[0] || '';
 }
 
@@ -333,11 +346,18 @@ export function initOwned() {
 export const range = (a, b) => Array.from({ length: b - a }, (_, i) => a + i);
 export function mkB(id, name, fmt, pages, cover, place) { const slots = Array(pages * fmt).fill(null); place.forEach(([st, ids]) => ids.forEach((c, i) => { slots[st + i] = c; })); return { id, name, fmt, pages, cover, slots, deco: { bg: {}, images: [], stickers: [] } }; }
 
-export const RECIPES = [['dex', 'Regio-dex', 'dex', 'Alle Pokémon uit een regio, op dex-nummer.', '#E3350D', '#FFF8EE'], ['master', 'Master set', 'master', 'Elke kaart uit één set, inclusief varianten.', '#3E6FB0', '#FFF8EE'], ['single', 'Eén Pokémon, alle versies', 'egg', 'Elke versie van je favoriet naast elkaar.', '#E8B92E', '#1A1C22'], ['illus', 'Illustrator', 'brush', 'Alle kaarten van één tekenaar.', '#7A5BC7', '#FFF8EE'], ['type', 'Type', 'flame', 'Alles van één type, bijvoorbeeld Vuur.', '#306230', '#FFF8EE'], ['empty', 'Leeg beginnen', 'page', 'Lege pagina\'s om zelf te vullen of te decoreren.', '#FFFDF6', '#1A1C22']];
-export const RSTEPS = { dex: ['region', 'langs', 'per', 'pref'], master: ['set', 'order'], single: ['species', 'langs', 'order'], illus: ['illus', 'langs', 'per', 'pref'], type: ['ptype', 'langs', 'per', 'pref'], empty: ['pages'] };
-export const STEPT = { region: ['Regio', 'Welke regio?'], per: ['Kaarten per Pokémon', 'Hoeveel kaarten per Pokémon?'], pref: ['Voorkeursversie', 'Welke versie heeft je voorkeur?'], set: ['Set', 'Welke set?'], order: ['Volgorde', 'In welke volgorde?'], species: ['Pokémon', 'Welke Pokémon?'], illus: ['Illustrator', 'Welke illustrator?'], ptype: ['Type', 'Welk type?'], pages: ["Pagina's", "Hoeveel pagina's?"], langs: ['Taal', 'In welke talen?'] };
-export const PREFS = [['owned', 'Wat ik al heb, anders goedkoopste', 'Je eigen kaarten eerst; ontbrekende zo goedkoop mogelijk.', 'savings'], ['fullart', 'Full art / illustration rare', 'De mooiste versie; zonder full art de gewone kaart.', 'palette'], ['illus', 'Illustration rare (IR)', 'Alleen IR en SIR; zonder IR de gewone kaart.', 'brush'], ['oldest', 'Oudste versie', 'Zo dicht mogelijk bij het origineel.', 'history'], ['value', 'Meest waardevol', 'De topversie van elke Pokémon.', 'diamond'], ['set', 'Uit een specifieke set', 'Kies een set; staat hij er niet in, de gewone kaart.', 'collections_bookmark']];
-export const DEFRECIPE = { type: 'dex', region: 'kanto', custom: false, from: 1, to: 151, forms: true, per: 'one', pref: 'owned', prefSet: 'ART', lang: 'EN', langs: [], fmt: 9, sort: 'dex', buffer: 0, name: '', sp: 25, illus: 'Aiko Mori', ptype: 'fire', set: 'EMB', order: 'oldest', pages: 4 };
+/**
+ * The active department's binder recipes (see games/config.ts): tiles [key, label, icon, description, colour, text
+ * colour], the questions each one asks, version preferences, and how it names what a recipe lists one card of.
+ * Set by applyGameConfig.
+ */
+export const RECIPES: [string, string, string, string, string, string][] = [];
+export const RSTEPS: Record<string, string[]> = {};
+export const PREFS: [string, string, string, string][] = [];
+export const NOUN = { one: 'kaart', many: 'kaarten' };
+const BASE_STEPT = { region: ['Regio', 'Welke regio?'], per: ['Kaarten per ...', 'Hoeveel kaarten per ...?'], pref: ['Voorkeursversie', 'Welke versie heeft je voorkeur?'], set: ['Set', 'Welke set?'], order: ['Volgorde', 'In welke volgorde?'], species: ['...', 'Welke ...?'], illus: ['Illustrator', 'Welke illustrator?'], story: ['Verhaal', 'Uit welk verhaal?'], ptype: ['Type', 'Welk type?'], pages: ["Pagina's", "Hoeveel pagina's?"], langs: ['Taal', 'In welke talen?'] };
+export const STEPT: Record<string, string[]> = {};
+export const DEFRECIPE: any = { type: 'dex', region: 'kanto', custom: false, from: 1, to: 151, forms: true, per: 'one', pref: 'owned', prefSet: 'ART', lang: 'EN', langs: [], fmt: 9, sort: 'dex', buffer: 0, name: '', sp: 25, illus: 'Aiko Mori', ptype: 'fire', set: 'EMB', order: 'oldest', pages: 4 };
 Object.assign(PIX, {
   dex: ['########', '#..#...#', '#..#...#', '########', '#...#..#', '#...#..#', '########', '........'],
   master: ['..#####.', '..#...#.', '.#####.#', '.#...#.#', '#####.#.', '#...#.#.', '#...##..', '#####...'],
@@ -353,8 +373,8 @@ export function pickVersion(cands, r, owned) {
   const ownL = c => ((owned[c.id] || {})[langs[0] || r.lang] || 0) > 0; const cheap = l => l.slice().sort((a, b) => (a.trend ?? Infinity) - (b.trend ?? Infinity))[0];
   // When the preferred version doesn't exist for a Pokémon, its regular card stands in (the one you have, else the cheapest).
   const regular = warn => { const reg = cands.filter(c => c.variant === 'regular' || c.variant === 'holo'); const pool = reg.length ? reg : cands; return { card: pool.find(own) || cheap(pool), warn }; };
-  if (r.pref === 'fullart') { const f = cands.filter(c => c.variant === 'fullart' || c.variant === 'illus'); return f.length ? { card: f.find(own) || cheap(f), alts: f.length } : regular('Geen full art van deze Pokémon · gewone kaart'); }
-  if (r.pref === 'illus') { const f = cands.filter(c => c.variant === 'illus'); return f.length ? { card: f.find(own) || cheap(f), alts: f.length } : regular('Geen IR van deze Pokémon · gewone kaart'); }
+  if (r.pref === 'fullart') { const f = cands.filter(c => c.variant === 'fullart' || c.variant === 'illus'); return f.length ? { card: f.find(own) || cheap(f), alts: f.length } : regular('Geen full art van deze ' + NOUN.one + ' · gewone kaart'); }
+  if (r.pref === 'illus') { const f = cands.filter(c => c.variant === 'illus'); return f.length ? { card: f.find(own) || cheap(f), alts: f.length } : regular('Geen IR van deze ' + NOUN.one + ' · gewone kaart'); }
   if (r.pref === 'oldest') return { card: cands.slice().sort((a, b) => a.year - b.year || a.id - b.id)[0] };
   if (r.pref === 'value') return { card: cands.slice().sort((a, b) => b.trend - a.trend)[0] };
   if (r.pref === 'set') { const s = cands.filter(c => c.set === r.prefSet); return s.length ? { card: s.find(own) || cheap(s), alts: s.length } : regular('Niet in ' + ((SETS.find(x => x.code === r.prefSet) || {}).name || r.prefSet) + ' · gewone kaart'); }
@@ -368,20 +388,24 @@ export function recipeItems(r, owned) {
   const cardsOf = d => (BYSP[d] || []).filter(inLang);
   const one = (sps, f) => sps.map(d => { const cands = cardsOf(d).filter(f); return cands.length ? Object.assign({ sp: d }, pickVersion(cands, r, owned)) : null; }).filter(Boolean);
   let items = [];
+  // Type (Pokémon) or ink (Lorcana: a card can have two).
+  const ofType = c => c.type === r.ptype || (c.inks || []).includes(r.ptype);
   if (r.type === 'dex' || r.type === 'type') {
-    const sps = []; if (r.type === 'dex') { for (let d = Math.max(1, r.from); d <= Math.min(1025, r.to); d++) sps.push(d); } else { for (let d = 1; d <= 1025; d++) if (SP[d].type === r.ptype) sps.push(d); }
+    const sps = []; if (r.type === 'dex') { for (let d = Math.max(1, r.from); d <= Math.min(1025, r.to); d++) sps.push(d); } else { for (const d of spKeys()) if ((BYSP[d] || []).some(ofType)) sps.push(d); }
     if (r.per === 'one') {
-      items = one(sps, c => !isForm(c));
+      items = one(sps, c => !isForm(c) && (r.type !== 'type' || ofType(c)));
       // Each regional form of a Pokémon gets its own slot after the Pokémon.
       if (r.type === 'dex' && r.forms) sps.forEach(d => { const byForm = new Map(); cardsOf(d).filter(isForm).forEach(c => { const k = c.form || c.names.EN; byForm.set(k, [...(byForm.get(k) || []), c]); }); byForm.forEach(cs => items.push(Object.assign({ sp: d, form: true }, pickVersion(cs, r, owned)))); });
     }
-    else sps.forEach(d => cardsOf(d).filter(c => r.type !== 'dex' || r.forms || !isForm(c)).forEach(c => items.push({ sp: d, card: c, form: isForm(c) })));
+    else sps.forEach(d => cardsOf(d).filter(c => (r.type !== 'dex' || r.forms || !isForm(c)) && (r.type !== 'type' || ofType(c))).forEach(c => items.push({ sp: d, card: c, form: isForm(c) })));
   } else if (r.type === 'illus') { const cs = CARDS.filter(c => c.illus === r.illus && inLang(c)); if (r.per === 'one') items = one(Array.from(new Set(cs.map(c => c.sp))), c => c.illus === r.illus); else items = cs.map(c => ({ sp: c.sp, card: c })); }
-  else if (r.type === 'master') items = (BYSET[r.set] || []).map(c => ({ sp: c.sp, card: c }));
+  else if (r.type === 'story') { const cs = CARDS.filter(c => c.story === r.story && inLang(c)); if (r.per === 'one') items = one(Array.from(new Set(cs.map(c => c.sp))), c => c.story === r.story); else items = cs.map(c => ({ sp: c.sp, card: c })); }
+  else if (r.type === 'fullart') items = CARDS.filter(c => c.variant === 'fullart' && inLang(c)).map(c => ({ sp: c.sp, card: c }));
+  else if (r.type === 'master') items = (BYSET[r.set] || []).filter(c => r.special !== false || c.variant !== 'fullart').map(c => ({ sp: c.sp, card: c }));
   else if (r.type === 'single') items = cardsOf(r.sp).map(c => ({ sp: c.sp, card: c }));
   const so = r.sort;
   if (r.type === 'master') items.sort((a, b) => r.order === 'type' ? (a.card.type.localeCompare(b.card.type) || a.card.num - b.card.num) : r.order === 'value' ? b.card.trend - a.card.trend : a.card.num - b.card.num);
-  else if (r.type === 'single') items.sort((a, b) => r.order === 'value' ? b.card.trend - a.card.trend : r.order === 'owned' ? ((own(b.card) ? 1 : 0) - (own(a.card) ? 1 : 0)) || a.card.year - b.card.year : a.card.year - b.card.year || a.card.id - b.card.id);
+  else if (r.type === 'single' || r.type === 'fullart') items.sort((a, b) => r.order === 'value' ? b.card.trend - a.card.trend : r.order === 'owned' ? ((own(b.card) ? 1 : 0) - (own(a.card) ? 1 : 0)) || a.card.year - b.card.year : a.card.year - b.card.year || a.card.id - b.card.id);
   else items.sort((a, b) => so === 'set' ? (a.card.set.localeCompare(b.card.set) || a.card.num - b.card.num) : so === 'value' ? b.card.trend - a.card.trend : so === 'name' ? a.card.names.EN.localeCompare(b.card.names.EN) : (a.sp - b.sp) || ((a.form ? 1 : 0) - (b.form ? 1 : 0)) || a.card.year - b.card.year);
   return items;
 }
@@ -395,16 +419,22 @@ export function buildRecipe(r, owned) {
   return { fmt: r.fmt, pages, slots, warn, alts, n: items.length, ownedN, cost, formsN };
 }
 export function regLabel(r) { const g = REGIONS.find(x => x[0] === r.region); return r.custom ? '#' + pad(r.from) + '–#' + pad(r.to) : g[1] + ' #' + pad(g[2]) + '–#' + pad(g[3]); }
-export function autoName(r) { if (r.type === 'dex') return r.custom ? 'Dex #' + pad(r.from) + '–#' + pad(r.to) : REGIONS.find(x => x[0] === r.region)[1] + '-dex'; if (r.type === 'master') return ((SETS.find(s => s.code === r.set) || {}).name || r.set) + ' master set'; if (r.type === 'single') return 'Alles van ' + SP[r.sp].name.EN; if (r.type === 'illus') return 'Kunst van ' + r.illus; if (r.type === 'type') return TYPES[r.ptype][0] + '-binder'; return 'Nieuwe binder'; }
+/** Every species (Pokémon) or character group (other games), in dex order or by name. */
+export const spKeys = () => Object.keys(BYSP).map(Number).filter(d => SP[d]).sort((a, b) => a <= 1025 && b <= 1025 ? a - b : SP[a].name.EN.localeCompare(SP[b].name.EN));
+/** "#025 Pikachu" for a Pokémon, just the name for a character. */
+export const spLabel = d => (d <= 1025 ? '#' + pad(d) + ' ' : '') + (SP[d] ? SP[d].name.EN : '');
+export function autoName(r) { if (r.type === 'story') return r.story; if (r.type === 'fullart') return 'Full art'; if (r.type === 'dex') return r.custom ? 'Dex #' + pad(r.from) + '–#' + pad(r.to) : REGIONS.find(x => x[0] === r.region)[1] + '-dex'; if (r.type === 'master') return ((SETS.find(s => s.code === r.set) || {}).name || r.set) + ' master set'; if (r.type === 'single') return 'Alles van ' + SP[r.sp].name.EN; if (r.type === 'illus') return 'Kunst van ' + r.illus; if (r.type === 'type') return TYPES[r.ptype][0] + '-binder'; return 'Nieuwe binder'; }
 export function langLabel(r) { const l = r.langs || []; return l.length ? l.map(x => LNAME[x]).join(' + ') : 'Alle talen'; }
 export function recipeLabel(r) {
   const lang = langLabel(r).toUpperCase();
-  const per = r.per === 'one' ? 'ÉÉN PER POKÉMON' : 'ALLE VERSIES'; const pref = r.per === 'one' ? (PREFS.find(p => p[0] === r.pref) || PREFS[0])[1].toUpperCase() : '';
+  const per = r.per === 'one' ? 'ÉÉN PER ' + NOUN.one.toUpperCase() : 'ALLE VERSIES'; const pref = r.per === 'one' ? (PREFS.find(p => p[0] === r.pref) || PREFS[0])[1].toUpperCase() : '';
   if (r.type === 'dex') return ['REGIO-DEX', regLabel(r).toUpperCase(), lang, per, pref, r.forms ? '+ VORMEN' : ''].filter(Boolean).join(' · ');
-  if (r.type === 'type') return ['TYPE', TYPES[r.ptype][0].toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
+  if (r.type === 'type') return [STEPT.ptype[0].toUpperCase(), TYPES[r.ptype][0].toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
   if (r.type === 'illus') return ['ILLUSTRATOR', r.illus.toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
   if (r.type === 'master') return 'MASTER SET · ' + ((SETS.find(s => s.code === r.set) || {}).name || r.set).toUpperCase();
-  if (r.type === 'single') return 'ÉÉN POKÉMON · #' + pad(r.sp) + ' ' + SP[r.sp].name.EN.toUpperCase() + ' · ' + lang + ' · ALLE VERSIES';
+  if (r.type === 'single') return 'ÉÉN ' + NOUN.one.toUpperCase() + ' · ' + spLabel(r.sp).toUpperCase() + ' · ' + lang + ' · ALLE VERSIES';
+  if (r.type === 'story') return ['VERHAAL', (r.story || '').toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
+  if (r.type === 'fullart') return 'FULL ART · ' + lang;
   return 'LEEG · ' + r.pages + " PAGINA'S";
 }
 export function mkRecipeBinder(own) { const r = Object.assign({}, DEFRECIPE, { pref: 'fullart' }); const res = buildRecipe(r, own); return { id: 'b6', name: 'Kanto-dex', fmt: r.fmt, pages: res.pages, cover: '#E8B92E', slots: res.slots, warn: res.warn, recipe: r, suggestOn: true, dismissed: [], kind: 'recipe', desc: 'Kanto · één per Pokémon · full art', deco: { bg: {}, images: [], stickers: [] } }; }

@@ -13,6 +13,7 @@
     "sync-japanese": "node scripts/sync-japanese.mjs",
     "sync-chinese": "node scripts/sync-chinese.mjs",
     "sync-hashes": "node --no-warnings scripts/sync-hashes.mjs",
+    "sync-lorcana": "node scripts/sync-lorcana.mjs",
     "icons": "node scripts/make-icons.mjs"
   },
   "private": true,
