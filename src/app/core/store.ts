@@ -403,6 +403,16 @@ export class CardcaseStore {
     this.setOwn(it.id, it.lang, -it.qty); if (it.foil) this.setFoil(it.id, it.lang, -it.qty);
     this.setState(st => ({ quickLog: st.quickLog.filter(x => x.seq !== seq) })); this.toast(CARDS[it.id].names[it.lang] + ' weer verwijderd');
   }
+  /**
+   * Remembers a result until one of `deps` changes (by identity): the catalog can have 100,000 cards (Magic), and the
+   * screen model is rebuilt on every change of the state.
+   */
+  private memos = new Map<string, { deps: any[]; v: any }>();
+  memo(key, deps, f) {
+    const d = [CARDS.length, CARDS[0], ...deps]; const m = this.memos.get(key);
+    if (m && m.deps.length === d.length && m.deps.every((x, i) => x === d[i])) return m.v;
+    const v = f(); this.memos.set(key, { deps: d, v }); return v;
+  }
   /** A card's number as the department shows it (Lorcana: 1/204 · 1). */
   numLabel(c) { return this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + pad(c.num); }
   cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, img2: c.imgAlt || null, big: c.imgBig ? (c.imgBig[l] || c.imgBig[c.avail[0]] || null) : null, art: spriteOf(c) }; }
@@ -951,7 +961,7 @@ export class CardcaseStore {
     const mover = ({ c, chg }) => ({ key: c.id, cv: this.cv(c, 'EN'), name: c.names.EN, meta: this.numLabel(c), price: eur(c.trend), chg: pctf(chg), up: chg >= 0, down: chg < 0, ...chgStyle(chg), open: () => this.openDetail(c.id) });
     const hp = items => { const mx = Math.max(...items.map(i => i.v), 0.01); return items.map(i => { const n = i.v > 0 ? Math.max(1, Math.round(i.v / mx * 20)) : 0; return { key: i.key, label: i.label, value: eur(i.v), segs: range(0, 20).map(k => ({ key: k, bg: k < n ? 'var(--display)' : '#3A3E47' })) }; }); };
     const dc = CARDS[st.detailId]; const dp = priceInfo(dc); const dn = tot(owned[dc.id]);
-    const missC = CARDS.filter(c => !tot(owned[c.id]) && (!st.collSet || c.set === st.collSet)); const setNm = st.collSet ? SETS.find(s => s.code === st.collSet).name : '';
+    const missC = this.memo('missing', [owned, st.collSet], () => CARDS.filter(c => !tot(owned[c.id]) && (!st.collSet || c.set === st.collSet))); const setNm = st.collSet ? SETS.find(s => s.code === st.collSet).name : '';
     const eb = this.curB();
     return {
       isValue: st.screen === 'value', goValue: () => this.go('value'), priceSource: 'Prijzen via Cardmarket · bijgewerkt op ' + UPDATED,
@@ -1166,11 +1176,15 @@ export class CardcaseStore {
     const navItem = ([id, label, icon]) => { const on = screen === id || (id === 'binders' && ['editor', 'create', 'recipe', 'shift', 'moves', 'pageresult', 'crop', 'print'].includes(screen)) || (id === 'collection' && screen === 'value') || (id === 'friends' && screen === 'friend') || (id === 'decks' && screen === 'deck'); return { key: id, label, icon, go: () => this.go(id), on, bg: on ? 'var(--paper)' : null, fg: on ? 'var(--coal)' : 'var(--on-accent)', bd: on ? 'var(--coal)' : null, sh: on ? '3px 3px 0 var(--coal)' : 'none', mfg: on ? 'var(--red)' : 'var(--muted)', bar: on ? 'var(--red)' : 'transparent' }; };
     // Departments where people play get Decks after Binders.
     const navAll = (this.catalog.config?.decks ? [...NAV.slice(0, 4), ['decks', 'Decks', 'stacks'], ...NAV.slice(4)] : NAV).map(navItem);
-    const ownedCards = CARDS.filter(c => tot(owned[c.id]) > 0);
-    const totalCards = CARDS.reduce((a, c) => a + tot(owned[c.id]), 0);
-    const langN = LANGS.map(l => CARDS.reduce((a, c) => a + (owned[c.id][l] || 0), 0)); const maxL = Math.max(...langN, 1);
-    // Sets you own cards from (most complete first); before you own anything, the newest sets.
-    const progressSets = (() => { const h = SETS.filter(x => (BYSET[x.code] || []).some(c => tot(owned[c.id]))); return h.length ? h : [...SETS].sort((a, b) => (b.year || 0) - (a.year || 0)).slice(0, 4); })();
+    // What you own, counted once per change of the collection.
+    const { ownedCards, totalCards, langN, progressSets } = this.memo('owned', [owned], () => {
+      const ownedCards = CARDS.filter(c => tot(owned[c.id]) > 0);
+      const langN = LANGS.map(l => ownedCards.reduce((a, c) => a + (owned[c.id][l] || 0), 0));
+      // Sets you own cards from (most complete first); before you own anything, the newest sets.
+      const ownSets = new Set(ownedCards.map(c => c.set)); const h = SETS.filter(x => ownSets.has(x.code));
+      return { ownedCards, totalCards: langN.reduce((a, n) => a + n, 0), langN, progressSets: h.length ? h : [...SETS].sort((a, b) => (b.year || 0) - (a.year || 0)).slice(0, 4) };
+    });
+    const maxL = Math.max(...langN, 1);
     const setProgress = progressSets.map(s => { const cs = (BYSET[s.code] || []); const have = cs.filter(c => tot(owned[c.id])).length; const pct = Math.round(have / cs.length * 100); return { key: s.code, code: s.code, name: s.name, pct, done: have === cs.length, notDone: have < cs.length, label: `${have}/${cs.length}`, langs: s.avail.join(' · '), needLabel: have === cs.length ? 'Set compleet' : 'Nog nodig: ' + costLabel(cs.filter(c => !tot(owned[c.id]))), open: () => this.go('search', { fSet: s.code, q: '', fLangs: [], fRar: '' }) }; }).sort((a, b) => b.pct - a.pct);
     const when = t => { const d = Math.floor((Date.now() - (t || 0)) / 864e5); return d <= 0 ? 'vandaag' : d === 1 ? 'gisteren' : `${d} dagen geleden`; };
     const recent = [...ownedCards].sort((a, b) => (added[b.id] || 0) - (added[a.id] || 0)).slice(0, 10).map(c => ({ key: c.id, cv: this.cv(c, 'EN'), when: when(added[c.id]), open: () => this.openDetail(c.id) }));
@@ -1181,11 +1195,11 @@ export class CardcaseStore {
     const gameFilters = this.catalog.config?.filters || []; const fx = st.fx || {};
     const fxMatch = c => gameFilters.every(f => !fx[f.key] || f.match(c, fx[f.key]));
     const fxView = f => ({ key: f.key, label: f.label, value: fx[f.key] || '', options: f.options(), onChange: e => this.setState(x => ({ fx: { ...(x.fx || {}), [f.key]: e.target.value } })) });
-    const resultsRaw = CARDS.filter(c => fxMatch(c) && (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && qMatch(c));
+    const resultsRaw = this.memo('search', [st.q, st.fLangs, st.fSet, st.fRar, st.fx], () => CARDS.filter(c => fxMatch(c) && (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && qMatch(c)));
     const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || c.avail[0]; };
     const byValue = (a, b) => (b.trend ?? -1) - (a.trend ?? -1);
     const byNew = (a, b) => relKey(b).localeCompare(relKey(a)) || a.id - b.id, byOld = (a, b) => relKey(a).localeCompare(relKey(b)) || a.id - b.id;
-    const results = st.fSort === 'value' ? [...resultsRaw].sort(byValue) : st.fSort === 'new' ? [...resultsRaw].sort(byNew) : st.fSort === 'old' ? [...resultsRaw].sort(byOld) : resultsRaw;
+    const results = this.memo('sorted', [resultsRaw, st.fSort, this.catalog.priceTick()], () => st.fSort === 'value' ? [...resultsRaw].sort(byValue) : st.fSort === 'new' ? [...resultsRaw].sort(byNew) : st.fSort === 'old' ? [...resultsRaw].sort(byOld) : resultsRaw);
     // Only the visible slice is turned into view models (the full catalog has ~40k cards).
     const toResult = c => { const n = tot(owned[c.id]); const l = showLang(c); return { key: c.id, cv: this.cv(c, l), name: c.names[l], price: eur(c.trend), shadow: '3px 3px 0 var(--line)', open: () => this.openDetail(c.id, l) }; }; // browsing: no owned/missing marks
     const toggleLang = l => this.setState(s => ({ fLangs: s.fLangs.includes(l) ? s.fLangs.filter(x => x !== l) : [...s.fLangs, l] }));
@@ -1194,7 +1208,7 @@ export class CardcaseStore {
     // detail
     const dc = CARDS[st.detailId]; const dl = st.detailLang; const dAvail = dc.avail.includes(dl); const dOwn = owned[dc.id];
     const dBinders = []; st.binders.forEach(b => b.slots.forEach((x, i) => { if (x === dc.id) { const p = Math.floor(i / b.fmt); dBinders.push({ key: b.id + i, name: b.name, cover: b.cover, where: `Pagina ${p + 1} · slot ${i % b.fmt + 1} · ${b.fmt}-pocket`, open: () => this.go('editor', { edId: b.id, edSpread: Math.floor(p / 2) }) }); } }));
-    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: dc.typeName || TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), released: relLabel(dc), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: sharp(this.cv(dc, dl, !dAvail || !dOwn[dl])), facts: this.catalog.config?.cardFacts?.(dc, dl) || [], text: this.catalog.config?.cardText?.(dc, dl) || '', others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
+    const d = { set: dc.set, numStr: dc.numStr, setName: dc.setName, name: dc.names[dAvail ? dl : 'EN'], typeLabel: dc.typeName || TYPES[dc.type][0], typeColor: TYPES[dc.type][1], rarLabel: rarLabel(dc), availLabel: dc.avail.join(' · '), released: relLabel(dc), total: tot(dOwn), unavailable: !dAvail, notOwnedLang: dAvail && !dOwn[dl], cv: sharp(this.cv(dc, dl, !dAvail || !dOwn[dl])), facts: this.catalog.config?.cardFacts?.(dc, dl) || [], text: this.catalog.text(dc, dl), others: dc.avail.filter(l => l !== dl).map(l => ({ key: l, code: l, name: dc.names[l] })) };
     const dTabs = LANGS.map(l => { const on = dl === l; const av = dc.avail.includes(l); return { key: l, code: l, bg: on ? 'var(--red)' : 'var(--surface)', fg: on ? 'var(--on-accent)' : (av ? 'var(--ink)' : 'var(--muted)'), deco: av ? 'none' : 'line-through', sub: av ? (dOwn[l] ? '×' + dOwn[l] : '—') : 'n.v.t.', select: () => this.setState({ detailLang: l }) }; });
     // Other cards of the same Pokémon (Trainers and Energy have no dex number): owned first, then newest.
     const sameAll = dc.sp <= 1025 ? (BYSP[dc.sp] || []).filter(c => c.id !== dc.id).sort((a, b) => (tot(owned[b.id]) ? 1 : 0) - (tot(owned[a.id]) ? 1 : 0) || byNew(a, b)) : [];

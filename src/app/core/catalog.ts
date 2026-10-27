@@ -28,6 +28,7 @@ export class CatalogService {
   config!: GameConfig;
 
   private source?: CardSource;
+  private texts = new Map<string, string>();
   private prices: Record<string, PriceEntry> = {};
   private inFlight = new Set<string>();
 
@@ -57,6 +58,22 @@ export class CatalogService {
       setCatalog(m.sets, m.cards);
       this.sourceKind.set('mock');
     }
+  }
+
+  /**
+   * A card's rules text: from the config, or fetched from the source (it then appears when it arrives: the views
+   * recompute on priceTick).
+   */
+  text(c: any, lang: string): string {
+    const fromConfig = this.config?.cardText?.(c, lang);
+    if (fromConfig || !this.source?.cardText) return fromConfig || '';
+    if (this.texts.has(c.key)) return this.texts.get(c.key)!;
+    this.texts.set(c.key, '');
+    void this.source.cardText(c).then((t) => {
+      this.texts.set(c.key, t);
+      if (t) this.priceTick.update((n) => n + 1);
+    });
+    return '';
   }
 
   /** Makes sure the given cards (by catalog index) have a fresh price; fetches the missing ones in the background. */

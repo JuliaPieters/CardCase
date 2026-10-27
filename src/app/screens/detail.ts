@@ -17,7 +17,7 @@ import { Trend } from '../shared/bits';
       </button>
       <div class="flex flex-wrap gap-7 items-start">
         <div class="flex-[1_1_260px] max-w-[380px] flex flex-col gap-[14px] mx-auto">
-          <div class="grid grid-cols-4 gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden">
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(52px,1fr))] gap-[2px] bg-line border-2 border-line rounded-[10px] overflow-hidden">
             @for (t of s.dTabs; track t.key) {
               <button
                 (click)="t.select()"
