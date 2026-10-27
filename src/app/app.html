@@ -11,9 +11,7 @@
         ></button>
         <cc-leds />
       </div>
-      <button (click)="s.goHome()" title="Home" class="block w-full border-2 border-coal rounded-lg overflow-hidden transition-[filter] hover:brightness-110">
-        <cc-logo [size]="27" />
-      </button>
+      <cc-game-switcher [wide]="true" [logo]="24" />
       <button
         (click)="s.goScan()"
         class="press flex items-center justify-center gap-[10px] bg-lcd text-lcd-ink border-2 border-coal rounded-xl shadow-[0_5px_0_var(--coal)] p-3 font-pixel font-semibold text-[18px] leading-none"
@@ -84,14 +82,11 @@
   <div class="flex-1 min-w-0 flex flex-col">
     @if (s.narrow && s.showNav) {
       <header class="bg-red border-b-2 border-line px-[14px] pb-[10px] pt-[calc(10px+env(safe-area-inset-top))] flex items-center gap-[10px] flex-none">
-        <button (click)="s.goHome()" title="Home" class="flex-none p-0 border-0 bg-transparent">
-          <cc-logo [size]="20" class="border-2 border-coal shadow-[0_3px_0_var(--coal)]" />
-        </button>
-        <cc-game-switcher class="ml-auto" />
+        <cc-game-switcher [logo]="18" class="flex-none" />
         <button
           (click)="s.navFriends.go()"
           title="Vrienden"
-          class="w-[38px] h-[38px] rounded-full border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
+          class="ml-auto w-[38px] h-[38px] rounded-full border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
           [style.background]="s.isFriends ? 'var(--paper)' : 'var(--device)'"
           [style.color]="s.isFriends ? 'var(--coal)' : 'var(--device-text)'"
         >
@@ -125,12 +120,6 @@
         @for (f of floaters; track $index) {
           <i [style.--x]="f.x" [style.--w]="f.w" [style.--t]="f.t" [style.--d]="f.d" [style.--r]="f.r"></i>
         }
-      </div>
-    }
-    <!-- Wide screens: a bar of the app itself with the department switcher in the corner (narrow: in the header). -->
-    @if (s.wide && s.showNav) {
-      <div class="relative z-20 flex-none flex items-center justify-end gap-3 h-[58px] px-4 border-b-2 border-line bg-red">
-        <cc-game-switcher [labeled]="true" />
       </div>
     }
     <main #main class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain">

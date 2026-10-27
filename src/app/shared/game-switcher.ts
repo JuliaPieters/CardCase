@@ -3,6 +3,7 @@ import { CatalogService } from '../core/catalog';
 import { eur } from '../core/data';
 import { CardcaseStore } from '../core/store';
 import { GAMES, gameInfo } from '../games/registry';
+import { Logo } from './logo';
 import type { Game } from '../games/types';
 
 /**
@@ -12,8 +13,24 @@ import type { Game } from '../games/types';
 @Component({
   selector: 'cc-game-switcher',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [Logo],
   host: { class: 'relative block' },
   template: `
+    @if (logo()) {
+      <!-- The logo itself: a click goes home, the arrow next to it opens the departments (like a workspace switcher). -->
+      <div class="flex items-stretch border-2 border-coal rounded-lg overflow-hidden bg-[var(--logo-background)]" [class.shadow-[0_3px_0_var(--coal)]]="!wide()">
+        <button (click)="home()" title="Home" class="flex-1 min-w-0 block p-0 border-0 bg-transparent transition-[filter] hover:brightness-110">
+          <cc-logo [size]="logo()" />
+        </button>
+        <button
+          (click)="open.set(!open())"
+          [title]="'Afdeling: ' + current().name + ' · wisselen'"
+          class="flex-none flex items-center px-[3px] border-0 border-l-2 border-coal bg-transparent text-[var(--logo-case)] hover:brightness-125"
+        >
+          <span class="icon text-[22px]">{{ open() ? 'expand_less' : 'expand_more' }}</span>
+        </button>
+      </div>
+    } @else {
     <button
       (click)="open.set(!open())"
       [title]="'Afdeling: ' + current().name"
@@ -26,11 +43,12 @@ import type { Game } from '../games/types';
       }
       <span class="icon text-[20px]">{{ open() ? 'expand_less' : 'expand_more' }}</span>
     </button>
+    }
     @if (open()) {
       <div class="fixed inset-0 z-[60]" (click)="open.set(false)"></div>
       <div
         class="absolute z-[61] mt-2 panel p-2 flex flex-col gap-1 text-ink"
-        [class]="wide() ? 'left-0 right-0' : 'right-0 w-[min(290px,calc(100vw-24px))]'"
+        [class]="wide() ? 'left-0 right-0' : logo() ? 'left-0 w-[min(290px,calc(100vw-24px))]' : 'right-0 w-[min(290px,calc(100vw-24px))]'"
       >
         <div class="kicker px-2 pt-1 pb-[6px]">AFDELINGEN</div>
         @for (g of mine(); track g.game) {
@@ -67,6 +85,8 @@ export class GameSwitcher {
   readonly wide = input(false);
   /** Shows the department's name next to the mascot. */
   readonly labeled = input(false);
+  /** Shown as the header logo at this word mark size (0: a button with the mascot). */
+  readonly logo = input(0);
   protected readonly open = signal(false);
   private readonly store = inject(CardcaseStore);
   private readonly game = inject(CatalogService).game;
@@ -85,6 +105,11 @@ export class GameSwitcher {
   });
   protected readonly mine = computed(() => this.rows().filter((r) => r.mine));
   protected readonly more = computed(() => this.rows().filter((r) => !r.mine));
+
+  protected home() {
+    this.open.set(false);
+    this.store.go('home');
+  }
 
   protected overview() {
     this.open.set(false);
