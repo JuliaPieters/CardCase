@@ -60,6 +60,11 @@ export interface GameConfig {
   cardFacts?: (card: any, lang: string) => { label: string; value: string; color?: string }[];
   /** Rules text of the card, in its language. */
   cardText?: (card: any, lang: string) => string;
+  /**
+   * Decoration material of its own: backgrounds ({ id, name, fill: CSS background }), pixel stickers ([icon, colour]) and
+   * text stickers ([text, background, colour]). Without it the shared Cardcase set is used.
+   */
+  deco?: { backgrounds: { id: string; name: string; fill: string }[]; stickers: [string, string][]; texts: [string, string, string][] };
   /** Extra 8×8 pixel icons for the recipe tiles (rows of '#' and '.'). */
   icons?: Record<string, string[]>;
 }

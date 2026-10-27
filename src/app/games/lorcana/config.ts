@@ -93,7 +93,27 @@ export const config: GameConfig = {
     return out;
   },
   cardText: (c, lang) => c.text?.[lang] || c.text?.EN || '',
+  deco: {
+    backgrounds: [
+      { id: 'paper', name: 'Papier', fill: 'radial-gradient(rgba(23,39,87,.08) .7px,transparent 1.2px) 0 0/7px 9px,radial-gradient(rgba(226,181,58,.18) 1px,transparent 1.5px) 0 0/31px 37px,linear-gradient(#F6F1E4,#F6F1E4)' },
+      { id: 'ink', name: 'Inktspetters', fill: 'radial-gradient(14% 18% at 18% 22%,rgba(35,58,122,.45),transparent 70%),radial-gradient(6% 8% at 30% 34%,rgba(35,58,122,.35),transparent 70%),radial-gradient(16% 20% at 78% 70%,rgba(58,91,217,.35),transparent 70%),radial-gradient(4% 5% at 66% 58%,rgba(226,181,58,.9),transparent 70%),linear-gradient(#F6F1E4,#F6F1E4)' },
+      { id: 'stars', name: 'Sterrenhemel', fill: 'radial-gradient(rgba(226,181,58,.95) 1.2px,transparent 1.8px) 0 0/23px 29px,radial-gradient(rgba(246,241,228,.7) .8px,transparent 1.3px) 11px 7px/17px 19px,linear-gradient(160deg,#172757,#0E1838)' },
+      { id: 'gold', name: 'Gouden kader', fill: 'linear-gradient(#E2B53A,#E2B53A) top/100% 7px no-repeat,linear-gradient(#E2B53A,#E2B53A) bottom/100% 7px no-repeat,linear-gradient(#E2B53A,#E2B53A) left/7px 100% no-repeat,linear-gradient(#E2B53A,#E2B53A) right/7px 100% no-repeat,linear-gradient(#FFFDF7,#FFFDF7)' },
+      { id: 'page', name: 'Boekpagina', fill: 'linear-gradient(90deg,rgba(23,39,87,.18),transparent 12%),repeating-linear-gradient(0deg,rgba(23,39,87,.1) 0 1px,transparent 1px 18px),linear-gradient(#FBF7EC,#FBF7EC)' },
+      { id: 'night', name: 'Inktblauw', fill: 'linear-gradient(160deg,#233A7A,#172757)' },
+    ],
+    stickers: [['star', '#E2B53A'], ['crown', '#E2B53A'], ['pen', '#233A7A'], ['ribbon', '#3A5BD9'], ['sparkle', '#C9B6FF'], ['drop', '#233A7A']],
+    texts: [
+      ['ENCHANTED ✦', '#172757', '#E2B53A'],
+      ['NIEUW!', '#E2B53A', '#172757'],
+      ['FAVORIET', '#FFFDF7', '#172757'],
+      ['FOIL ✦', 'linear-gradient(115deg,#ffb3d9,#ffe9a3,#b8f5d0,#a9dcff)', '#172757'],
+      ['PROMO', '#3A5BD9', '#FFFDF7'],
+    ],
+  },
   icons: {
+    pen: ['......##', '.....###', '....###.', '...###..', '..###...', '.###....', '.##.....', '#.......'],
+    ribbon: ['.######.', '.######.', '.######.', '.######.', '.##..##.', '.#....#.', '........', '........'],
     drop: ['...#....', '...#....', '..###...', '.#####..', '.##.##..', '#######.', '.#####..', '..###...'],
     book: ['.##..##.', '#..##..#', '#..##..#', '#..##..#', '#..##..#', '#..##..#', '.##..##.', '........'],
     crown: ['........', '#..#..#.', '##.#.##.', '#######.', '#######.', '.#####..', '.#####..', '........'],

@@ -81,6 +81,12 @@ export function applyGameConfig(config: import('../games/config').GameConfig) {
   for (const [k, [a, q]] of Object.entries(BASE_STEPT)) STEPT[k] = [a.replace('...', config.noun.one), q.replace('...', config.noun.one)];
   Object.assign(STEPT, config.stepTitles || {});
   Object.assign(PIX, config.icons || {});
+  // Decoration material of the department (backgrounds and stickers); the shared set when it has none.
+  if (config.deco) {
+    BGS.splice(1, BGS.length - 1, ...config.deco.backgrounds);
+    STK_ICONS.splice(0, STK_ICONS.length, ...config.deco.stickers);
+    STK_TEXT.splice(0, STK_TEXT.length, ...config.deco.texts);
+  }
   DEFRECIPE.type = config.recipes[0][0];
   DEFRECIPE.ptype = Object.keys(config.types)[0];
 }
