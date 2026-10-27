@@ -22,6 +22,7 @@ export const prefValue = (noun: string): [string, string, string, string] => ['v
 
 /** The config of a department that isn't built yet: only the shared recipes. */
 export const STUB_RECIPES = {
+  screenName: 'OVERZICHT',
   noun: { one: 'kaart', many: 'kaarten' },
   recipes: [MASTER, ILLUSTRATOR, EMPTY],
   recipeSteps: SHARED_STEPS,

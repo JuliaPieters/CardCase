@@ -1178,6 +1178,9 @@ export class CardcaseStore {
       ...this.recipeVals(),
       wide: st.wide, narrow: !st.wide, lcdPixels: this.lcdPixels,
       isHome: screen === 'home', isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
+      // What the department calls its "screen", and the editions its scanner reads ("Engelse, Duitse en Japanse").
+      screenName: this.catalog.config?.screenName || 'DEX-SCHERM',
+      scanLangs: (l => l.length > 1 ? l.slice(0, -1).join(', ') + ' en ' + l[l.length - 1] : l.join(''))(LANGS.map(x => (LNAME[x] || x).replace(/ees$/, 'es').replace(/s$/, 'se'))),
       goHome: () => this.go('home'), navAll, navL: navAll.slice(0, 2), navR: navAll.slice(2, 4), navFriends: navAll[4],
       setOpts: SETS.map(x => ({ key: x.code, code: x.code, name: x.name })),
       setGroups: this.setGroups(st.screen === 'search' ? st.fLangs : []),

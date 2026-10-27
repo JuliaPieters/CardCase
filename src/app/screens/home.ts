@@ -19,7 +19,7 @@ import { Led, Leds, Trend } from '../shared/bits';
           class="flex-[2_1_340px] bg-device border-2 border-line rounded-[14px_14px_44px_14px] pt-3 px-[14px] pb-4 shadow-[4px_4px_0_var(--line)] flex flex-col gap-[10px]"
         >
           <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[var(--device-muted)] tracking-[.12em]">
-            <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">DEX-SCHERM</span>
+            <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">{{ s.screenName }}</span>
           </div>
           <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] p-[18px] flex flex-wrap gap-x-8 gap-y-5 overflow-hidden">
             <div class="flex flex-col gap-1 min-w-[150px]">
@@ -35,7 +35,7 @@ import { Led, Leds, Trend } from '../shared/bits';
                   <span class="w-6">{{ l.code }}</span>
                   <div class="flex-1 h-[14px] bg-lcd-edge border-2 border-lcd-mid rounded-[2px] overflow-hidden">
                     <div
-                      class="h-full bg-[repeating-linear-gradient(90deg,#0F380F_0_6px,#306230_6px_8px)]"
+                      class="h-full bg-[repeating-linear-gradient(90deg,var(--display-text)_0_6px,var(--display-muted)_6px_8px)]"
                       [style.width.%]="l.pct"
                     ></div>
                   </div>
@@ -50,7 +50,7 @@ import { Led, Leds, Trend } from '../shared/bits';
           <div class="flex items-center gap-[10px] px-1">
             <div class="w-[34px] h-[10px] rounded-md bg-[#4A4E58] -rotate-20"></div>
             <div class="w-[34px] h-[10px] rounded-md bg-[#4A4E58] -rotate-20"></div>
-            <div class="ml-auto w-16 h-4 bg-[repeating-linear-gradient(110deg,transparent_0_6px,#1A1C22_6px_9px)]"></div>
+            <div class="ml-auto w-16 h-4 bg-[repeating-linear-gradient(110deg,transparent_0_6px,var(--coal)_6px_9px)]"></div>
           </div>
         </div>
         <div
@@ -58,7 +58,7 @@ import { Led, Leds, Trend } from '../shared/bits';
         >
           <cc-leds />
           <div class="text-[16px] font-bold leading-[1.4] text-pretty">
-            Richt je camera op een kaart. Cardcase herkent Engelse, Duitse, Japanse en Chinese edities.
+            Richt je camera op een kaart. Cardcase herkent {{ s.scanLangs }} edities.
           </div>
           <button
             (click)="s.goScan()"
@@ -129,7 +129,7 @@ import { Led, Leds, Trend } from '../shared/bits';
               @if (x.notDone) {
                 <div class="h-[18px] bg-lcd border-2 border-line rounded p-[2px]">
                   <div
-                    class="h-full bg-[repeating-linear-gradient(90deg,#306230_0_7px,transparent_7px_9px)]"
+                    class="cc-progress-fill h-full bg-[repeating-linear-gradient(90deg,var(--display-muted)_0_7px,transparent_7px_9px)]"
                     [style.width.%]="x.pct"
                   ></div>
                 </div>

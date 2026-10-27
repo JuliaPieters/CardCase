@@ -32,6 +32,8 @@ export interface GameConfig {
   stepTitles?: Record<string, [string, string]>;
   /** Which version a recipe picks when it lists one card each: [key, label, description, icon]. */
   prefs: [string, string, string, string][];
+  /** Label of the department's "screen" on the dashboard (Pokémon: DEX-SCHERM). */
+  screenName: string;
   /** Example for the "describe your binder" field of the recipe screen. */
   recipeExample?: string;
   /** Extra 8×8 pixel icons for the recipe tiles (rows of '#' and '.'). */

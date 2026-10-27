@@ -68,7 +68,7 @@ import { Card } from '../shared/card';
             </button>
             <div class="flex items-center gap-[10px]">
               <div class="flex-1 h-4 bg-lcd border-2 border-line rounded p-[2px]">
-                <div class="h-full bg-[repeating-linear-gradient(90deg,#306230_0_6px,transparent_6px_8px)]" [style.width.%]="b.pct"></div>
+                <div class="h-full bg-[repeating-linear-gradient(90deg,var(--display-muted)_0_6px,transparent_6px_8px)]" [style.width.%]="b.pct"></div>
               </div>
               <span class="font-pixel font-semibold text-[14px] leading-none w-[38px] text-right">{{ b.pct }}%</span>
             </div>

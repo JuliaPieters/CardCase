@@ -69,7 +69,7 @@ import { Led } from '../shared/bits';
           </label>
         </div>
         <div
-          class="relative flex-1 mx-3 rounded-[18px] border-2 border-black overflow-hidden bg-[repeating-linear-gradient(45deg,#1E2128_0_12px,#1A1C22_12px_24px)]"
+          class="relative flex-1 mx-3 rounded-[18px] border-2 border-black overflow-hidden bg-[repeating-linear-gradient(45deg,#1E2128_0_12px,var(--coal)_12px_24px)]"
         >
           <video #video class="absolute inset-0 w-full h-full object-cover" autoplay muted playsinline></video>
           <div #guide class="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-[min(62%,280px)] max-h-[80%] aspect-[63/88]">

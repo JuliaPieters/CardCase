@@ -32,6 +32,7 @@ export const config: GameConfig = {
   },
   basicRarities: ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary'],
   recipeExample: 'alles uit De kleine zeemeermin, één per personage, liefst Enchanted',
+  screenName: 'VERHALENBOEK',
   noun: { one: 'personage', many: 'personages' },
   recipes: [
     MASTER,
