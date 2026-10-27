@@ -527,7 +527,7 @@ body.cc-dark {
 
 /*
  * Lorcana decorations (the same elements as Pokémon's handheld, dressed as a storybook): the lens becomes a gold
- * medallion with a star, the d-pad goes, the grille becomes a row of gold stars, and the home background is paper
+ * medallion with a star, the grille becomes a row of gold stars, and the home background is paper
  * with ink splashes turning into small gold stars. Progress bars fill with ink and end in a gold star.
  */
 [data-game='lorcana'] .cc-lens {
@@ -540,9 +540,6 @@ body.cc-dark {
   inset: 22%;
   background: #fffdf7;
   clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-}
-[data-game='lorcana'] .cc-dpad {
-  visibility: hidden;
 }
 [data-game='lorcana'] .cc-grille {
   background: radial-gradient(circle, var(--highlight) 0 2px, transparent 2.5px) 0 50% / 14px 14px repeat-x;
