@@ -6,7 +6,7 @@ import { CatalogService } from './catalog';
 import { IMG_DATA, compressImage, deleteLocalImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
 import { FriendsService } from './friends';
 import { binderFromSaved, deserializeUser, freshUser, ownedFromSaved, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, shareForm, writeLocal } from './persist';
-import { NOUN, foilOf, totFoil, ownedValue, spKeys, spLabel, SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
+import { NOUN, GAME, foilOf, totFoil, ownedValue, spKeys, spLabel, SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
 /**
  * Central app state + all derived view values, ported from the Cardcase design prototype.
@@ -108,7 +108,7 @@ export class CardcaseStore {
     if (!CATALOG_MOCK) { this.account = this.auth.enabled ? lastAccount() : null; return deserializeUser(readLocal(this.account)) ?? freshUser(); }
     const r = initOwned(); const now = Date.now(); const added = {};
     Object.entries(r.d).forEach(([id, days]) => { added[id] = now - days * 864e5; });
-    return { owned: r.o, added, binders: initBinders(r.o), dark: false, games: ['pokemon'], otherGames: {}, summary: {} };
+    return { owned: r.o, added, binders: initBinders(r.o), dark: false, games: ['pokemon'], otherGames: {}, summary: {}, history: {} };
   }
 
   private initialState() { const u = this.initialUser(); return {
@@ -184,6 +184,13 @@ export class CardcaseStore {
       const st = this.state; if (CATALOG_MOCK || !this.syncReadySig() || st.foreign || st.linkLoading || st.importOffer) return;
       if (st.games?.length) { if (st.screen === 'onboarding' && this.autoOnboarding) { this.autoOnboarding = false; untracked(() => this.go('home')); } return; }
       if (st.screen !== 'onboarding') { this.autoOnboarding = true; untracked(() => this.go('onboarding')); }
+    });
+    // Today's value of this department in the history (the value charts), once the collection is known.
+    effect(() => {
+      const st = this.state; const v = this.vals().totalValue; if (CATALOG_MOCK || !this.syncReadySig() || v == null) return;
+      const day = dayKey(0); const rounded = Math.round(v * 100) / 100;
+      if (st.history?.[day]?.[GAME] === rounded) return;
+      untracked(() => this.setState(s => ({ history: trimHistory({ ...(s.history || {}), [day]: { ...(s.history?.[day] || {}), [GAME]: rounded } }) })));
     });
     // Fetch Cardmarket prices for the cards that are owned or on screen.
     effect(() => {
@@ -911,7 +918,8 @@ export class CardcaseStore {
   }
   valueVals() {
     const st = this.state; const { owned } = st; const own = CARDS.filter(c => tot(owned[c.id]) > 0);
-    const V = d => own.reduce((a, c) => a + ownedValue(c, owned[c.id], d), 0);
+    // Recorded value of a day when there is one (the history), otherwise worked out from today's collection and prices.
+    const V = d => { const h = d > 0 ? st.history?.[dayKey(d)]?.[GAME] : undefined; return h != null ? h : own.reduce((a, c) => a + ownedValue(c, owned[c.id], d), 0); };
     const v0 = V(0), v7 = V(7); const wk = (v0 - v7) / (v7 || 1) * 100;
     const bars = vals => { const mn = Math.min(...vals), mx = Math.max(...vals); return vals.map((v, i) => ({ key: i, h: Math.round(12 + 88 * (v - mn) / ((mx - mn) || 1)), bg: i === vals.length - 1 ? 'var(--display-text)' : 'var(--display-muted)' })); };
     const R = st.valRange; const ds = R === 'week' ? range(0, 7).map(i => 6 - i) : R === 'month' ? range(0, 30).map(i => 29 - i) : range(0, 52).map(i => (51 - i) * 7);
@@ -1300,9 +1308,9 @@ function sharp(cv) {
 }
 
 /** The parts of the state that are saved (core/persist): a change in one of them is saved. */
-const savedParts = st => [st.owned, st.added, st.binders, st.dark, st.games, st.otherGames, st.summary];
+const savedParts = st => [st.owned, st.added, st.binders, st.dark, st.games, st.otherGames, st.summary, st.history];
 /** A user's data (core/persist UserData) as state. */
-const userParts = u => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, games: u.games, otherGames: u.otherGames, summary: u.summary });
+const userParts = u => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, games: u.games, otherGames: u.otherGames, summary: u.summary, history: u.history || {} });
 
 /** Stories (franchises) of the catalog's cards with their number of cards, most first; empty for games without them. */
 let storyCache = { n: -1, first: null, list: [] };
@@ -1312,3 +1320,8 @@ function stories(): [string, number][] {
   storyCache = { n: CARDS.length, first: CARDS[0], list: Object.entries(n).sort((a: any, b: any) => b[1] - a[1]) };
   return storyCache.list;
 }
+
+/** "2026-10-27", `d` days ago (local date). */
+const dayKey = d => { const t = new Date(Date.now() - d * 864e5); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+/** The value history keeps the last 400 days. */
+const trimHistory = h => { const keys = Object.keys(h).sort(); return keys.length <= 400 ? h : Object.fromEntries(keys.slice(-400).map(k => [k, h[k]])); };

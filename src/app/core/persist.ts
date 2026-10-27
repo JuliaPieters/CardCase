@@ -33,6 +33,8 @@ export interface UserData {
   otherGames: Record<string, SavedGame>;
   /** Cards and value per department, for the switcher and the overview without loading every catalog. */
   summary: Record<string, GameSummary>;
+  /** Value per day ("2026-10-27" → department → EUR), recorded when the app is used: the value charts read it. */
+  history: Record<string, Record<string, number>>;
 }
 
 export interface SavedGame {
@@ -47,7 +49,7 @@ export interface GameSummary {
   value: number;
 }
 
-/** JSON-safe form: { v: 2, games, lastGame, dark, data: {game: SavedGame}, summary, savedAt, by? }. */
+/** JSON-safe form: { v: 2, games, lastGame, dark, data: {game: SavedGame}, summary, history, savedAt, by? }. */
 export type SavedUser = Record<string, any>;
 
 const zeros = () => Object.fromEntries(LANGS.map((l) => [l, 0]));
@@ -55,7 +57,7 @@ const denseOwned = () => CARDS.map(() => zeros());
 
 /** Empty collection with one empty binder to start from. */
 export function freshUser(): UserData {
-  return { owned: denseOwned(), added: {}, binders: [firstBinder()], dark: false, games: [], otherGames: {}, summary: {} };
+  return { owned: denseOwned(), added: {}, binders: [firstBinder()], dark: false, games: [], otherGames: {}, summary: {}, history: {} };
 }
 
 const firstBinder = () => Object.assign(mkB('b1', 'Mijn eerste binder', 9, 2, '#E3350D', []), { kind: 'free', desc: 'Vrije indeling', game: GAME });
@@ -68,7 +70,7 @@ export function serializeUser(st: UserData): SavedUser {
   const games = [...(st.games || [])];
   if (!games.includes(GAME) && Object.keys(mine.owned).length) games.push(GAME);
   // JSON round trip drops `undefined`, which Firestore rejects.
-  return JSON.parse(JSON.stringify({ v: 2, games, lastGame: GAME, dark: !!st.dark, data, summary, savedAt: Date.now() }));
+  return JSON.parse(JSON.stringify({ v: 2, games, lastGame: GAME, dark: !!st.dark, data, summary, history: st.history || {}, savedAt: Date.now() }));
 }
 
 function serializeGame(st: UserData): SavedGame {
@@ -177,7 +179,7 @@ export function deserializeUser(raw: SavedUser | null): UserData | null {
   // Departments with cards in them count as chosen, also when the list itself is missing or empty.
   const games = [...(u.games || [])];
   for (const [g, d] of Object.entries(u.data || {})) if (!games.includes(g) && Object.keys((d as SavedGame).owned || {}).length) games.push(g);
-  return { owned, added, binders: binders.length ? binders : [firstBinder()], dark: !!u.dark, games, otherGames, summary: u.summary || {} };
+  return { owned, added, binders: binders.length ? binders : [firstBinder()], dark: !!u.dark, games, otherGames, summary: u.summary || {}, history: u.history || {} };
 }
 
 /** Number of distinct cards in a saved collection, over all departments. */

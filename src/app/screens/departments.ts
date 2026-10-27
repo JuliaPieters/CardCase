@@ -110,6 +110,18 @@ export class OnboardingScreen {
           }
         </div>
       </div>
+      <div class="panel p-4 flex flex-col gap-3">
+        <div class="kicker">WAARDE · LAATSTE 30 DAGEN</div>
+        @if (o.bars.length > 1) {
+          <div class="flex items-end gap-[3px] h-24">
+            @for (b of o.bars; track b.day) {
+              <div class="flex-1 rounded-t-[3px] bg-red" [style.height.%]="b.h" [style.opacity]="b.last ? 1 : 0.55" [title]="b.label"></div>
+            }
+          </div>
+        } @else {
+          <div class="text-[14px] font-bold text-muted">Je waardegrafiek groeit vanaf vandaag mee.</div>
+        }
+      </div>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
         @for (t of o.tiles; track t.game) {
           <button
@@ -168,7 +180,17 @@ export class OverviewScreen {
       };
     });
     const total = rows.reduce((a, r) => a + r.value, 0);
+    // Total per day from the recorded history: a department missing on a day counts with its last known value.
+    const hist = st.history || {};
+    const days = Object.keys(hist).sort().slice(-30);
+    const last: Record<string, number> = {};
+    const totals = days.map((day) => {
+      for (const [g, v] of Object.entries(hist[day])) last[g] = v as number;
+      return { day, v: rows.reduce((a, r) => a + (last[r.game] ?? 0), 0) };
+    });
+    const mx = Math.max(...totals.map((t) => t.v), 0.01);
     return {
+      bars: totals.map((t, i) => ({ day: t.day, h: Math.max(4, Math.round((t.v / mx) * 100)), last: i === totals.length - 1, label: t.day + ' · ' + eur(t.v) })),
       value: eur(total),
       cards: rows.reduce((a, r) => a + r.cards, 0),
       tiles: rows.map((r) => ({
