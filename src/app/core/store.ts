@@ -53,7 +53,10 @@ export class CardcaseStore {
   /** Firebase uid whose data is in the state, or null for the guest collection. */
   private account: string | null = null;
   /** False while an account's data is loading (or failed to load): nothing gets saved then. */
-  private syncReady = false;
+  /** The collection to show is known (loaded, or the guest's); a signal so effects can wait for it. */
+  private readonly syncReadySig = signal(false);
+  private get syncReady() { return this.syncReadySig(); }
+  private set syncReady(v: boolean) { this.syncReadySig.set(v); }
   /** Stops listening for changes to the account made on other devices. */
   private unwatch: (() => void) | null = null;
   /** A change on this device that hasn't reached the server yet. */
@@ -171,6 +174,11 @@ export class CardcaseStore {
     effect(() => {
       const u = this.auth.user(); const ready = this.auth.ready();
       if (!CATALOG_MOCK && ready) untracked(() => this.onAuth(u ? u.uid : null, u));
+    });
+    // Someone who hasn't chosen what they collect (a new account or guest) starts with "Wat verzamel jij?".
+    effect(() => {
+      const st = this.state; if (CATALOG_MOCK || !this.syncReadySig() || st.games?.length || st.foreign || st.linkLoading || st.importOffer) return;
+      if (st.screen !== 'onboarding') untracked(() => this.go('onboarding'));
     });
     // Fetch Cardmarket prices for the cards that are owned or on screen.
     effect(() => {
@@ -907,7 +915,7 @@ export class CardcaseStore {
     const eb = this.curB();
     return {
       isValue: st.screen === 'value', goValue: () => this.go('value'), priceSource: 'Prijzen via Cardmarket · bijgewerkt op ' + UPDATED,
-      vTotal: eur(v0), vCount: own.reduce((a, c) => a + tot(owned[c.id]), 0) + ' KAARTEN · ' + own.length + ' UNIEK',
+      vTotal: eur(v0), totalValue: v0, vCount: own.reduce((a, c) => a + tot(owned[c.id]), 0) + ' KAARTEN · ' + own.length + ' UNIEK',
       vc: { chg: pctf(wk), up: wk >= 0, down: wk < 0, ...chgStyle(wk) }, vcl: { chg: pctf(wk), up: wk >= 0, down: wk < 0, ...chgStyle(wk, true) },
       monthBars: bars(range(0, 30).map(i => V(29 - i))), vBars: bars(vs),
       vTabs: [['week', 'WEEK'], ['month', 'MAAND'], ['year', 'JAAR']].map(([k, l]) => ({ key: k, label: l, bg: R === k ? 'var(--display-text)' : 'transparent', fg: R === k ? 'var(--display)' : 'var(--display-text)', select: () => this.setState({ valRange: k }) })),
@@ -1189,7 +1197,7 @@ export class CardcaseStore {
       ...this.decoVals(),
       ...this.recipeVals(),
       wide: st.wide, narrow: !st.wide, lcdPixels: this.lcdPixels,
-      isHome: screen === 'home', isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
+      isHome: screen === 'home', isOnboarding: screen === 'onboarding', isOverview: screen === 'overview', goOverview: () => this.go('overview'), isFriends: screen === 'friends' || screen === 'friend', isSearch: screen === 'search', isDetail: screen === 'detail', isColl: screen === 'collection', isBinders: screen === 'binders', isEditor: screen === 'editor', isScan: screen === 'scan', isViewer: screen === 'viewer',
       // What the department calls its "screen", and the editions its scanner reads ("Engelse, Duitse en Japanse").
       screenName: this.catalog.config?.screenName || 'DEX-SCHERM',
       scanLangs: (l => l.length > 1 ? l.slice(0, -1).join(', ') + ' en ' + l[l.length - 1] : l.join(''))(LANGS.map(x => (LNAME[x] || x).replace(/ees$/, 'es').replace(/s$/, 'se'))),

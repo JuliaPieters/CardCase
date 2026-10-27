@@ -45,6 +45,9 @@ import type { Game } from '../games/types';
             }
           </button>
         }
+        <button (click)="overview()" class="flex items-center gap-3 rounded-[10px] px-2 py-[9px] text-left hover:bg-soft font-extrabold text-[14px]">
+          <span class="icon text-[22px] w-9 text-center">dashboard</span>Mijn Cardcase · alle afdelingen
+        </button>
         @if (more().length) {
           <div class="kicker px-2 pt-2 pb-[6px] border-t-2 border-dashed border-soft mt-1">AFDELING TOEVOEGEN</div>
           @for (g of more(); track g.game) {
@@ -83,6 +86,11 @@ export class GameSwitcher {
   });
   protected readonly mine = computed(() => this.rows().filter((r) => r.mine));
   protected readonly more = computed(() => this.rows().filter((r) => !r.mine));
+
+  protected overview() {
+    this.open.set(false);
+    this.store.go('overview');
+  }
 
   /** Another department loads its own catalog: save what is pending, then open it. */
   protected go(game: Game) {

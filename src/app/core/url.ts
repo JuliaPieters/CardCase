@@ -35,7 +35,7 @@ const RESTORABLE = new Set(['viewer', 'print']);
 
 export function toUrl(st: any): string | null {
   const path = screenPath(st);
-  if (!path || path.startsWith('/vrienden')) return path;
+  if (!path || /^\/(vrienden|welkom|overzicht)/.test(path)) return path;
   return '/' + GAME + (path === '/' ? '' : path);
 }
 
@@ -76,6 +76,10 @@ function screenPath(st: any): string | null {
       return st.friendId ? '/vrienden/' + encodeURIComponent(st.friendId) : '/vrienden';
     case 'scan':
       return '/scan';
+    case 'onboarding':
+      return '/welkom';
+    case 'overview':
+      return '/overzicht';
     default: {
       const sub = BINDER_SUB[st.screen];
       if (!sub) return null;
@@ -99,7 +103,7 @@ export function fromUrl(url: URL, st: any, fresh: boolean): [string, Record<stri
   if (isGame(parts[0])) {
     if (parts[0] !== GAME) return ['game', { game: parts[0], path: url.pathname + url.search }];
     parts.shift();
-  } else if (parts[0] && parts[0] !== 'vrienden' && GAME !== 'pokemon') {
+  } else if (parts[0] && !['vrienden', 'welkom', 'overzicht'].includes(parts[0]) && GAME !== 'pokemon') {
     return ['game', { game: 'pokemon', path: '/pokemon' + url.pathname + url.search }];
   }
   const p = url.searchParams;
@@ -118,6 +122,8 @@ export function fromUrl(url: URL, st: any, fresh: boolean): [string, Record<stri
   }
   if (a === 'collectie') return !b ? ['collection', {}] : b === 'waarde' ? ['value', {}] : null;
   if (a === 'vrienden') return b ? ['friend', { friendId: b }] : ['friends', {}];
+  if (a === 'welkom' && !b) return ['onboarding', {}];
+  if (a === 'overzicht' && !b) return ['overview', {}];
   // Opened fresh, the scanner would ask for the camera before anything is on screen.
   if (a === 'scan' && !b) return [fresh ? 'home' : 'scan', {}];
   if (a !== 'binders') return null;
