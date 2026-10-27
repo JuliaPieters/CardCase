@@ -532,7 +532,8 @@ export class CardcaseStore {
     const spHit = new Set<number>(); for (let d = 1; d <= 1025; d++) { const n = SP[d]?.name; if (n && (n.EN.toLowerCase().includes(ql) || n.DE.toLowerCase().includes(ql))) spHit.add(d); }
     // Some Japanese and many Chinese cards have no dex number: match those on the Pokémon's name in that script.
     const spNative = spHit.size > 30 ? [] : [...new Set([...spHit].flatMap(d => [SP[d].name.JA, SP[d].name.ZH]).filter(n => n && !/^[\x00-\x7f]*$/.test(n)))];
-    return c => c.numStr.includes(ql) || spHit.has(c.sp) || (c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n))) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql));
+    // Also the film or series a card is from (Lorcana).
+    return c => c.numStr.includes(ql) || (c.story && c.story.toLowerCase().includes(ql)) || spHit.has(c.sp) || (c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n))) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql));
   }
   /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
   deleteBinder(id) {
@@ -1141,6 +1142,7 @@ export class CardcaseStore {
     // The department's own filters (Lorcana: ink, card type, cost…), each a select with a value or empty.
     const gameFilters = this.catalog.config?.filters || []; const fx = st.fx || {};
     const fxMatch = c => gameFilters.every(f => !fx[f.key] || f.match(c, fx[f.key]));
+    const fxView = f => ({ key: f.key, label: f.label, value: fx[f.key] || '', options: f.options(), onChange: e => this.setState(x => ({ fx: { ...(x.fx || {}), [f.key]: e.target.value } })) });
     const resultsRaw = CARDS.filter(c => fxMatch(c) && (!st.fSet || c.set === st.fSet) && (!st.fRar || (st.fRar === '?' ? !c.rarityName && c.rarity === 'X' : c.rarityName ? c.rarityName === st.fRar : c.rarity === st.fRar)) && langs.some(l => c.avail.includes(l)) && qMatch(c));
     const showLang = c => { const l = st.fLangs.find(x => c.avail.includes(x)); return l || c.avail[0]; };
     const byValue = (a, b) => (b.trend ?? -1) - (a.trend ?? -1);
@@ -1218,6 +1220,8 @@ export class CardcaseStore {
       recent, setProgress,
       q: st.q, onQ: e => this.setState({ q: e.target.value }), fSet: st.fSet, onFSet: e => this.setState({ fSet: e.target.value }), fRar: st.fRar, onFRar: e => this.setState({ fRar: e.target.value }),
       langChips, results, resultsShown: results.slice(0, st.searchLimit).map(toResult), hasMoreResults: results.length > st.searchLimit, moreResults: () => this.setState(s => ({ searchLimit: s.searchLimit + 60 })), resultCount: `${results.length} ${results.length === 1 ? 'resultaat' : 'resultaten'}`,
+      gameFiltersFirst: gameFilters.filter(f => f.first).map(f => fxView(f)), gameFiltersRest: gameFilters.filter(f => !f.first).map(f => fxView(f)),
+      searchPlaceholder: this.catalog.config?.searchPlaceholder || 'Naam of nummer',
       gameFilters: gameFilters.map(f => ({ key: f.key, label: f.label, value: fx[f.key] || '', options: f.options(), onChange: e => this.setState(x => ({ fx: { ...(x.fx || {}), [f.key]: e.target.value } })) })),
       hasFilters: !!(st.q || st.fLangs.length || st.fSet || st.fRar || Object.values(fx).some(Boolean)), clearFilters: () => this.setState({ q: '', fLangs: [], fSet: '', fRar: '', fx: {} }),
       d, dTabs, dOwnRows, dBinders, dSame, hasDSame: dSame.length > 0, dSameName: (SP[dc.sp] || { name: { EN: dc.names.EN } }).name.EN, dSameCount: sameAll.length, hasMoreSame: sameAll.length > st.sameLimit, moreSame: () => this.setState(s => ({ sameLimit: s.sameLimit + 20 })), noDBinders: !dBinders.length, back: () => this.go(st.prev || 'home'),

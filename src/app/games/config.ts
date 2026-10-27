@@ -32,6 +32,8 @@ export interface GameConfig {
   stepTitles?: Record<string, [string, string]>;
   /** Which version a recipe picks when it lists one card each: [key, label, description, icon]. */
   prefs: [string, string, string, string][];
+  /** Placeholder of the search field. */
+  searchPlaceholder?: string;
   /** A card name to show as an example in search fields. */
   exampleName?: string;
   /** Example for the "describe your binder" field of the recipe screen. */
@@ -40,7 +42,7 @@ export interface GameConfig {
    * Extra search filters, each a select: its options as [value, label] (from the loaded catalog), and whether a card
    * matches a chosen value.
    */
-  filters?: { key: string; label: string; options: () => [string, string][]; match: (card: any, value: string) => boolean }[];
+  filters?: { key: string; label: string; /** Before rarity and set (the department's main ones). */ first?: boolean; options: () => [string, string][]; match: (card: any, value: string) => boolean }[];
   /**
    * The card scanner: the language choices (one hides the picker) with the OCR models for the name, where name and
    * number are printed, and how the text read becomes cards.

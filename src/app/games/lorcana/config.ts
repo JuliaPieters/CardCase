@@ -35,6 +35,7 @@ export const config: GameConfig = {
   basicRarities: ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary'],
   recipeExample: 'alles uit The Little Mermaid, één per personage, liefst Enchanted',
   exampleName: 'Ariel of Stitch',
+  searchPlaceholder: 'Naam, nummer of film/serie, bv. Ariel of Frozen',
   scan: {
     // English, French, German and Italian are all Latin script: one model reads them, the printed code says which.
     langs: [{ key: 'EN', label: 'EN·FR·DE·IT', ocr: ['eng'] }],
@@ -67,10 +68,10 @@ export const config: GameConfig = {
     PREF_SET,
   ],
   filters: [
-    { key: 'ink', label: 'Alle inkkleuren', options: () => Object.entries(config.types).map(([k, v]) => [k, v[0]]), match: (c, v) => c.inks.includes(v) },
-    { key: 'cardType', label: 'Alle kaartsoorten', options: () => Object.entries(CARD_TYPES), match: (c, v) => c.cardType === v },
-    { key: 'inkwell', label: 'Inkwell: alle', options: () => [['1', 'Inkwell: ja'], ['0', 'Inkwell: nee']], match: (c, v) => (c.inkwell ? '1' : '0') === v },
+    { key: 'ink', label: 'Alle inkkleuren', first: true, options: () => Object.entries(config.types).map(([k, v]) => [k, v[0]]), match: (c, v) => c.inks.includes(v) },
+    { key: 'cardType', label: 'Alle kaartsoorten', first: true, options: () => Object.entries(CARD_TYPES), match: (c, v) => c.cardType === v },
     { key: 'story', label: 'Alle films en series', options: () => [...new Set(CARDS.map((c) => c.story).filter(Boolean))].sort().map((x) => [x, x]), match: (c, v) => c.story === v },
+    { key: 'inkwell', label: 'Inkwell: alle', options: () => [['1', 'Inkwell: ja'], ['0', 'Inkwell: nee']], match: (c, v) => (c.inkwell ? '1' : '0') === v },
   ],
   cardFacts: (c) => {
     const ink = c.inks.map((i: string) => config.types[i]?.[0] || i).join(' / ');

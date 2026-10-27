@@ -15,7 +15,7 @@ import { Card } from '../shared/card';
         <input
           [value]="s.q"
           (input)="s.onQ($event)"
-          [placeholder]="'Naam of nummer, bv. ' + s.exampleName"
+          [placeholder]="s.searchPlaceholder"
           class="flex-1 min-w-0 border-0 outline-none bg-transparent py-3 text-[16px] font-bold"
         />
       </div>
@@ -33,17 +33,17 @@ import { Card } from '../shared/card';
             </button>
           }
         </div>
-        <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <span class="col-span-2 text-[13px] font-extrabold text-muted w-[46px]">Filter</span>
-          @for (g of s.setGroups; track g.key) {
-            <select class="select w-full sm:w-auto" [class.!border-red]="g.active" (change)="s.onFSet($event)" [attr.aria-label]="g.placeholder">
-              <option value="" [selected]="!g.active">{{ g.placeholder }} ▾</option>
-              @for (o of g.sets; track o.key) {
-                <option [value]="o.code" [selected]="o.code === s.fSet">{{ o.name }}</option>
+        <!-- The department's main filters first (Lorcana: ink, card type), then rarity and set, then the rest. -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          @for (f of s.gameFiltersFirst; track f.key) {
+            <select class="select w-full" [class.!border-red]="!!f.value" (change)="f.onChange($event)" [attr.aria-label]="f.label">
+              <option value="" [selected]="!f.value">{{ f.label }} ▾</option>
+              @for (o of f.options; track o[0]) {
+                <option [value]="o[0]" [selected]="o[0] === f.value">{{ o[1] }}</option>
               }
             </select>
           }
-          <select class="select w-full sm:w-auto" (change)="s.onFRar($event)">
+          <select class="select w-full" [class.!border-red]="!!s.fRar" (change)="s.onFRar($event)" aria-label="Zeldzaamheid">
             <option value="" [selected]="!s.fRar">Alle zeldzaamheden ▾</option>
             @for (g of s.rarGroups; track g.key) {
               <optgroup [label]="g.label">
@@ -53,27 +53,37 @@ import { Card } from '../shared/card';
               </optgroup>
             }
           </select>
-          @for (f of s.gameFilters; track f.key) {
-            <select class="select w-full sm:w-auto" [class.!border-red]="!!f.value" (change)="f.onChange($event)" [attr.aria-label]="f.label">
+          @for (g of s.setGroups; track g.key) {
+            <select class="select w-full" [class.!border-red]="g.active" (change)="s.onFSet($event)" [attr.aria-label]="g.placeholder">
+              <option value="" [selected]="!g.active">{{ g.placeholder }} ▾</option>
+              @for (o of g.sets; track o.key) {
+                <option [value]="o.code" [selected]="o.code === s.fSet">{{ o.name }}</option>
+              }
+            </select>
+          }
+          @for (f of s.gameFiltersRest; track f.key) {
+            <select class="select w-full" [class.!border-red]="!!f.value" (change)="f.onChange($event)" [attr.aria-label]="f.label">
               <option value="" [selected]="!f.value">{{ f.label }} ▾</option>
               @for (o of f.options; track o[0]) {
                 <option [value]="o[0]" [selected]="o[0] === f.value">{{ o[1] }}</option>
               }
             </select>
           }
-          <select class="select w-full sm:w-auto" [value]="s.fSort" (change)="s.onFSort($event)">
+        </div>
+      </div>
+      <div class="flex flex-wrap justify-between items-center gap-[10px] font-extrabold text-[14px] text-muted">
+        <span>{{ s.resultCount }}</span>
+        <div class="flex items-center gap-3">
+          @if (s.hasFilters) {
+            <button (click)="s.clearFilters()" class="tap bg-transparent border-0 text-red font-extrabold">Wis filters</button>
+          }
+          <select class="select" [value]="s.fSort" (change)="s.onFSort($event)" aria-label="Sorteren">
             <option value="">Sorteer: set ▾</option>
             <option value="value">Sorteer: waarde ▾</option>
             <option value="new">Sorteer: nieuwste release ▾</option>
             <option value="old">Sorteer: oudste release ▾</option>
           </select>
         </div>
-      </div>
-      <div class="flex justify-between items-center gap-[10px] font-extrabold text-[14px] text-muted">
-        <span>{{ s.resultCount }}</span>
-        @if (s.hasFilters) {
-          <button (click)="s.clearFilters()" class="tap bg-transparent border-0 text-red font-extrabold">Wis filters</button>
-        }
       </div>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(clamp(108px,9vw,170px),1fr))] gap-x-[14px] gap-y-[18px]">
         @for (r of s.resultsShown; track r.key) {

@@ -71,7 +71,8 @@ export const config: GameConfig = {
     ['ZH', 'Chinees', 'Chinese sets', ['ZH']],
   ],
   recipeExample: 'alle Kanto-Pokémon, één per Pokémon, liefst full art',
-  exampleName: 'Pikachu, ピカチュウ of 皮卡丘',
+  exampleName: 'Pikachu',
+  searchPlaceholder: 'Naam of nummer, bv. Pikachu, ピカチュウ of 皮卡丘',
   scan: {
     langs: [
       { key: 'EN', label: 'EN·DE', ocr: ['eng'] },

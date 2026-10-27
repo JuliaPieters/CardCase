@@ -29,6 +29,8 @@ export interface CardSource {
   loadCatalog(): Promise<LoadedCatalog>;
   /** Prices for these cards (from the loaded catalog), by card key; cards without a price are left out. */
   getPrices(cards: any[]): Promise<Record<CardKey, PriceEntry>>;
+  /** Prices come in one download for every card (Lorcana): fetch them all at once, so sorting by value works. */
+  readonly bulkPrices?: boolean;
 }
 
 /** Static facts about a department: enough for the switcher, onboarding and overview, without loading the game. */

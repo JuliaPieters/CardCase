@@ -10,6 +10,7 @@ const PRICE_GUIDE = 'cardmarket/priceGuide/price_guide_19.json';
 /** Lorcana cards from public/catalogs/lorcana.json; Cardmarket prices (EUR), regular and foil. */
 export class LorcanaSource implements CardSource {
   readonly game = 'lorcana' as const;
+  readonly bulkPrices = true;
   private guide?: Promise<Map<number, any>>;
 
   async loadCatalog(): Promise<LoadedCatalog> {

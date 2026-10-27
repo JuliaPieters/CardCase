@@ -49,6 +49,7 @@ export class CatalogService {
       setCatalog(sets, cards, today());
       this.applyCachedPrices();
       this.sourceKind.set('catalog');
+      if (mod.source.bulkPrices) this.ensurePrices(CARDS.map((c) => c.id));
     } catch (err) {
       // Pokémon falls back to the prototype's fictional catalog (offline, tests); other games start empty.
       console.warn('[catalog] catalogus niet geladen', err);
