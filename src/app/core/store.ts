@@ -1084,6 +1084,8 @@ export class CardcaseStore {
     if (b) this.setState({ linkLoading: true });
     if (b) this.friends.publicBinder(b).finally(() => this.setState({ linkLoading: false })).then(pb => {
       if (!pb) { this.toast('Deze link werkt niet (meer)'); return; }
+      // A binder of another department opens there (it needs that department's cards).
+      if ((pb.game || 'pokemon') !== GAME) { location.replace('/' + (pb.game || 'pokemon') + '?b=' + encodeURIComponent(b)); return; }
       const binder = binderFromSaved(pb.binder); this.friends.loadImages([binder]).catch(err => console.warn('[share]', err));
       this.openForeign({ binder, owned: ownedFromSaved(pb.owned), by: pb.by, link: true }, null);
     }).catch(err => { console.warn('[share]', err); this.toast('Deze binder kon niet worden geladen'); });

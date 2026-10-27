@@ -31,6 +31,8 @@ export interface Friendship {
 export interface FriendData {
   owned: Record<string, any>;
   binders: any[];
+  /** The other departments (Lorcana…): their collection and the binders shown to friends. */
+  games?: Record<string, { owned: Record<string, any>; binders: any[] }>;
 }
 
 export interface PublicBinder {
@@ -38,6 +40,8 @@ export interface PublicBinder {
   by: string;
   binder: any;
   owned: Record<string, any>;
+  /** Department of the binder; missing on links made before departments (Pokémon). */
+  game?: string;
 }
 
 export const USERNAME = /^[a-z0-9_.]{3,20}$/;
@@ -277,9 +281,16 @@ export class FriendsService {
   async publish(uid: string, saved: Record<string, any>) {
     if (this.uid !== uid) return;
     const { fs, db } = await this.auth.firestore();
+    // Pokémon in the form the version online reads (see persist.shareForm); the other departments under `games`.
     const binders: any[] = saved['binders'] || [];
     const forFriends = binders.filter((b) => b.friends);
-    const byLink = binders.filter((b) => b.shareId);
+    const others = Object.entries((saved['games'] || {}) as Record<string, any>).filter(([g]) => g !== 'pokemon');
+    const gamesShared = Object.fromEntries(others.map(([g, d]) => [g, { owned: d.owned || {}, binders: (d.binders || []).filter((b: any) => b.friends) }]));
+    // Every binder shared by link, with the collection of its own department.
+    const byLink = [
+      ...binders.filter((b) => b.shareId).map((b) => ({ b, owned: saved['owned'] || {} })),
+      ...others.flatMap(([g, d]) => (d.binders || []).filter((b: any) => b.shareId).map((b: any) => ({ b: { ...b, game: g }, owned: d.owned || {} }))),
+    ];
     const writes: Promise<unknown>[] = [];
     const put = (key: string, ref: any, data: any) => {
       const json = JSON.stringify(data);
@@ -292,12 +303,12 @@ export class FriendsService {
       );
     };
 
-    put('shared', fs.doc(db, 'shared', uid), { owned: saved['owned'] || {}, binders: forFriends });
+    put('shared', fs.doc(db, 'shared', uid), { owned: saved['owned'] || {}, binders: forFriends, games: gamesShared });
     const by = this.profile()?.name || this.auth.user()?.displayName || '';
-    for (const b of byLink) {
+    for (const { b, owned: all } of byLink) {
       const inB = new Set(b.slots.filter((x: unknown) => typeof x === 'string' && x.startsWith('U:')).map((x: string) => x.slice(2)));
-      const owned = Object.fromEntries(Object.entries(saved['owned'] || {}).filter(([k]) => inB.has(k)));
-      put('b:' + b.shareId, fs.doc(db, 'publicBinders', b.shareId), { owner: uid, by, binder: b, owned });
+      const owned = Object.fromEntries(Object.entries(all).filter(([k]) => inB.has(k)));
+      put('b:' + b.shareId, fs.doc(db, 'publicBinders', b.shareId), { owner: uid, by, binder: b, owned, game: b.game || 'pokemon' });
     }
 
     // Links that were turned off, or whose binder was deleted.
@@ -306,7 +317,7 @@ export class FriendsService {
     try {
       before = JSON.parse(localStorage.getItem(listKey) || '[]');
     } catch {}
-    const now = byLink.map((b) => b.shareId as string);
+    const now = byLink.map(({ b }) => b.shareId as string);
     for (const id of before.filter((id) => !now.includes(id))) {
       this.published.delete('b:' + id);
       writes.push(fs.deleteDoc(fs.doc(db, 'publicBinders', id)).catch((err) => console.warn('[share]', err)));
@@ -316,7 +327,7 @@ export class FriendsService {
     } catch {}
 
     const data = IMG_DATA();
-    for (const id of imageRefs([...forFriends, ...byLink])) {
+    for (const id of imageRefs([...forFriends, ...Object.values(gamesShared).flatMap((g: any) => g.binders), ...byLink.map(({ b }) => b)])) {
       if (this.imagesPublished.has(id) || !data[id]) continue;
       this.imagesPublished.add(id);
       const ref = fs.doc(db, 'publicImages', id);

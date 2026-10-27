@@ -3,6 +3,7 @@ import { AuthService, authErrorMessage } from '../core/auth';
 import { CARDS, eur, tot } from '../core/data';
 import { FriendData, Friendship, FriendsService, Profile } from '../core/friends';
 import { binderFromSaved, ownedFromSaved } from '../core/persist';
+import { CatalogService } from '../core/catalog';
 import { CardcaseStore, copyText } from '../core/store';
 import { Card } from '../shared/card';
 
@@ -214,6 +215,7 @@ export class FriendsScreen {
   protected readonly store = inject(CardcaseStore);
   protected readonly auth = inject(AuthService);
   protected readonly friends = inject(FriendsService);
+  private readonly catalog = inject(CatalogService);
   protected readonly canShare = typeof navigator !== 'undefined' && !!navigator.share;
 
   protected readonly accepted = computed(() => this.friends.friendships().filter((f) => f.status === 'accepted'));
@@ -237,8 +239,10 @@ export class FriendsScreen {
     { key: 'collection', label: 'Collectie' },
   ] as const;
   protected readonly tab = signal<'binders' | 'collection'>('binders');
-  private readonly owned = computed(() => ownedFromSaved(this.data()?.owned));
-  protected readonly binders = computed(() => (this.data()?.binders || []).map(binderFromSaved));
+  /** What the friend shares in the active department (Pokémon: the top level, the others under `games`). */
+  private readonly part = computed(() => { const d = this.data(); const g = this.catalog.game(); return g === 'pokemon' ? d : d?.games?.[g]; });
+  private readonly owned = computed(() => ownedFromSaved(this.part()?.owned));
+  protected readonly binders = computed(() => (this.part()?.binders || []).map(binderFromSaved));
   protected readonly cards = computed(() => {
     const owned = this.owned();
     return CARDS.filter((c) => tot(owned[c.id]) > 0);
