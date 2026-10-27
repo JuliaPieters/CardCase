@@ -43,6 +43,15 @@ export interface GameConfig {
    * matches a chosen value.
    */
   filters?: { key: string; label: string; options: () => [string, string][]; match: (card: any, value: string) => boolean }[];
+  /**
+   * The card scanner: the language choices (one hides the picker) with the OCR models for the name, where name and
+   * number are printed, and how the text read becomes cards.
+   */
+  scan: {
+    langs: { key: string; label: string; ocr: string[] }[];
+    strips: import('../core/scanner').CardStrips;
+    match: (text: string, opts: { numText?: string; lang?: string; limit?: number; prefer?: Set<number>; expect?: number | null }) => import('../core/text').CardMatch[];
+  };
   /** Game facts shown on the card page (cost, lore…), in the card's language. */
   cardFacts?: (card: any, lang: string) => { label: string; value: string; color?: string }[];
   /** Rules text of the card, in its language. */

@@ -348,8 +348,12 @@ export class CardcaseStore {
   }
   setScan(p) { this.setState(s => ({ scan: { ...s.scan, ...p } })); }
   /** Language of the cards being scanned, chosen in the scanner (EN also covers German cards); remembered on this device. */
-  scanLang(): 'EN' | 'JA' | 'ZH' { let l = null; try { l = localStorage.getItem('cc-scan-lang'); } catch {} return l === 'JA' || l === 'ZH' ? l : 'EN'; }
-  setScanLang(l: 'EN' | 'JA' | 'ZH') { try { localStorage.setItem('cc-scan-lang', l); } catch {} }
+  scanLang(): string { const ls = this.scanProfile().langs; let l = null; try { l = localStorage.getItem('cc-scan-lang'); } catch {} return ls.some(x => x.key === l) ? l : ls[0].key; }
+  setScanLang(l: string) { try { localStorage.setItem('cc-scan-lang', l); } catch {} }
+  /** The active department's scanner settings (games/config.ts). */
+  scanProfile() { return this.catalog.config.scan; }
+  /** OCR models for a scan language of the active department. */
+  scanOcr(l: string) { const ls = this.scanProfile().langs; return (ls.find(x => x.key === l) || ls[0]).ocr; }
   addScan() {
     const s = this.state.scan; const m = s.matches[s.sel]; if (!m) return; const c = CARDS[m.id];
     const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;

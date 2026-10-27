@@ -1,5 +1,5 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
-import { matchCards, type CardMatch } from '../core/card-match';
+import type { CardMatch } from '../core/text';
 import { CardHashes } from '../core/card-hash';
 import { CARD_RATIO, type CameraError, type ScanLang, ScannerService } from '../core/scanner';
 import { CARDS } from '../core/data';
@@ -26,7 +26,7 @@ import { Led } from '../shared/bits';
           </button>
           <div class="flex flex-col gap-[3px]">
             <div class="font-pixel font-semibold text-[18px] leading-none tracking-[.06em]">SCANNER</div>
-            <div class="flex gap-[3px]" role="radiogroup" aria-label="Taal van de kaarten">
+            <div class="flex gap-[3px]" role="radiogroup" aria-label="Taal van de kaarten" [class.hidden]="langs.length < 2">
               @for (l of langs; track l.key) {
                 <button
                   (click)="setLang(l.key)"
@@ -198,11 +198,9 @@ export class ScanOverlay implements OnDestroy {
   protected readonly torchAvail = signal(false);
   /** Language of the cards: the search is limited to it (and Japanese and Chinese text needs its own OCR model). */
   protected readonly lang = signal<ScanLang>(this.store.scanLang());
-  protected readonly langs: { key: ScanLang; label: string }[] = [
-    { key: 'EN', label: 'EN·DE' },
-    { key: 'JA', label: 'JA' },
-    { key: 'ZH', label: 'ZH' },
-  ];
+  /** The department's language choices (a picker only when there is more than one). */
+  protected readonly langs = this.store.scanProfile().langs;
+  private readonly profile = this.store.scanProfile();
 
   protected readonly status = computed(() => {
     const cam = this.cam();
@@ -237,7 +235,7 @@ export class ScanOverlay implements OnDestroy {
   private skip = { name: '', until: 0 };
 
   constructor() {
-    this.scanner.setLanguage(this.lang());
+    this.scanner.setLanguage(this.store.scanOcr(this.lang()));
     afterNextRender(() => {
       void this.start();
       this.warmUp();
@@ -248,7 +246,7 @@ export class ScanOverlay implements OnDestroy {
     if (l === this.lang()) return;
     this.lang.set(l);
     this.store.setScanLang(l);
-    this.scanner.setLanguage(l);
+    this.scanner.setLanguage(this.store.scanOcr(l));
     this.recent = [];
     this.ocr.set('loading');
     this.warmUp();
@@ -296,8 +294,8 @@ export class ScanOverlay implements OnDestroy {
       const frame = searching && !this.reading() && this.ocr() === 'ready' && this.scanner.grabGuide(this.video().nativeElement, this.guide().nativeElement, this.crops[this.crop++ % this.crops.length]);
       if (frame) {
         try {
-          const { text, numText } = await this.scanner.readCard(frame);
-          const ms = this.rerank(matchCards(text, { numText, lang: this.lang(), limit: POOL }), () => this.scanner.hashCard(frame, frame.width, frame.height, { x: 0, y: 0, w: frame.width, h: frame.height }));
+          const { text, numText } = await this.scanner.readCard(frame, 0, 0, undefined, undefined, this.profile.strips);
+          const ms = this.rerank(this.profile.match(text, { numText, lang: this.lang(), limit: POOL }), () => this.scanner.hashCard(frame, frame.width, frame.height, { x: 0, y: 0, w: frame.width, h: frame.height }));
           if (DEBUG) console.debug('[scan]', frame.width + '×' + frame.height, JSON.stringify(text), ms.map((m) => `${CARDS[m.id].names.EN} ${CARDS[m.id].set} ${m.conf}%`));
           if (this.alive && this.store.state.scan.phase === 'search') this.consider(ms);
         } catch (err) {
@@ -352,7 +350,7 @@ export class ScanOverlay implements OnDestroy {
     try {
       const photo = await this.scanner.fileToCanvas(file, 2000);
       const hashed = await this.hashes.load();
-      let ms = this.rerank(matchCards(await this.scanner.readAll(photo), { lang: this.lang(), limit: POOL }), () => this.photoHashes(photo));
+      let ms = this.rerank(this.profile.match(await this.scanner.readAll(photo), { lang: this.lang(), limit: POOL }), () => this.photoHashes(photo));
       // No readable text: the closest card photo is the best guess left.
       if (!ms.length && hashed) ms = this.hashes.search(this.photoHashes(photo), { langs: LANG_SETS[this.lang()] }).filter((m) => m.conf >= 50);
       if (!ms.length) return this.store.toast('Geen kaart herkend · probeer een scherpere foto');
@@ -394,7 +392,8 @@ export class ScanOverlay implements OnDestroy {
 /** How many text matches are kept for rerank(): enough for every print of a common name (Pikachu has hundreds). */
 const POOL = 400;
 
-const LANG_SETS: Record<ScanLang, ReadonlySet<string>> = { EN: new Set(['EN']), JA: new Set(['JA']), ZH: new Set(['ZH']) };
+/** Card languages the photo index is searched in, per scan language (only Pokémon has that index). */
+const LANG_SETS: Record<string, ReadonlySet<string>> = { EN: new Set(['EN']), JA: new Set(['JA']), ZH: new Set(['ZH']) };
 
 /** `localStorage['cc-scan-debug'] = 1` logs what the scanner reads in every frame. */
 const DEBUG = (() => {

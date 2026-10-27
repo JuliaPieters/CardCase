@@ -22,6 +22,7 @@ export const prefValue = (noun: string): [string, string, string, string] => ['v
 
 /** The config of a department that isn't built yet: only the shared recipes. */
 export const STUB_RECIPES = {
+  scan: { langs: [{ key: 'EN', label: 'EN', ocr: ['eng'] }], strips: { name: [0, 0.16] as [number, number], number: [0.86, 0.14] as [number, number] }, match: () => [] },
   screenName: 'OVERZICHT',
   noun: { one: 'kaart', many: 'kaarten' },
   recipes: [MASTER, ILLUSTRATOR, EMPTY],

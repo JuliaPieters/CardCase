@@ -33,9 +33,15 @@ export interface Rect {
 
 export type CameraError = 'unsupported' | 'denied' | 'failed';
 
-/** Language of the cards being scanned; decides which OCR model reads the name (≈2–3 MB each, downloaded once). */
-export type ScanLang = 'EN' | 'JA' | 'ZH';
-const OCR_LANGS: Record<ScanLang, string[]> = { EN: ['eng'], JA: ['jpn'], ZH: ['chi_tra', 'chi_sim'] };
+/** A language choice of the scanner (see GameConfig.scan); decides which OCR models read the name (≈2–3 MB each, downloaded once). */
+export type ScanLang = string;
+
+/** Where the name and the collector number are printed, as [top, height] fractions of the card. */
+export interface CardStrips {
+  name: [number, number];
+  number: [number, number];
+}
+const POKEMON_STRIPS: CardStrips = { name: [0, 0.16], number: [0.86, 0.14] };
 
 /** What was read on a card: all text (for the name), and the bottom strip alone (for the collector number). */
 export interface CardText {
@@ -48,12 +54,12 @@ export interface CardText {
 export class ScannerService {
   /** Two OCR workers so the name and the number of a card are read at the same time. */
   private workers: Partial<Record<'name' | 'num', Promise<Worker>>> = {};
-  private lang: ScanLang = 'EN';
+  private ocr: string[] = ['eng'];
 
-  /** Switches the name reader to another card language; the number reader (digits and Latin letters) stays the same. */
-  setLanguage(lang: ScanLang) {
-    if (lang === this.lang) return;
-    this.lang = lang;
+  /** Switches the name reader to other OCR models; the number reader (digits and Latin letters) stays the same. */
+  setLanguage(ocr: string[]) {
+    if (ocr.join() === this.ocr.join()) return;
+    this.ocr = ocr;
     const old = this.workers.name;
     delete this.workers.name;
     old?.then((w) => w.terminate()).catch(() => {});
@@ -178,7 +184,7 @@ export class ScannerService {
   }
 
   /** Reads the name strip (top) and number strip (bottom) of one card image; pass the result to matchCards as text + numText. */
-  async readCard(src: CanvasImageSource, sx = 0, sy = 0, sw?: number, sh?: number): Promise<CardText> {
+  async readCard(src: CanvasImageSource, sx = 0, sy = 0, sw?: number, sh?: number, strips: CardStrips = POKEMON_STRIPS): Promise<CardText> {
     const w = sw ?? (src as HTMLCanvasElement).width;
     const h = sh ?? (src as HTMLCanvasElement).height;
     // Each strip is its own canvas: tesseract reads these far better than rectangles of one big image. Narrow strips read
@@ -189,8 +195,8 @@ export class ScannerService {
       return toCanvas(src, sx, sy + top * h, w, height * h, dw, (dw * height * h) / w);
     };
     const [name, num] = await Promise.all([
-      this.getWorker('name').then((wk) => wk.recognize(strip(0, 0.16, NAME_W))),
-      this.getWorker('num').then((wk) => wk.recognize(strip(0.86, 0.14, NUM_W))),
+      this.getWorker('name').then((wk) => wk.recognize(strip(...strips.name, NAME_W))),
+      this.getWorker('num').then((wk) => wk.recognize(strip(...strips.number, NUM_W))),
     ]);
     return { text: name.data.text + '\n' + num.data.text, numText: num.data.text };
   }
@@ -215,7 +221,7 @@ export class ScannerService {
       // tesseract.js is CommonJS: depending on the bundler its API is on the namespace or on `default`.
       w = this.workers[kind] = import('tesseract.js').then(async (m) => {
         const { createWorker, PSM } = ((m as any).default ?? m) as typeof m;
-        const worker = await createWorker(kind === 'num' ? 'eng' : OCR_LANGS[this.lang]);
+        const worker = await createWorker(kind === 'num' ? 'eng' : this.ocr);
         await worker.setParameters({
           tessedit_pageseg_mode: PSM.SPARSE_TEXT,
           // The number strip only holds collector numbers ("025/198", "TG05/TG30"), set codes ("SV2a") and language codes.

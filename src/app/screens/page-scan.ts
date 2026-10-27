@@ -1,6 +1,6 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
 import { CardHashes } from '../core/card-hash';
-import { matchCards, norm } from '../core/card-match';
+import { norm } from '../core/text';
 import { COLS, isCard } from '../core/data';
 import { type CameraError, ScannerService } from '../core/scanner';
 import { CardcaseStore } from '../core/store';
@@ -160,7 +160,7 @@ export class PageScanOverlay implements OnDestroy {
   private alive = true;
 
   constructor() {
-    this.scanner.setLanguage(this.store.scanLang());
+    this.scanner.setLanguage(this.store.scanOcr(this.store.scanLang()));
     afterNextRender(() => {
       void this.start();
       // Load the card index while the page is being lined up; without it, fall back to text recognition.
@@ -222,8 +222,8 @@ export class PageScanOverlay implements OnDestroy {
           cands = this.hashes.search(this.scanner.hashCard(page, page.width, page.height, r), { prefer, expect: expect(i) }).filter((m) => m.conf >= 35);
           await sleep(0);
         } else {
-          const { text, numText } = await this.scanner.readCard(page, r.x, r.y, r.w, r.h);
-          cands = norm(text).length >= 3 ? matchCards(text, { numText, prefer, expect: expect(i) }) : [];
+          const { text, numText } = await this.scanner.readCard(page, r.x, r.y, r.w, r.h, this.store.scanProfile().strips);
+          cands = norm(text).length >= 3 ? this.store.scanProfile().match(text, { numText, prefer, expect: expect(i) }) : [];
         }
         if (!this.alive) return;
         res[i] = { got: cands[0]?.id ?? null, conf: cands[0]?.conf ?? 0, cands: cands.map(({ id, conf }) => ({ id, conf })) };

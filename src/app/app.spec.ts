@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideServiceWorker } from '@angular/service-worker';
 import { App } from './app';
 import { CardcaseStore } from './core/store';
+import { CatalogService } from './core/catalog';
 import { applyGameConfig, mockCatalog, setCatalog } from './core/data';
 import { config } from './games/pokemon/config';
 
@@ -15,6 +16,7 @@ const SCREENS = ['home', 'search', 'detail', 'collection', 'value', 'binders', '
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({ imports: [App], providers: [provideServiceWorker('ngsw-worker.js', { enabled: false })] }).compileComponents();
+    TestBed.inject(CatalogService).config = config;
   });
 
   it('renders the dashboard', async () => {

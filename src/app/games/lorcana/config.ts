@@ -1,5 +1,6 @@
 import { CARDS } from '../../core/data';
 import type { GameConfig } from '../config';
+import { matchLorcana } from './scan';
 import { EMPTY, ILLUSTRATOR, MASTER, PREF_OLDEST, PREF_OWNED, PREF_SET, SHARED_STEPS, prefValue } from '../recipes';
 
 export const config: GameConfig = {
@@ -34,6 +35,12 @@ export const config: GameConfig = {
   basicRarities: ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary'],
   recipeExample: 'alles uit De kleine zeemeermin, één per personage, liefst Enchanted',
   exampleName: 'Ariel of Stitch',
+  scan: {
+    // English, French, German and Italian are all Latin script: one model reads them, the printed code says which.
+    langs: [{ key: 'EN', label: 'EN·FR·DE·IT', ocr: ['eng'] }],
+    strips: { name: [0.54, 0.16], number: [0.92, 0.08] },
+    match: matchLorcana,
+  },
   screenName: 'VERHALENBOEK',
   noun: { one: 'personage', many: 'personages' },
   recipes: [

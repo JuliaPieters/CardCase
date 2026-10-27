@@ -1,4 +1,5 @@
 import type { GameConfig } from '../config';
+import { matchCards } from './card-match';
 
 export const config: GameConfig = {
   game: 'pokemon',
@@ -71,6 +72,15 @@ export const config: GameConfig = {
   ],
   recipeExample: 'alle Kanto-Pokémon, één per Pokémon, liefst full art',
   exampleName: 'Pikachu, ピカチュウ of 皮卡丘',
+  scan: {
+    langs: [
+      { key: 'EN', label: 'EN·DE', ocr: ['eng'] },
+      { key: 'JA', label: 'JA', ocr: ['jpn'] },
+      { key: 'ZH', label: 'ZH', ocr: ['chi_tra', 'chi_sim'] },
+    ],
+    strips: { name: [0, 0.16], number: [0.86, 0.14] },
+    match: matchCards,
+  },
   screenName: 'DEX-SCHERM',
   noun: { one: 'Pokémon', many: 'Pokémon' },
   recipes: [

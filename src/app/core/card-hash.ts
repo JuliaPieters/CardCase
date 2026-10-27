@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import type { CardMatch } from './card-match';
+import type { CardMatch } from './text';
 import { catalogVersion } from './catalog';
 import { CARDS } from './data';
 import { distance, HASH_BYTES } from './phash';
