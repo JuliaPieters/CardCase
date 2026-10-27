@@ -191,15 +191,41 @@ export class DecksScreen {
         <div class="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-start">
           <div class="flex flex-col gap-4">
             <div class="panel p-4 flex flex-col gap-3">
-              <div class="flex items-baseline justify-between gap-3">
+              <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">{{ d.size }} / {{ d.target }} kaarten</h2>
-                <span class="font-extrabold text-[14px]" [class.text-red]="d.problems.length">{{ d.problems.length ? 'Nog niet speelklaar' : '✓ Speelklaar' }}</span>
+                <span class="flex items-center gap-3">
+                  <span class="font-extrabold text-[14px]" [class.text-red]="d.problems.length">{{ d.problems.length ? 'Nog niet speelklaar' : '✓ Speelklaar' }}</span>
+                  <span class="grid grid-cols-2 border-2 border-line rounded-[9px] overflow-hidden">
+                    <button (click)="grid.set(false)" title="Lijst" class="px-2 py-1" [style.background]="!grid() ? 'var(--ink)' : 'var(--surface)'" [style.color]="!grid() ? 'var(--bg)' : 'var(--ink)'"><span class="icon text-[18px]">view_list</span></button>
+                    <button (click)="grid.set(true)" title="Kaarten" class="px-2 py-1" [style.background]="grid() ? 'var(--ink)' : 'var(--surface)'" [style.color]="grid() ? 'var(--bg)' : 'var(--ink)'"><span class="icon text-[18px]">grid_view</span></button>
+                  </span>
+                </span>
               </div>
               @for (p of d.problems; track p) {
                 <div class="flex items-center gap-2 text-[13px] font-bold text-red"><span class="icon text-[18px]">error</span>{{ p }}</div>
               }
+              @if (grid()) {
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-3 pt-1">
+                  @for (l of d.lines; track l.key) {
+                    <div class="flex flex-col gap-1 min-w-0">
+                      <button (click)="store.openDetail(l.key, null)" class="relative aspect-[63/88] w-full" [title]="l.name">
+                        <cc-card [card]="l.cv" />
+                        <span class="absolute -top-2 -right-2 min-w-7 h-7 px-1 rounded-full bg-red text-cream border-2 border-line font-pixel text-[14px] flex items-center justify-center">{{ l.n }}</span>
+                      </button>
+                      <div class="flex items-center justify-between gap-1">
+                        <button (click)="store.deckAdd(d.id, l.key, -1)" class="w-7 h-7 border-2 border-line rounded-[7px] bg-bg font-black leading-none">−</button>
+                        @if (l.short) {
+                          <span class="text-[11px] font-extrabold text-red">mist {{ l.short }}</span>
+                        }
+                        <button (click)="store.deckAdd(d.id, l.key, 1)" class="w-7 h-7 border-2 border-line rounded-[7px] bg-bg font-black leading-none">+</button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
               @for (l of d.lines; track l.key) {
                 <div class="flex items-center gap-3 py-[5px] border-t-2 border-dashed border-soft">
+                  <button (click)="store.openDetail(l.key, null)" class="w-9 flex-none aspect-[63/88]" [title]="l.name"><cc-card [card]="l.cv" /></button>
                   <span class="w-7 h-7 flex-none rounded-full border-2 border-line flex items-center justify-center font-pixel text-[13px]" [style.background]="l.color">{{ l.cost }}</span>
                   <button (click)="store.openDetail(l.key, null)" class="flex-1 min-w-0 text-left font-bold text-[14px] truncate">{{ l.name }}</button>
                   @if (l.short) {
@@ -211,6 +237,7 @@ export class DecksScreen {
                     <button (click)="store.deckAdd(d.id, l.key, 1)" class="w-9 h-8 border-0 bg-transparent font-black">+</button>
                   </div>
                 </div>
+              }
               }
             </div>
 
@@ -279,6 +306,8 @@ export class DeckScreen {
   protected readonly store = inject(CardcaseStore);
   private readonly catalog = inject(CatalogService);
   protected readonly q = signal('');
+  /** The deck as card pictures instead of a list. */
+  protected readonly grid = signal(false);
 
   protected readonly model = computed(() => {
     const st = this.store.state;
@@ -296,7 +325,7 @@ export class DeckScreen {
       size: deckSize(deck),
       target: rules.size,
       problems: rules.problems(lines),
-      lines: lines.map((l) => ({ key: l.card.id, n: l.n, name: l.card.names.EN, cost: l.card.cost ?? '–', color: TYPES[l.card.type]?.[1], short: short.get(l.card.id) || 0 })),
+      lines: lines.map((l) => ({ key: l.card.id, n: l.n, name: l.card.names.EN, cost: l.card.cost ?? '–', color: TYPES[l.card.type]?.[1], short: short.get(l.card.id) || 0, cv: this.store.cv(l.card, LANGS[0], !tot(st.owned[l.card.id])) })),
       analysis: a,
       curve: a.curve.map((n, i) => ({ cost: i === 6 ? '7+' : String(i + 1), n, h: Math.round((n / mx) * 100) })),
       have: needs.have,
