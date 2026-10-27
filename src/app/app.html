@@ -14,6 +14,7 @@
       <button (click)="s.goHome()" title="Home" class="block w-full border-2 border-coal rounded-lg overflow-hidden transition-[filter] hover:brightness-110">
         <cc-logo [size]="27" />
       </button>
+      <cc-game-switcher [wide]="true" />
       <button
         (click)="s.goScan()"
         class="press flex items-center justify-center gap-[10px] bg-lcd text-lcd-ink border-2 border-coal rounded-xl shadow-[0_5px_0_var(--coal)] p-3 font-pixel font-semibold text-[18px] leading-none"
@@ -87,10 +88,11 @@
         <button (click)="s.goHome()" title="Home" class="flex-none p-0 border-0 bg-transparent">
           <cc-logo [size]="20" class="border-2 border-coal shadow-[0_3px_0_var(--coal)]" />
         </button>
+        <cc-game-switcher class="ml-auto" />
         <button
           (click)="s.navFriends.go()"
           title="Vrienden"
-          class="ml-auto w-[38px] h-[38px] rounded-full border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
+          class="w-[38px] h-[38px] rounded-full border-2 border-coal shadow-[0_3px_0_var(--coal)] flex items-center justify-center"
           [style.background]="s.isFriends ? 'var(--paper)' : 'var(--device)'"
           [style.color]="s.isFriends ? 'var(--coal)' : 'var(--device-text)'"
         >

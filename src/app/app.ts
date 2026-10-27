@@ -4,6 +4,7 @@ import { CardcaseStore } from './core/store';
 import { CatalogService } from './core/catalog';
 import { Leds } from './shared/bits';
 import { Logo } from './shared/logo';
+import { GameSwitcher } from './shared/game-switcher';
 import { HomeScreen } from './screens/home';
 import { SearchScreen } from './screens/search';
 import { DetailScreen } from './screens/detail';
@@ -35,6 +36,7 @@ import { AppUpdate } from './core/app-update';
     NgTemplateOutlet,
     Leds,
     Logo,
+    GameSwitcher,
     HomeScreen,
     SearchScreen,
     DetailScreen,

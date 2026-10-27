@@ -323,6 +323,11 @@ export class CardcaseStore {
     this.syncReady = true; this.scheduleSave(0); if (this.account) { this.watch(this.account); if (yes) this.pushImages(); }
     this.toast(yes ? 'Collectie van dit apparaat in je account gezet' : 'Je begint met een lege collectie');
   }
+  /** Opens another department (it loads its own catalog, so the app starts again there), adding it to yours. */
+  switchGame(game) {
+    if (!(this.state.games || []).includes(game)) this.setState(s => ({ games: [...new Set([...(s.games || []), this.catalog.game(), game])] }));
+    this.flushSave().finally(() => location.assign('/' + game));
+  }
   toast(msg) { clearTimeout(this.tt); this.setState({ toast: msg }); this.tt = setTimeout(() => this.setState({ toast: null }), 2600); }
   go(screen, extra = {}) {
     if (screen === 'decorate') { screen = 'editor'; extra = Object.assign({ edId: 'b5', edMode: 'deco', edSpread: 0 }, extra); }
