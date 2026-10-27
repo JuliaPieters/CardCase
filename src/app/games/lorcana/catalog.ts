@@ -1,4 +1,5 @@
 import { CARD_TYPES, config } from './config';
+import { priceEntry } from './source';
 
 /**
  * Expands public/catalogs/lorcana.json (built by `npm run sync-lorcana` from LorcanaJSON, see that script for the
@@ -45,7 +46,7 @@ export function buildCatalog(raw: any) {
     if (!groups.has(en)) groups.set(en, 100000 + groups.size);
     const num = parseInt(x.n, 10) || 0;
     const inks = (x.ink.length ? x.ink : ['none']).map((i: string) => i.toLowerCase());
-    return {
+    const card: any = {
       key: 'lorcana:' + x.k,
       game: 'lorcana',
       set: x.s,
@@ -88,6 +89,12 @@ export function buildCatalog(raw: any) {
       cardmarketId: x.cm,
       trend: null,
     };
+    // Prices on the day the catalog was built, until fresh ones arrive (core/catalog.ts applies those over them).
+    if (x.p) {
+      const p = priceEntry(card, 0, x.p.slice(0, 5), x.p.slice(5));
+      Object.assign(card, { trend: p[1], low: p[2], avg1: p[3], avg7: p[4], avg30: p[5], foil: p.length > 6 ? { trend: p[6], low: p[7], avg1: p[8], avg7: p[9], avg30: p[10] } : null });
+    }
+    return card;
   });
   return { sets, cards };
 }

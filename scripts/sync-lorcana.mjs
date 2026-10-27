@@ -9,7 +9,7 @@
 //   card: { k (set-number key), s (set code), n (number as printed, e.g. "4a"), id (LorcanaJSON id), ink: [colours],
 //           t (type), sub (subtypes), c (cost), iw (inkwell 0/1), l (lore), st (strength), w (willpower), mv (move cost),
 //           r (rarity), story, art (artists), foil (foil types), cm (Cardmarket product id),
-//           base (LorcanaJSON id of the regular print, for Enchanted/Epic/Iconic),
+//           base (LorcanaJSON id of the regular print, for Enchanted/Epic/Iconic), p (prices on the day of the build),
 //           i18n: { EN: [name, version, text, thumbnail path, full image path], FR: […], … } }
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
@@ -154,6 +154,15 @@ for (const [g, cs] of groups) {
   });
 }
 console.log(`[lorcana] ${linked} kaarten via de productlijst van Cardmarket gekoppeld; ${cards.filter((c) => !c.cm).length} nog zonder prijs`);
+
+// Prices of today, so the app shows prices before it has fetched fresh ones (and offline): p = [trend, low, avg1, avg7,
+// avg30] of the regular print, then the same for foil. The app refreshes them from Cardmarket every day.
+const guide = new Map((await getJson('https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_19.json')).priceGuides.map((g) => [g.idProduct, g]));
+const r2 = (n) => (n == null ? null : Math.round(n * 100) / 100);
+for (const c of cards) {
+  const g = c.cm && guide.get(c.cm);
+  if (g) c.p = ['trend', 'low', 'avg1', 'avg7', 'avg30'].flatMap((f) => [r2(g[f])]).concat(['trend', 'low', 'avg1', 'avg7', 'avg30'].map((f) => r2(g[f + '-foil'])));
+}
 
 const out = {
   v: 1,

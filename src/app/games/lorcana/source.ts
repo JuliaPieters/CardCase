@@ -27,11 +27,7 @@ export class LorcanaSource implements CardSource {
     for (const c of cards) {
       const p = c.cardmarketId && guide.get(c.cardmarketId);
       if (!p) continue;
-      const foil = [p['trend-foil'] || null, p['low-foil'], p['avg1-foil'], p['avg7-foil'], p['avg30-foil']];
-      const regular = [p.trend || p.avg || p.low || null, p.low, p.avg1, p.avg7, p.avg30];
-      // A card only printed as foil is worth its foil price (Cardmarket also fills in the regular one for it).
-      const main = c.foilOnly && foil[0] ? foil : regular;
-      out[c.key] = [now, main[0], main[1] ?? null, main[2] ?? main[0], main[3] ?? main[0], main[4] ?? main[0], ...(c.foilOnly ? [] : foil.map((v) => v ?? null))] as PriceEntry;
+      out[c.key] = priceEntry(c, now, [p.trend || p.avg || p.low, p.low, p.avg1, p.avg7, p.avg30], [p['trend-foil'], p['low-foil'], p['avg1-foil'], p['avg7-foil'], p['avg30-foil']]);
     }
     return out;
   }
@@ -45,4 +41,14 @@ export class LorcanaSource implements CardSource {
     this.guide.catch(() => (this.guide = undefined));
     return this.guide;
   }
+}
+
+/**
+ * A card's price from Cardmarket's numbers [trend, low, avg1, avg7, avg30] for the regular and the foil print. A card
+ * only printed as foil is worth its foil price (Cardmarket also fills in a regular one for it).
+ */
+export function priceEntry(c: any, at: number, regular: (number | null)[], foil: (number | null)[]): PriceEntry {
+  const f = foil.map((v) => v || null);
+  const main = c.foilOnly && f[0] ? f : regular.map((v) => v ?? null);
+  return [at, main[0] || null, main[1] ?? null, main[2] ?? main[0], main[3] ?? main[0], main[4] ?? main[0], ...(c.foilOnly ? [] : f)] as PriceEntry;
 }
