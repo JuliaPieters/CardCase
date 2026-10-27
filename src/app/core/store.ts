@@ -71,7 +71,30 @@ export class CardcaseStore {
   setState(p: any) {
     const cur = this._state();
     const patch = typeof p === 'function' ? p(cur) : p;
-    if (patch) this._state.set({ ...cur, ...patch });
+    if (!patch) return;
+    if (patch.edId !== undefined && patch.edId !== cur.edId) this.undoStack = [];
+    if (patch.binders && patch.binders !== cur.binders && !this.noUndo) {
+      // A burst of changes (dragging a sticker) is undone in one step.
+      const now = Date.now();
+      if (now - this.undoAt > 600) { this.undoStack.push(cur.binders); if (this.undoStack.length > 50) this.undoStack.shift(); }
+      this.undoAt = now;
+    }
+    this._state.set({ ...cur, ...patch, undoN: this.undoStack.length });
+  }
+
+  /** Binders before the last changes in the editor, for Undo; cleared on another binder or a change from elsewhere. */
+  private undoStack: any[] = [];
+  private undoAt = 0;
+  private noUndo = false;
+
+  /** Replaces state without it becoming an undo step (loads, sync, undo itself). */
+  private setQuiet(p: any) { this.noUndo = true; try { this.setState(p); } finally { this.noUndo = false; } }
+
+  undo() {
+    const prev = this.undoStack.pop(); if (!prev) return;
+    this.undoAt = 0;
+    this.setQuiet(s => ({ binders: prev, actSlot: null, decoSel: null, sel: null, ...(prev.some(b => b.id === s.edId) ? {} : { edId: prev[0].id }) }));
+    this.toast('Ongedaan gemaakt');
   }
 
   /** Demo collection for the mock catalog; otherwise the saved collection, or an empty one on first use. */
@@ -120,6 +143,12 @@ export class CardcaseStore {
       if (this.state.screen !== 'editor' || (e.key !== 'Backspace' && e.key !== 'Delete')) return;
       const t = e.target as HTMLElement; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (this.removeSelected()) e.preventDefault();
+    });
+    // Editor: Cmd/Ctrl+Z undoes the last change (not while typing in a field).
+    window.addEventListener('keydown', e => {
+      if (this.state.screen !== 'editor' || e.key.toLowerCase() !== 'z' || !(e.metaKey || e.ctrlKey) || e.shiftKey) return;
+      const t = e.target as HTMLElement; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault(); this.undo();
     });
     window.addEventListener('keydown', e => { if (this.state.screen !== 'viewer') return; const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (d) this.state.wide ? this.flip(d) : this.turn('v', d); });
     window.addEventListener('pointermove', e => this.onPD(e));
@@ -194,7 +223,8 @@ export class CardcaseStore {
       const u = deserializeUser(remote); if (!u) return;
       writeLocal(uid, remote);
       const ids = new Set(u.binders.map(b => b.id)); const keep = id => ids.has(id) ? id : u.binders[0].id;
-      this.setState(s => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, edId: keep(s.edId), vId: keep(s.vId), ps: { ...s.ps, binderId: keep(s.ps.binderId) } }));
+      this.undoStack = [];
+      this.setQuiet(s => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, edId: keep(s.edId), vId: keep(s.vId), ps: { ...s.ps, binderId: keep(s.ps.binderId) } }));
       const st = this.state; this.lastSaved = [st.owned, st.added, st.binders, st.dark];
       this.syncImages();
     }).then(stop => { if (this.account === uid) this.unwatch = stop; else stop(); }).catch(err => console.warn('[sync]', err));
@@ -203,7 +233,8 @@ export class CardcaseStore {
   /** Replaces the collection, binders and settings (after login, logout or import). */
   applyUser(u) {
     const id = u.binders[0].id;
-    this.setState(s => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, edId: id, vId: id, edSpread: 0, vSpread: 0, ps: { ...s.ps, binderId: id }, sel: null, verSheet: null }));
+    this.undoStack = [];
+    this.setQuiet(s => ({ owned: u.owned, added: u.added, binders: u.binders, dark: u.dark, edId: id, vId: id, edSpread: 0, vSpread: 0, ps: { ...s.ps, binderId: id }, sel: null, verSheet: null }));
     const st = this.state; this.lastSaved = [st.owned, st.added, st.binders, st.dark];
     this.syncImages();
   }
@@ -725,7 +756,6 @@ export class CardcaseStore {
       sizeOpts: sizeKeys.map(([k, l]) => ({ key: k, label: l, ...chip(st.decoSize === k), select: () => this.setState({ decoSize: k }) })),
       imgThumbs: IMGS.concat(st.uploads || []).map(im => ({ key: im.id, name: im.name, fill: resolveFill(im.fill), canDelete: (st.uploads || []).includes(im), remove: e => { e.stopPropagation(); this.deleteUpload(im.id); }, onDragStart: payload({ type: 'img', fill: im.fill }), onDragEnd: endDrag, onClick: () => this.placeImage(im.fill) })),
       onUpload: e => { const f = e.target.files && e.target.files[0]; if (!f) return; const sz = this.fitSize(cols, rows); this.upload(f, sz[0], sz[1]); e.target.value = ''; },
-      sampleCrop: () => { const sz = this.fitSize(cols, rows); this.go('crop', { crop: { fill: IMGS[7].fill, name: 'Voorbeeldfoto.jpg', w: sz[0], h: sz[1], x: 50, y: 50, zoom: 1 } }); },
       bgBoth: chip(st.bgBoth), toggleBgBoth: () => this.setState(s => ({ bgBoth: !s.bgBoth })),
       bgThumbs: BGS.map(g => ({ key: g.id, name: g.name, fill: g.fill, apply: () => this.setBg(bgTargets, g.fill, '') })),
       sugBgs: this.genBgs(b, ap).map(g => ({ key: g.key, name: g.name, fill: g.fill, label: g.label || '', hasLabel: !!g.label, apply: () => this.setBg(bgTargets, g.fill, g.label || '') })),
@@ -1159,6 +1189,7 @@ export class CardcaseStore {
       showPrice: !!st.showPrice, showOwn: st.showOwn !== false, toggleShowOwn: () => this.setState(x => ({ showOwn: x.showOwn === false })),
       toolCards: st.toolTab === 'cards', toolArt: st.toolTab === 'art', toolStickers: st.toolTab === 'stickers',
       toolTabs: [['cards', 'Kaarten', 'style'], ['art', 'Art', 'image'], ['stickers', 'Stickers', 'star']].map(([k, l, icon]) => ({ key: k, label: l, icon, on: st.toolTab === k, select: () => this.setState({ toolTab: k }) })),
+      canUndo: !!st.undoN, undo: () => this.undo(),
       edMenu: st.edMenu, toggleEdMenu: () => this.setState(x => ({ edMenu: !x.edMenu, fillMenu: false })),
       // The selected card or empty slot, for the bar under the binder (art and stickers: hasImgSel / hasStkSel).
       edSel: (() => { const a = st.actSlot; if (a == null || st.decoSel) return null; const x = eb.slots[a]; const p = Math.floor(a / eb.fmt) + 1, sl = a % eb.fmt + 1;

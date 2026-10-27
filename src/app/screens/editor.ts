@@ -34,6 +34,7 @@ import { Pix, Switch } from '../shared/bits';
             <div class="h-2 rounded-full border-2 border-line bg-bg overflow-hidden"><div class="h-full bg-lcd-mid" [style.width]="s.edSum.pct"></div></div>
           </div>
         }
+        <button (click)="s.undo()" [disabled]="!s.canUndo" title="Ongedaan maken (⌘Z)" class="btn-icon disabled:opacity-40 disabled:pointer-events-none"><span class="icon text-[22px]">undo</span></button>
         <button (click)="s.openViewer()" class="btn"><span class="icon text-[19px]">visibility</span>Bekijk</button>
         <button (click)="s.toggleEdMenu()" title="Meer" class="btn-icon"><span class="icon text-[22px]">more_horiz</span></button>
       </div>
@@ -434,7 +435,6 @@ import { Pix, Switch } from '../shared/bits';
                 <div class="flex flex-wrap gap-2">
                   <input #file type="file" accept="image/*" class="hidden" (change)="s.onUpload($event)" />
                   <button (click)="file.click()" class="chip bg-red text-cream"><span class="icon text-[16px]">upload</span>Upload afbeelding</button>
-                  <button (click)="s.sampleCrop()" class="chip bg-bg text-ink"><span class="icon text-[16px]">crop</span>Uitsnijden met voorbeeld</button>
                 </div>
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-[10px]">
                   @for (i of s.imgThumbs; track i.key) {
