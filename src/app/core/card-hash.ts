@@ -15,6 +15,8 @@ export interface HashSearch {
   prefer?: ReadonlySet<number>;
   /** The card expected at this spot: bigger bonus. */
   expect?: number | null;
+  /** Only these cards (e.g. the prints of a name read by OCR). */
+  only?: ReadonlySet<number>;
   limit?: number;
 }
 
@@ -63,6 +65,7 @@ export class CardHashes {
     for (let id = 0; id < CARDS.length; id++) {
       const c = CARDS[id];
       if (opts.langs && !opts.langs.has(c.avail[0])) continue;
+      if (opts.only && !opts.only.has(id)) continue;
       const off = (c.hashRow ?? id) * WORDS;
       if (!(words[off] | words[off + 1] | words[off + 2] | words[off + 3])) continue;
       let d = 999;

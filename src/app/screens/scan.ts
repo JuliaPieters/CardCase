@@ -193,11 +193,6 @@ export class ScanOverlay implements OnDestroy {
   protected readonly cam = signal<'starting' | 'live' | CameraError>('starting');
   /** The recognition engine: downloading, ready, or failed to load (retried automatically). */
   protected readonly ocr = signal<'loading' | 'ready' | 'error'>('loading');
-  /**
-   * 'hash' compares the camera image with the photos of all cards (card-hashes.bin); 'ocr' reads name and number
-   * as text, the fallback when that index can't be loaded.
-   */
-  private mode: 'hash' | 'ocr' = 'hash';
   protected readonly reading = signal(false);
   protected readonly torch = signal(false);
   protected readonly torchAvail = signal(false);
@@ -240,8 +235,6 @@ export class ScanOverlay implements OnDestroy {
   private crop = 0;
   /** The card just shown is ignored for a moment after rescanning, while it is still in view. */
   private skip = { name: '', until: 0 };
-  /** Best card of the last few frames, its bit distance and its lead over the runner-up (hash mode). */
-  private recentIds: { id: number; d: number; lead: number }[] = [];
 
   constructor() {
     this.scanner.setLanguage(this.lang());
@@ -257,18 +250,13 @@ export class ScanOverlay implements OnDestroy {
     this.store.setScanLang(l);
     this.scanner.setLanguage(l);
     this.recent = [];
-    this.recentIds = [];
-    if (this.mode === 'hash') return;
     this.ocr.set('loading');
     this.warmUp();
   }
 
-  private async warmUp() {
-    if (this.mode === 'hash') {
-      if (await this.hashes.load()) return this.ocr.set('ready');
-      console.warn('[scan] card-hashes.bin niet beschikbaar, tekstherkenning gebruikt');
-      this.mode = 'ocr';
-    }
+  private warmUp() {
+    // The photo index only helps to pick between prints of the same name; the scanner works without it.
+    void this.hashes.load().then((ok) => ok || console.warn('[scan] card-hashes.bin niet beschikbaar, alleen tekstherkenning'));
     const lang = this.lang();
     this.scanner.warmUp().then(
       () => lang === this.lang() && this.ocr.set('ready'),
@@ -305,16 +293,11 @@ export class ScanOverlay implements OnDestroy {
       const searching = this.store.state.scan.phase === 'search';
       if (searching && !wasSearching) this.skip.until = Date.now() + 2500;
       wasSearching = searching;
-      if (searching && !this.reading() && this.ocr() === 'ready' && this.mode === 'hash') {
-        this.hashFrame();
-        await sleep(120);
-        continue;
-      }
       const frame = searching && !this.reading() && this.ocr() === 'ready' && this.scanner.grabGuide(this.video().nativeElement, this.guide().nativeElement, this.crops[this.crop++ % this.crops.length]);
       if (frame) {
         try {
           const { text, numText } = await this.scanner.readCard(frame);
-          const ms = matchCards(text, { numText, lang: this.lang() });
+          const ms = this.rerank(matchCards(text, { numText, lang: this.lang(), limit: POOL }), () => this.scanner.hashCard(frame, frame.width, frame.height, { x: 0, y: 0, w: frame.width, h: frame.height }));
           if (DEBUG) console.debug('[scan]', frame.width + '×' + frame.height, JSON.stringify(text), ms.map((m) => `${CARDS[m.id].names.EN} ${CARDS[m.id].set} ${m.conf}%`));
           if (this.alive && this.store.state.scan.phase === 'search') this.consider(ms);
         } catch (err) {
@@ -326,25 +309,18 @@ export class ScanOverlay implements OnDestroy {
     }
   }
 
-  /** Hash mode: compares the card in the guide with all card photos of the chosen language. */
-  private hashFrame() {
-    const video = this.video().nativeElement;
-    const r = this.scanner.guideRect(video, this.guide().nativeElement);
-    if (!r) return;
-    const ms = this.hashes.search(this.scanner.hashCard(video, video.videoWidth, video.videoHeight, r), { langs: LANG_SETS[this.lang()] });
-    if (DEBUG) console.debug('[scan] ' + ms.map((m) => `${CARDS[m.id].names.EN} ${CARDS[m.id].set} ${CARDS[m.id].numStr} d=${m.d} ${m.conf}%`).join(' | '));
-    const best = ms[0];
-    let id = best ? best.id : -1;
-    if (id >= 0 && String(id) === this.skip.name && Date.now() < this.skip.until) id = -1;
-    this.recentIds = [...this.recentIds.slice(-4), { id, d: best?.d ?? 999, lead: ms[1] ? ms[1].d - best.d : 99 }];
-    const wins = (maxD: number, minLead: number) => this.recentIds.filter((r) => r.id === id && r.d <= maxD && r.lead >= minLead).length;
-    // A near-identical image is accepted at once; a weaker one when it keeps winning: a random card is the best match
-    // of a frame now and then, but not frame after frame with a lead over the rest.
-    if (id >= 0 && (best.conf >= 80 || wins(26, 0) >= 2 || wins(31, 3) >= 3)) {
-      this.skip = { name: String(id), until: Infinity };
-      this.recentIds = [];
-      this.store.scanFound(ms);
-    }
+  /**
+   * The text decides which card it is; the photo only picks between the prints the text can't tell apart (same name,
+   * no readable number). A look-alike never beats a better text match: only cards within a few points of the best are
+   * reordered, and a name + number match is 35 points ahead of a name alone.
+   */
+  private rerank(ms: CardMatch[], queries: () => Uint32Array): CardMatch[] {
+    const ties = ms.filter((m) => m.conf >= (ms[0]?.conf ?? 0) - 5);
+    if (ties.length < 2 || !this.hashes.ready) return ms.slice(0, 3);
+    const d = new Map(this.hashes.search(queries(), { only: new Set(ties.map((m) => m.id)), limit: ties.length }).map((h) => [h.id, h.d]));
+    const looks = [...ties].sort((a, b) => (d.get(a.id) ?? 999) - (d.get(b.id) ?? 999) || b.conf - a.conf);
+    if (DEBUG) console.debug('[scan] prints: ' + looks.slice(0, 5).map((m) => `${CARDS[m.id].set} ${CARDS[m.id].numStr} d=${d.get(m.id)}`).join(' | '));
+    return [...looks, ...ms.slice(ties.length)].slice(0, 3);
   }
 
   /**
@@ -375,8 +351,10 @@ export class ScanOverlay implements OnDestroy {
     this.reading.set(true);
     try {
       const photo = await this.scanner.fileToCanvas(file, 2000);
-      let ms: CardMatch[] = this.mode === 'hash' && (await this.hashes.load()) ? this.hashPhoto(photo) : [];
-      if (!ms.length || ms[0].conf < 50) ms = matchCards(await this.scanner.readAll(photo), { lang: this.lang() });
+      const hashed = await this.hashes.load();
+      let ms = this.rerank(matchCards(await this.scanner.readAll(photo), { lang: this.lang(), limit: POOL }), () => this.photoHashes(photo));
+      // No readable text: the closest card photo is the best guess left.
+      if (!ms.length && hashed) ms = this.hashes.search(this.photoHashes(photo), { langs: LANG_SETS[this.lang()] }).filter((m) => m.conf >= 50);
       if (!ms.length) return this.store.toast('Geen kaart herkend · probeer een scherpere foto');
       this.store.startScan();
       this.store.scanFound(ms);
@@ -388,8 +366,8 @@ export class ScanOverlay implements OnDestroy {
     }
   }
 
-  /** The card in a photo is somewhere around the middle, filling most of it: tries a range of centred sizes. */
-  private hashPhoto(photo: HTMLCanvasElement) {
+  /** The card in a photo is somewhere around the middle, filling most of it: hashes a range of centred sizes. */
+  private photoHashes(photo: HTMLCanvasElement): Uint32Array {
     const full = Math.min(photo.width, photo.height * CARD_RATIO);
     const parts = [0.95, 0.85, 0.75, 0.65, 0.55].map((s) => {
       const w = full * s;
@@ -398,7 +376,7 @@ export class ScanOverlay implements OnDestroy {
     });
     const all = new Uint32Array(parts.reduce((n, p) => n + p.length, 0));
     parts.reduce((o, p) => (all.set(p, o), o + p.length), 0);
-    return this.hashes.search(all, { langs: LANG_SETS[this.lang()] });
+    return all;
   }
 
   protected async toggleTorch() {
@@ -412,6 +390,9 @@ export class ScanOverlay implements OnDestroy {
     }
   }
 }
+
+/** How many text matches are kept for rerank(): enough for every print of a common name (Pikachu has hundreds). */
+const POOL = 400;
 
 const LANG_SETS: Record<ScanLang, ReadonlySet<string>> = { EN: new Set(['EN']), JA: new Set(['JA']), ZH: new Set(['ZH']) };
 
