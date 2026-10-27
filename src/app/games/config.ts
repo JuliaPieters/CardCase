@@ -36,6 +36,10 @@ export interface GameConfig {
   screenName: string;
   /** Example for the "describe your binder" field of the recipe screen. */
   recipeExample?: string;
+  /** Game facts shown on the card page (cost, lore…), in the card's language. */
+  cardFacts?: (card: any, lang: string) => { label: string; value: string; color?: string }[];
+  /** Rules text of the card, in its language. */
+  cardText?: (card: any, lang: string) => string;
   /** Extra 8×8 pixel icons for the recipe tiles (rows of '#' and '.'). */
   icons?: Record<string, string[]>;
 }

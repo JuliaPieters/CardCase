@@ -58,6 +58,24 @@ export const config: GameConfig = {
     prefValue('personage'),
     PREF_SET,
   ],
+  cardFacts: (c) => {
+    const ink = c.inks.map((i: string) => config.types[i]?.[0] || i).join(' / ');
+    const out: { label: string; value: string; color?: string }[] = [
+      { label: 'Inkkleur', value: ink, color: config.types[c.type]?.[1] },
+      { label: 'Kaartsoort', value: c.typeName + (c.subtypes?.length ? ' · ' + c.subtypes.join(' · ') : '') },
+      { label: 'Kosten', value: String(c.cost ?? '–') },
+      { label: 'Inkwell', value: c.inkwell ? 'Ja' : 'Nee' },
+    ];
+    if (c.lore != null) out.push({ label: 'Lore', value: String(c.lore) });
+    if (c.strength != null) out.push({ label: 'Sterkte', value: String(c.strength) });
+    if (c.willpower != null) out.push({ label: 'Wilskracht', value: String(c.willpower) });
+    if (c.moveCost != null) out.push({ label: 'Verplaatskosten', value: String(c.moveCost) });
+    if (c.story) out.push({ label: 'Verhaal', value: c.story });
+    if (c.illus) out.push({ label: 'Illustrator', value: c.illus });
+    out.push({ label: 'Foil', value: c.foilOnly ? 'Alleen foil' : c.foilTypes?.some((f: string) => f !== 'None') ? 'Gewoon en foil' : 'Alleen gewoon' });
+    return out;
+  },
+  cardText: (c, lang) => c.text?.[lang] || c.text?.EN || '',
   icons: {
     drop: ['...#....', '...#....', '..###...', '.#####..', '.##.##..', '#######.', '.#####..', '..###...'],
     book: ['.##..##.', '#..##..#', '#..##..#', '#..##..#', '#..##..#', '#..##..#', '.##..##.', '........'],

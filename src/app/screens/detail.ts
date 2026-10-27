@@ -74,6 +74,25 @@ import { Trend } from '../shared/bits';
             }
           </div>
 
+          @if (d.facts.length) {
+            <div class="panel py-[14px] px-4 grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-x-4 gap-y-3">
+              @for (f of d.facts; track f.label) {
+                <div class="flex flex-col gap-1 min-w-0">
+                  <span class="text-[12px] font-extrabold text-muted">{{ f.label }}</span>
+                  <span class="flex items-center gap-[6px] font-extrabold text-[15px] leading-tight">
+                    @if (f.color) {
+                      <span class="w-4 h-4 flex-none rounded-full border-2 border-line" [style.background]="f.color"></span>
+                    }
+                    {{ f.value }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+          @if (d.text) {
+            <div class="panel py-[14px] px-4 text-[15px] font-semibold leading-[1.45] whitespace-pre-line">{{ d.text }}</div>
+          }
+
           <div class="panel py-[14px] px-4 flex flex-col gap-3">
             <div class="relative flex items-center gap-2">
               <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">Waarde</h2>
@@ -140,6 +159,19 @@ import { Trend } from '../shared/bits';
                 <span class="text-[12px] font-extrabold text-muted">Gem. 30 dagen</span><span class="font-pixel text-[17px] leading-none">{{ dv.avg30 }}</span>
               </div>
             </div>
+            @if (dv.foil) {
+              <div class="grid grid-cols-3 gap-[10px] border-t-2 border-dashed border-soft pt-[10px]">
+                <div class="flex flex-col gap-1">
+                  <span class="text-[12px] font-extrabold text-muted">Foil · trend</span><span class="font-pixel text-[17px] leading-none">{{ dv.foil.trend }}</span>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <span class="text-[12px] font-extrabold text-muted">Foil · laagste</span><span class="font-pixel text-[17px] leading-none">{{ dv.foil.low }}</span>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <span class="text-[12px] font-extrabold text-muted">Foil · 30 dagen</span><span class="font-pixel text-[17px] leading-none">{{ dv.foil.avg30 }}</span>
+                </div>
+              </div>
+            }
             <div class="text-[15px] font-black border-t-2 border-dashed border-soft pt-[10px]">{{ dv.owned }}</div>
             <div class="flex items-center gap-[6px] text-[12.5px] font-bold text-muted">
               <span class="icon text-[16px]">storefront</span>{{ s.priceSource }}
