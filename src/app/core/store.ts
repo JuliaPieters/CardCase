@@ -254,9 +254,10 @@ export class CardcaseStore {
 
   /** Replaces the collection, binders and settings (after login, logout or import). */
   applyUser(u) {
-    const id = u.binders[0].id;
+    // The binder open (e.g. from a link) stays open when the collection that loads has it; otherwise the first one.
+    const ids = new Set(u.binders.map(b => b.id)); const keep = id => ids.has(id) ? id : u.binders[0].id;
     this.undoStack = [];
-    this.setQuiet(s => ({ ...userParts(u), edId: id, vId: id, edSpread: 0, vSpread: 0, ps: { ...s.ps, binderId: id }, sel: null, verSheet: null }));
+    this.setQuiet(s => ({ ...userParts(u), edId: keep(s.edId), vId: keep(s.vId), edSpread: ids.has(s.edId) ? s.edSpread : 0, vSpread: ids.has(s.vId) ? s.vSpread : 0, ps: { ...s.ps, binderId: keep(s.ps.binderId) }, sel: null, verSheet: null }));
     this.lastSaved = savedParts(this.state);
     this.syncImages();
   }
@@ -392,6 +393,8 @@ export class CardcaseStore {
     this.setOwn(it.id, it.lang, -it.qty); if (it.foil) this.setFoil(it.id, it.lang, -it.qty);
     this.setState(st => ({ quickLog: st.quickLog.filter(x => x.seq !== seq) })); this.toast(CARDS[it.id].names[it.lang] + ' weer verwijderd');
   }
+  /** A card's number as the department shows it (Lorcana: 1/204 · 1). */
+  numLabel(c) { return this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + pad(c.num); }
   cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, img2: c.imgAlt || null, big: c.imgBig ? (c.imgBig[l] || c.imgBig[c.avail[0]] || null) : null, art: spriteOf(c) }; }
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0], sameLimit: 20 }); }
   setOwn(id, l, delta) { this.setState(s => { const o = s.owned[id]; const n = Math.max(0, (o[l] || 0) + delta); return { owned: { ...s.owned, [id]: { ...o, [l]: n, ...(o.foil ? { foil: { ...o.foil, [l]: Math.min(o.foil[l] || 0, n) } } : {}) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added }; }); }
@@ -784,7 +787,7 @@ export class CardcaseStore {
     const cats = !decoOn ? [] : [['Zelfde evolutielijn', CARDS.filter(c => onPage.some(pc => pc.set === c.set && pc.type === c.type && Math.abs(pc.num - c.num) <= 2))], ['Zelfde illustrator', CARDS.filter(c => onPage.some(pc => pc.id !== c.id && pc.id % 7 === c.id % 7))], ['Past bij kleuren', CARDS.filter(c => c.type === dom)], ['Al in bezit, nog niet in een binder', CARDS.filter(c => tot(owned[c.id]) && !inAny.has(c.id))], ['wish', CARDS.filter(c => !tot(owned[c.id]))]].map(([r, l]) => [r, l.filter(c => !inThis.has(c.id))]);
     const picks = []; const used = new Set();
     for (let round = 0; round < 4 && picks.length < 6; round++) cats.forEach(([r, l]) => { if (picks.length >= 6) return; const c = l.find(x => !used.has(x.id)); if (c) { used.add(c.id); picks.push({ c, reason: r === 'wish' ? 'Op je wantlist · ' + eur(c.trend) : r }); } });
-    const sugCards = picks.slice(0, Math.min(6, empties.length)).map((pk, i) => { const slot = empties[i]; const c = pk.c; const own = tot(owned[c.id]) > 0; return { key: c.id, cv: this.cv(c, 'EN', !own), name: c.names.EN, meta: c.set + ' ' + pad(c.num), reason: pk.reason, where: '→ pagina ' + (Math.floor(slot / fmt) + 1) + ', slot ' + (slot % fmt + 1), place: () => { this.updB(b.id, nb => { nb.slots[slot] = c.id; return nb; }); this.toast(c.names.EN + ' geplaatst op pagina ' + (Math.floor(slot / fmt) + 1)); }, onDragStart: payload({ type: 'card', id: c.id }), onDragEnd: endDrag }; });
+    const sugCards = picks.slice(0, Math.min(6, empties.length)).map((pk, i) => { const slot = empties[i]; const c = pk.c; const own = tot(owned[c.id]) > 0; return { key: c.id, cv: this.cv(c, 'EN', !own), name: c.names.EN, meta: this.numLabel(c), reason: pk.reason, where: '→ pagina ' + (Math.floor(slot / fmt) + 1) + ', slot ' + (slot % fmt + 1), place: () => { this.updB(b.id, nb => { nb.slots[slot] = c.id; return nb; }); this.toast(c.names.EN + ' geplaatst op pagina ' + (Math.floor(slot / fmt) + 1)); }, onDragStart: payload({ type: 'card', id: c.id }), onDragEnd: endDrag }; });
     const cr = st.crop || DEFCROP; const setCrop = p => this.setState(s => ({ crop: Object.assign({}, s.crop || DEFCROP, p) }));
     const paperMM = st.paper === 'A4' ? [210, 297] : [215.9, 279.4]; const bl = st.bleed ? 3 : 0; const pw = 63 + 2 * bl, ph = 88 + 2 * bl; const gp = st.bleed ? 2 : 0, mg = 5;
     const pcn = Math.max(1, Math.floor((paperMM[0] - 2 * mg + gp) / (pw + gp))), prn = Math.max(1, Math.floor((paperMM[1] - 2 * mg + gp) / (ph + gp))); const per = pcn * prn;
@@ -935,7 +938,7 @@ export class CardcaseStore {
     const R = st.valRange; const ds = R === 'week' ? range(0, 7).map(i => 6 - i) : R === 'month' ? range(0, 30).map(i => 29 - i) : range(0, 52).map(i => (51 - i) * 7);
     const vs = ds.map(V); const rc = (vs[vs.length - 1] - vs[0]) / (vs[0] || 1) * 100;
     const withChg = own.map(c => ({ c, chg: priceInfo(c).chg }));
-    const mover = ({ c, chg }) => ({ key: c.id, cv: this.cv(c, 'EN'), name: c.names.EN, meta: c.set + ' ' + pad(c.num), price: eur(c.trend), chg: pctf(chg), up: chg >= 0, down: chg < 0, ...chgStyle(chg), open: () => this.openDetail(c.id) });
+    const mover = ({ c, chg }) => ({ key: c.id, cv: this.cv(c, 'EN'), name: c.names.EN, meta: this.numLabel(c), price: eur(c.trend), chg: pctf(chg), up: chg >= 0, down: chg < 0, ...chgStyle(chg), open: () => this.openDetail(c.id) });
     const hp = items => { const mx = Math.max(...items.map(i => i.v), 0.01); return items.map(i => { const n = i.v > 0 ? Math.max(1, Math.round(i.v / mx * 20)) : 0; return { key: i.key, label: i.label, value: eur(i.v), segs: range(0, 20).map(k => ({ key: k, bg: k < n ? 'var(--display)' : '#3A3E47' })) }; }); };
     const dc = CARDS[st.detailId]; const dp = priceInfo(dc); const dn = tot(owned[dc.id]);
     const missC = CARDS.filter(c => !tot(owned[c.id]) && (!st.collSet || c.set === st.collSet)); const setNm = st.collSet ? SETS.find(s => s.code === st.collSet).name : '';
@@ -947,7 +950,7 @@ export class CardcaseStore {
       monthBars: bars(range(0, 30).map(i => V(29 - i))), vBars: bars(vs),
       vTabs: [['week', 'WEEK'], ['month', 'MAAND'], ['year', 'JAAR']].map(([k, l]) => ({ key: k, label: l, bg: R === k ? 'var(--display-text)' : 'transparent', fg: R === k ? 'var(--display)' : 'var(--display-text)', select: () => this.setState({ valRange: k }) })),
       vRange: { start: R === 'week' ? '7 DAGEN GELEDEN' : R === 'month' ? '30 DAGEN GELEDEN' : '52 WEKEN GELEDEN', chg: pctf(rc) + ' IN DEZE PERIODE' },
-      top10: [...own].sort((a, b) => b.trend - a.trend).slice(0, 10).map((c, i) => ({ key: c.id, rank: String(i + 1).padStart(2, '0'), cv: this.cv(c, 'EN'), name: c.names.EN, meta: c.setName + ' · ' + c.set + ' ' + pad(c.num), langs: LANGS.filter(l => owned[c.id][l]).join(' '), price: eur(c.trend), open: () => this.openDetail(c.id) })),
+      top10: [...own].sort((a, b) => b.trend - a.trend).slice(0, 10).map((c, i) => ({ key: c.id, rank: String(i + 1).padStart(2, '0'), cv: this.cv(c, 'EN'), name: c.names.EN, meta: c.setName + ' · ' + this.numLabel(c), langs: LANGS.filter(l => owned[c.id][l]).join(' '), price: eur(c.trend), open: () => this.openDetail(c.id) })),
       gainers: [...withChg].sort((a, b) => b.chg - a.chg).slice(0, 3).map(mover), losers: [...withChg].sort((a, b) => a.chg - b.chg).slice(0, 3).map(mover),
       bySet: hp(SETS.map(s => ({ key: s.code, label: s.name, v: own.filter(c => c.set === s.code).reduce((a, c) => a + ownedValue(c, owned[c.id]), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 12)),
       byType: hp(Object.entries(TYPES).map(([k, t]) => ({ key: k, label: t[0], v: own.filter(c => c.type === k).reduce((a, c) => a + ownedValue(c, owned[c.id]), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v)), byTypeTitle: 'PER ' + STEPT.ptype[0].toUpperCase(),

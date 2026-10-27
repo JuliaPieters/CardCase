@@ -21,7 +21,7 @@ import { Led, Trend } from '../shared/bits';
 
       <div class="bg-device border-2 border-line rounded-[14px_14px_44px_14px] pt-3 px-[14px] pb-[18px] shadow-[4px_4px_0_var(--line)] flex flex-col gap-[10px]">
         <div class="flex items-center gap-2 font-pixel text-[11px] leading-none text-[var(--device-muted)] tracking-[.12em]">
-          <cc-led color="#FF5A4E" [size]="9" />POWER<span class="ml-auto">WAARDE-SCHERM</span>
+          <cc-led color="#FF5A4E" [size]="9" />POWER
         </div>
         <div class="relative lcd rounded-md shadow-[inset_0_0_0_3px_var(--display-edge)] p-[18px] flex flex-col gap-[14px] overflow-hidden">
           <div class="flex flex-wrap items-end justify-between gap-[14px]">
@@ -113,7 +113,7 @@ import { Led, Trend } from '../shared/bits';
       <div class="flex flex-col gap-1 border-t-2 border-dashed border-soft pt-[14px]">
         <div class="flex items-center gap-[6px] text-[12.5px] font-bold text-muted"><span class="icon text-[16px]">storefront</span>{{ s.priceSource }}</div>
         <div class="text-[12.5px] font-bold text-muted pl-[22px]">
-          Waarde = trendprijs × aantal exemplaren. Cardmarket-prijzen gelden per kaart, niet per taal.
+          Waarde = trendprijs × aantal exemplaren; foil-exemplaren tegen de foilprijs. Cardmarket-prijzen gelden per kaart, niet per taal.
         </div>
       </div>
     </div>
