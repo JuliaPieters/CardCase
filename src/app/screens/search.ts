@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
+import { SetPicker } from '../shared/set-picker';
 
 @Component({
   selector: 'cc-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card],
+  imports: [Card, SetPicker],
   template: `
     @let s = v();
     <div class="flex flex-col gap-[18px]">
@@ -53,14 +54,7 @@ import { Card } from '../shared/card';
               </optgroup>
             }
           </select>
-          @for (g of s.setGroups; track g.key) {
-            <select class="select w-full" [class.!border-red]="g.active" (change)="s.onFSet($event)" [attr.aria-label]="g.placeholder">
-              <option value="" [selected]="!g.active">{{ g.placeholder }} ▾</option>
-              @for (o of g.sets; track o.key) {
-                <option [value]="o.code" [selected]="o.code === s.fSet">{{ o.name }}</option>
-              }
-            </select>
-          }
+          <cc-set-picker [groups]="s.setGroups" [value]="s.fSet" [highlight]="true" (picked)="s.onFSet({ target: { value: $event } })" />
           @for (f of s.gameFiltersRest; track f.key) {
             <select class="select w-full" [class.!border-red]="!!f.value" (change)="f.onChange($event)" [attr.aria-label]="f.label">
               <option value="" [selected]="!f.value">{{ f.label }} ▾</option>

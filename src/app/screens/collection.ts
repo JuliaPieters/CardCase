@@ -2,12 +2,13 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
+import { SetPicker } from '../shared/set-picker';
 import { Switch } from '../shared/bits';
 
 @Component({
   selector: 'cc-collection',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Switch, NgTemplateOutlet],
+  imports: [Card, Switch, NgTemplateOutlet, SetPicker],
   template: `
     @let s = v();
     <div class="flex flex-col gap-[18px]">
@@ -35,16 +36,7 @@ import { Switch } from '../shared/bits';
           <option value="new">Sorteer: nieuwste release ▾</option>
           <option value="old">Sorteer: oudste release ▾</option>
         </select>
-        <select class="select" [value]="s.collSet" (change)="s.onCollSet($event)">
-          <option value="">Alle sets ▾</option>
-          @for (g of s.setGroups; track g.key) {
-            <optgroup [label]="g.label">
-              @for (o of g.sets; track o.key) {
-                <option [value]="o.code" [selected]="o.code === s.collSet">{{ o.name }}</option>
-              }
-            </optgroup>
-          }
-        </select>
+        <cc-set-picker class="w-[min(280px,100%)]" [groups]="s.setGroups" [value]="s.collSet" (picked)="s.onCollSet({ target: { value: $event } })" />
         <button (click)="s.toggleMissing()" class="flex items-center gap-[10px] bg-transparent border-0 p-1 font-extrabold text-[14px]">
           <cc-switch [on]="store.state.missingOnly" />
           Alleen ontbrekend

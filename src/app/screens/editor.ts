@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CardcaseStore } from '../core/store';
 import { Card } from '../shared/card';
+import { SetPicker } from '../shared/set-picker';
 import { BinderPage } from '../shared/binder-page';
 import { PageTurn } from '../shared/page-turn';
 import { Pix, Switch } from '../shared/bits';
@@ -9,7 +10,7 @@ import { Pix, Switch } from '../shared/bits';
 @Component({
   selector: 'cc-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, BinderPage, PageTurn, Pix, Switch],
+  imports: [Card, BinderPage, PageTurn, Pix, Switch, SetPicker],
   template: `
     @let s = v();
     <div class="flex flex-col gap-[14px]">
@@ -384,20 +385,7 @@ import { Pix, Switch } from '../shared/bits';
                         <button (click)="l.select()" class="border-0 py-[6px] font-pixel font-semibold text-[13px] leading-none" [class]="l.on ? 'bg-red text-cream' : 'bg-surface text-ink'">{{ l.label }}</button>
                       }
                     </div>
-                    <select
-                      [value]="s.sideSet"
-                      (change)="s.onSideSet($event)"
-                      class="appearance-none bg-bg border-2 border-line rounded-[9px] px-[10px] py-[7px] font-extrabold text-[13px] cursor-pointer"
-                    >
-                      <option value="">Alle sets ▾</option>
-                      @for (g of s.setGroups; track g.key) {
-                        <optgroup [label]="g.label">
-                          @for (o of g.sets; track o.key) {
-                            <option [value]="o.code" [selected]="o.code === s.sideSet">{{ o.name }}</option>
-                          }
-                        </optgroup>
-                      }
-                    </select>
+                    <cc-set-picker [groups]="s.setGroups" [value]="s.sideSet" (picked)="s.onSideSet({ target: { value: $event } })" />
                     <div class="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-[10px] gap-y-3 overflow-auto p-1 pb-[6px]">
                       @for (it of s.sideItems; track it.key) {
                         <div
@@ -634,23 +622,16 @@ import { Pix, Switch } from '../shared/bits';
                           }
                         </optgroup>
                       }
-                      <optgroup label="Type">
-                        <option value="type:fire">Type: Fire (in bezit)</option>
-                        <option value="type:water">Type: Water (in bezit)</option>
-                        <option value="type:grass">Type: Grass (in bezit)</option>
-                        <option value="type:electric">Type: Lightning (in bezit)</option>
-                        <option value="type:psychic">Type: Psychic (in bezit)</option>
-                        <option value="type:fighting">Type: Fighting (in bezit)</option>
-                        <option value="type:dark">Type: Darkness (in bezit)</option>
-                        <option value="type:metal">Type: Metal (in bezit)</option>
-                        <option value="type:dragon">Type: Dragon (in bezit)</option>
-                        <option value="type:colorless">Type: Colorless (in bezit)</option>
+                      <!-- The department's colour categories (type, ink, colour) and languages. -->
+                      <optgroup [label]="s.autoTypeLabel">
+                        @for (t of s.autoTypes; track t[0]) {
+                          <option [value]="'type:' + t[0]" [selected]="'type:' + t[0] === s.autoSet">{{ s.autoTypeLabel }}: {{ t[1] }} (in bezit)</option>
+                        }
                       </optgroup>
                       <optgroup label="Taal">
-                        <option value="lang:EN">Taal: Engels (in bezit)</option>
-                        <option value="lang:DE">Taal: Duits (in bezit)</option>
-                        <option value="lang:JA">Taal: Japans (in bezit)</option>
-                        <option value="lang:ZH">Taal: Chinees (in bezit)</option>
+                        @for (l of s.autoLangs; track l[0]) {
+                          <option [value]="'lang:' + l[0]" [selected]="'lang:' + l[0] === s.autoSet">Taal: {{ l[1] }} (in bezit)</option>
+                        }
                       </optgroup>
                       <optgroup label="Overig">
                         <option value="top">Meest waardevol (in bezit)</option>

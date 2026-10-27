@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { CardcaseStore } from '../core/store';
+import { SetPicker } from '../shared/set-picker';
 import { BinderPage } from '../shared/binder-page';
 import { Pix } from '../shared/bits';
 
@@ -8,7 +9,7 @@ import { Pix } from '../shared/bits';
 @Component({
   selector: 'cc-recipe',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgTemplateOutlet, BinderPage, Pix],
+  imports: [NgTemplateOutlet, BinderPage, Pix, SetPicker],
   template: `
     @let s = v();
     <div class="flex flex-col gap-[18px]">
@@ -156,20 +157,12 @@ import { Pix } from '../shared/bits';
                       }
                     </div>
                     @if (s.rcPrefIsSet) {
-                      <div class="flex flex-wrap gap-[6px]">
-                        @for (o of s.prefSetChips; track o.key) {
-                          <button (click)="o.select()" class="chip" [style.background]="o.bg" [style.color]="o.fg">{{ o.label }}</button>
-                        }
-                      </div>
+                      <cc-set-picker class="max-w-[360px]" [groups]="s.setGroups" [value]="s.rcPrefSet" [allowAll]="false" placeholder="Kies een set" (picked)="s.pickPrefSet($event)" />
                     }
                   </div>
                 }
                 @if (s.qSet) {
-                  <div class="flex flex-wrap gap-[6px]">
-                    @for (o of s.setChipsR; track o.key) {
-                      <button (click)="o.select()" class="chip" [style.background]="o.bg" [style.color]="o.fg">{{ o.label }}</button>
-                    }
-                  </div>
+                  <cc-set-picker class="max-w-[360px]" [groups]="s.setGroups" [value]="s.rcSet" [allowAll]="false" placeholder="Kies een set" (picked)="s.pickRcSet($event)" />
                 }
                 @if (s.qOrder) {
                   <div class="grid grid-cols-3 gap-[2px] bg-line border-2 border-line rounded-[9px] overflow-hidden">
