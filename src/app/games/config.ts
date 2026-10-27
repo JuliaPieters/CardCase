@@ -52,6 +52,8 @@ export interface GameConfig {
     strips: import('../core/scanner').CardStrips;
     match: (text: string, opts: { numText?: string; lang?: string; limit?: number; prefer?: Set<number>; expect?: number | null }) => import('../core/text').CardMatch[];
   };
+  /** The number as shown on a card tile (default: set and number). */
+  cardNumber?: (card: any) => string;
   /** Game facts shown on the card page (cost, lore…), in the card's language. */
   cardFacts?: (card: any, lang: string) => { label: string; value: string; color?: string }[];
   /** Rules text of the card, in its language. */

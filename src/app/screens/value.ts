@@ -104,6 +104,7 @@ import { Led, Trend } from '../shared/bits';
         <h2 class="m-0 font-pixel font-semibold text-[20px] leading-[1.2]">Waarde verdeeld</h2>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5 items-start">
           <ng-container *ngTemplateOutlet="split; context: { title: 'PER SET', rows: s.bySet }" />
+          <ng-container *ngTemplateOutlet="split; context: { title: s.byTypeTitle, rows: s.byType }" />
           <ng-container *ngTemplateOutlet="split; context: { title: 'PER TAAL', rows: s.byLang }" />
           <ng-container *ngTemplateOutlet="split; context: { title: 'PER BINDER', rows: s.byBinder }" />
         </div>
