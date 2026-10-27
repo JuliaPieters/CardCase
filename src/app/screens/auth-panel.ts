@@ -4,6 +4,7 @@ import { FriendsService, USERNAME } from '../core/friends';
 import { lastAccount } from '../core/persist';
 import { CardcaseStore } from '../core/store';
 import { Leds } from '../shared/bits';
+import { Logo } from '../shared/logo';
 
 type Mode = 'login' | 'register' | 'reset' | 'account' | 'profile';
 
@@ -16,7 +17,7 @@ const GUEST_KEY = 'cc-guest';
 @Component({
   selector: 'cc-auth-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Leds],
+  imports: [Leds, Logo],
   template: `
     @let gate = welcome();
     @let mode = needsProfile() ? 'profile' : store.state.authPanel || (gate ? 'login' : null);
@@ -28,7 +29,7 @@ const GUEST_KEY = 'cc-guest';
         (click)="close()"
       >
         @if (gate) {
-          <img [src]="store.state.dark ? 'icons/logo-dark.png' : 'icons/logo-light.png'" alt="CardCase" class="w-[min(70vw,320px)] h-auto block" />
+          <cc-logo [hero]="true" [size]="heroSize" />
           <p class="m-0 -mt-2 max-w-[420px] text-center text-[15px] font-extrabold text-muted text-pretty">
             Log in of maak een account om je collectie en binders op al je apparaten bij te houden.
           </p>
@@ -236,6 +237,8 @@ const GUEST_KEY = 'cc-guest';
   `,
 })
 export class AuthPanel {
+  /** Font size of the big logo: about 320px wide, smaller on a narrow phone. */
+  protected readonly heroSize = Math.min(52, Math.round((window.innerWidth * 0.7) / 6.2));
   protected readonly store = inject(CardcaseStore);
   protected readonly auth = inject(AuthService);
   protected readonly friends = inject(FriendsService);

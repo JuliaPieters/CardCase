@@ -34,10 +34,23 @@
           :root { --splash-bg: #f7f3e8; --splash-ink: #6a6558; }
           @media (prefers-color-scheme: dark) { :root { --splash-bg: #1a1c22; --splash-ink: #a8a497; } }
         </style>
-        <picture>
+        <picture id="cc-splash-logo">
           <source srcset="icons/logo-dark.png" media="(prefers-color-scheme: dark)" />
           <img src="icons/logo-light.png" alt="CardCase" style="width: min(78vw, 420px); height: auto; display: block" />
         </picture>
+        <script>
+          // Another department than Pokémon (in the address, else the one used last): its mascot instead of the Pokémon logo.
+          (function () {
+            var games = ['lorcana', 'magic', 'one-piece'], g = location.pathname.split('/')[1];
+            if (g !== 'pokemon' && games.indexOf(g) < 0) try { g = localStorage.getItem('cc-last-game'); } catch (e) {}
+            if (games.indexOf(g) < 0) return;
+            var img = document.createElement('img');
+            img.src = 'logos/' + g + '/mascotte.svg';
+            img.alt = 'CardCase';
+            img.style.cssText = 'width: 150px; height: auto; display: block';
+            document.getElementById('cc-splash-logo').replaceWith(img);
+          })();
+        </script>
         <p style="margin: 0; font: 700 15px/1.4 system-ui, sans-serif; color: var(--splash-ink)">Kaarten laden…</p>
       </div>
     </app-root>

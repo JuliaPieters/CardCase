@@ -590,6 +590,41 @@ body.cc-dark {
   clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 
+/* The big logo: no box, mascot after the word mark, an 8px-at-64px shadow and the tagline below. */
+.cc-logo.cc-logo-hero {
+  flex-direction: column;
+  gap: calc(var(--logo-size) * 0.2);
+  background: none;
+  padding: 0;
+}
+.cc-logo-hero-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--logo-size) * 0.15);
+}
+.cc-logo-hero .cc-logo-card,
+.cc-logo-hero .cc-logo-case {
+  text-shadow: 0.08em 0.08em 0 var(--logo-shadow);
+}
+.cc-logo-hero .cc-logo-case {
+  text-shadow: 0.08em 0.08em 0 var(--logo-case-shadow);
+}
+.cc-logo-tagline {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font: 400 calc(var(--logo-size) * 0.2) / 1 var(--font-display-family), monospace;
+  color: var(--ink);
+}
+.cc-logo-tagline i {
+  width: 0.45em;
+  height: 0.45em;
+  background: var(--logo-card);
+}
+.cc-logo-tagline i:last-child {
+  background: var(--logo-case);
+}
+
 /* Print sheets (screens/print.ts): only on paper, and then on their own, at real size. */
 .cc-print-sheets {
   display: none;

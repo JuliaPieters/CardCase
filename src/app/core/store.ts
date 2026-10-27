@@ -56,6 +56,8 @@ export class CardcaseStore {
   /** The collection to show is known (loaded, or the guest's); a signal so effects can wait for it. */
   private readonly syncReadySig = signal(false);
   private get syncReady() { return this.syncReadySig(); }
+  /** The onboarding was opened because nobody had chosen yet (not through "Afdeling toevoegen"). */
+  private autoOnboarding = false;
   private set syncReady(v: boolean) { this.syncReadySig.set(v); }
   /** Stops listening for changes to the account made on other devices. */
   private unwatch: (() => void) | null = null;
@@ -176,9 +178,12 @@ export class CardcaseStore {
       if (!CATALOG_MOCK && ready) untracked(() => this.onAuth(u ? u.uid : null, u));
     });
     // Someone who hasn't chosen what they collect (a new account or guest) starts with "Wat verzamel jij?".
+    // It closes again by itself when the collection that loads turns out to have departments (logging in to an
+    // existing account from the welcome page, where you were briefly a guest without any).
     effect(() => {
-      const st = this.state; if (CATALOG_MOCK || !this.syncReadySig() || st.games?.length || st.foreign || st.linkLoading || st.importOffer) return;
-      if (st.screen !== 'onboarding') untracked(() => this.go('onboarding'));
+      const st = this.state; if (CATALOG_MOCK || !this.syncReadySig() || st.foreign || st.linkLoading || st.importOffer) return;
+      if (st.games?.length) { if (st.screen === 'onboarding' && this.autoOnboarding) { this.autoOnboarding = false; untracked(() => this.go('home')); } return; }
+      if (st.screen !== 'onboarding') { this.autoOnboarding = true; untracked(() => this.go('onboarding')); }
     });
     // Fetch Cardmarket prices for the cards that are owned or on screen.
     effect(() => {

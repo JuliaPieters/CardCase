@@ -174,7 +174,10 @@ export function deserializeUser(raw: SavedUser | null): UserData | null {
     if (id != null) added[id] = t;
   }
   const binders = (mine?.binders || []).map(binderFromSaved);
-  return { owned, added, binders: binders.length ? binders : [firstBinder()], dark: !!u.dark, games: u.games || [], otherGames, summary: u.summary || {} };
+  // Departments with cards in them count as chosen, also when the list itself is missing or empty.
+  const games = [...(u.games || [])];
+  for (const [g, d] of Object.entries(u.data || {})) if (!games.includes(g) && Object.keys((d as SavedGame).owned || {}).length) games.push(g);
+  return { owned, added, binders: binders.length ? binders : [firstBinder()], dark: !!u.dark, games, otherGames, summary: u.summary || {} };
 }
 
 /** Number of distinct cards in a saved collection, over all departments. */

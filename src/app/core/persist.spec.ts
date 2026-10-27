@@ -76,4 +76,9 @@ describe('persist', () => {
     expect(Object.keys(shared.owned).sort()).toEqual(['JA-SV7/4', 'base1/4', 'tk-ex-p/3']);
     expect(shared.binders[0].slots[2]).toBe('U:tk-ex-p/3');
   });
+
+  it('counts departments with cards as chosen, also without a list', () => {
+    const saved = serializeUser(deserializeUser(V1)!);
+    expect(deserializeUser({ ...saved, games: [] })!.games).toEqual(['pokemon']);
+  });
 });
