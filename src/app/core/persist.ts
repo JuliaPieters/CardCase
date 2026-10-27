@@ -16,8 +16,9 @@ const KEY = 'cc-user-v2';
 const ACCOUNT_KEY = 'cc-account';
 
 /**
- * The Firestore field holding the saved form. Until departments go live the old field `cardcase` (version 1, read by
- * the version online) is only read, never written: see docs/implementatieplan.md §0.
+ * The Firestore fields: REMOTE_FIELD holds version 2 (every department). The old field `cardcase` keeps the Pokémon
+ * collection in version 1 as well, for app versions from before departments that are still open somewhere (from the
+ * cache); when one of those saves later, newest() takes its Pokémon changes over.
  */
 export const REMOTE_FIELD = 'cardcaseV2';
 export const REMOTE_FIELD_V1 = 'cardcase';
@@ -186,6 +187,14 @@ export function deserializeUser(raw: SavedUser | null): UserData | null {
   const games = [...(u.games || [])];
   for (const [g, d] of Object.entries(u.data || {})) if (!games.includes(g) && Object.keys((d as SavedGame).owned || {}).length) games.push(g);
   return { owned, added, binders: binders.length ? binders : [firstBinder()], decks, dark: !!u.dark, games, otherGames, summary: u.summary || {}, history: u.history || {} };
+}
+
+/** The Pokémon part of a saved user in version 1, for app versions from before departments. */
+export function legacyV1(saved: SavedUser): SavedUser {
+  const { owned, binders } = shareForm(saved);
+  const pk = saved.data?.pokemon || {};
+  const added = Object.fromEntries(Object.entries(pk.added || {}).map(([k, t]) => [k.startsWith('pokemon:') ? k.slice(8).replace(/-([^-]*)$/, '/$1') : k, t]));
+  return { v: 1, owned, added, binders, dark: !!saved.dark, savedAt: saved.savedAt };
 }
 
 /** Number of distinct cards in a saved collection, over all departments. */

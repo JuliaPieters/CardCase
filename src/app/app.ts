@@ -3,7 +3,6 @@ import { NgTemplateOutlet } from '@angular/common';
 import { CardcaseStore } from './core/store';
 import { CatalogService } from './core/catalog';
 import { Leds } from './shared/bits';
-import { Logo } from './shared/logo';
 import { GameSwitcher } from './shared/game-switcher';
 import { OnboardingScreen, OverviewScreen } from './screens/departments';
 import { DeckScreen, DecksScreen } from './screens/decks';
@@ -37,7 +36,6 @@ import { AppUpdate } from './core/app-update';
   imports: [
     NgTemplateOutlet,
     Leds,
-    Logo,
     GameSwitcher,
     OnboardingScreen,
     DecksScreen,

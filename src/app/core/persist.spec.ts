@@ -1,7 +1,7 @@
 import { buildCatalog } from '../games/pokemon/catalog';
 import { config } from '../games/pokemon/config';
 import { CARDS, applyGameConfig, setCatalog } from './data';
-import { deserializeUser, newest, serializeUser, shareForm } from './persist';
+import { deserializeUser, legacyV1, newest, serializeUser, shareForm } from './persist';
 
 const set = (code: string, lang: string, official: number) => ({ code, id: code, api: lang.toLowerCase(), lang, name: code, serie: 's', year: 2000, official, img: null, imgDE: null, hasDE: true });
 const RAW = {
@@ -80,5 +80,15 @@ describe('persist', () => {
   it('counts departments with cards as chosen, also without a list', () => {
     const saved = serializeUser(deserializeUser(V1)!);
     expect(deserializeUser({ ...saved, games: [] })!.games).toEqual(['pokemon']);
+  });
+
+  it('keeps Pokémon in version 1 for older app versions, and reads it back the same', () => {
+    const saved = serializeUser(deserializeUser(V1)!);
+    const v1 = legacyV1(saved);
+    expect(v1['v']).toBe(1);
+    expect(Object.keys(v1['owned']).sort()).toEqual(['JA-SV7/4', 'base1/4', 'tk-ex-p/3']);
+    expect(v1['added']).toEqual({ 'base1/4': 1000 });
+    expect(newest(saved, v1)).toBe(saved);
+    expect(deserializeUser(v1)!.owned).toEqual(deserializeUser(saved)!.owned);
   });
 });

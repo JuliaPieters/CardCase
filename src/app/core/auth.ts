@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './firebase.config';
-import { REMOTE_FIELD, remoteUser } from './persist';
+import { REMOTE_FIELD, REMOTE_FIELD_V1, legacyV1, remoteUser } from './persist';
 
 export type SyncStatus = 'guest' | 'loading' | 'saving' | 'saved' | 'error';
 
@@ -87,7 +87,7 @@ export class AuthService {
    */
   async saveRemote(uid: string, data: Record<string, unknown>) {
     const { fsMod } = await this.requireSdk();
-    await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid), { [REMOTE_FIELD]: data, updatedAt: fsMod.serverTimestamp() }, { mergeFields: [REMOTE_FIELD, 'updatedAt'] });
+    await fsMod.setDoc(fsMod.doc(this.db!, 'users', uid), { [REMOTE_FIELD]: data, [REMOTE_FIELD_V1]: legacyV1(data), updatedAt: fsMod.serverTimestamp() }, { mergeFields: [REMOTE_FIELD, REMOTE_FIELD_V1, 'updatedAt'] });
   }
 
   /** Stores an uploaded picture in its own document, users/{uid}/images/{id} (see core/images). */

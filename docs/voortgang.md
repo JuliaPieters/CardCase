@@ -9,7 +9,7 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 | 2 · Routing, thema's, configuratie | `lorcana` | ✅ `/<afdeling>/…`, `data-game`, thema-tokens, config per afdeling, logo-component, favicon. ⏳ Tokens nog niet hernoemd naar voluit geschreven namen. |
 | 3 · Wisselaar, onboarding, overzicht | `lorcana` | ✅ |
 | 4a · Lorcana | `lorcana` | 🟡 Alles gebouwd: catalogus, prijzen (ook in de catalogus), thema, filters, recepten, kaartpagina, foil, waardegeschiedenis, scanner (boekpagina, snel scannen, tips), decoratie, delen. Nog testen: camera, mobiel, echt account. |
-| → merge `lorcana` naar `main` | | ⏳ |
+| → merge `lorcana` naar `main` | | ✅ 27-10-2026 |
 | 4b · Magic | `magic` | ⏳ |
 | 4c · One Piece | `one-piece` | ⏳ |
 
@@ -18,7 +18,7 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 - **Getest met een echte camera:** de scanner (herkenning, snel scannen) is alleen met unit tests en zonder camera bekeken.
 - **Mobiele weergave** nog niet bekeken.
 - **Je echte account** op Lorcana (inloggen, opslaan, wisselen) nog niet getest; alles als gast.
-- **Bij de merge:** Firestore-veld omzetten van `cardcaseV2` naar het echte veld (§0 van het plan), en `firestore.rules` nalopen.
+- Opslag: de app schrijft `cardcaseV2` (alle afdelingen) én `cardcase` (Pokémon in de oude vorm, voor app-versies van vóór de afdelingen). Het veld `cardcase` kan later weg, als niemand de oude versie meer gebruikt.
 
 ## Logboek
 
@@ -39,3 +39,4 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 - Thema-tokens per afdeling; Pokémon ziet er hetzelfde uit, Lorcana in inktblauw, roomwit en goud.
 - Afdelingswisselaar, onboarding "Wat verzamel jij?" en overzicht "Mijn Cardcase" gebouwd.
 - Foil per taal in de collectie, waardegeschiedenis per dag, snel scannen, tips bij mislukte scans, Lorcana-decoratie, delen per afdeling. Alle Lorcana-schermen in de browser doorgelopen (desktop, als gast).
+- Decks voor Lorcana (bouwen, inlezen, controle, speelstijl, genereren, sparen). Op telefoonformaat nagelopen. Gemerged naar `main`.
