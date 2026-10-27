@@ -433,7 +433,7 @@ export function recipeLabel(r) {
   if (r.type === 'illus') return ['ILLUSTRATOR', r.illus.toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
   if (r.type === 'master') return 'MASTER SET · ' + ((SETS.find(s => s.code === r.set) || {}).name || r.set).toUpperCase();
   if (r.type === 'single') return 'ÉÉN ' + NOUN.one.toUpperCase() + ' · ' + spLabel(r.sp).toUpperCase() + ' · ' + lang + ' · ALLE VERSIES';
-  if (r.type === 'story') return ['VERHAAL', (r.story || '').toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
+  if (r.type === 'story') return [STEPT.story[0].toUpperCase(), (r.story || '').toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
   if (r.type === 'fullart') return 'FULL ART · ' + lang;
   return 'LEEG · ' + r.pages + " PAGINA'S";
 }

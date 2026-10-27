@@ -33,7 +33,7 @@ export const config: GameConfig = {
     Special: ['SP', 'SP', 'R'],
   },
   basicRarities: ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary'],
-  recipeExample: 'alles uit De kleine zeemeermin, één per personage, liefst Enchanted',
+  recipeExample: 'alles uit The Little Mermaid, één per personage, liefst Enchanted',
   exampleName: 'Ariel of Stitch',
   scan: {
     // English, French, German and Italian are all Latin script: one model reads them, the printed code says which.
@@ -45,7 +45,7 @@ export const config: GameConfig = {
   recipes: [
     MASTER,
     ['type', 'Per inkkleur', 'drop', 'Alles van één inkkleur, bijvoorbeeld Amethyst.', '#233A7A', '#F6F1E4'],
-    ['story', 'Per verhaal', 'book', 'Alle kaarten uit één verhaal, zoals De kleine zeemeermin.', '#E2B53A', '#172757'],
+    ['story', 'Per film of serie', 'book', 'Alle kaarten uit één film of serie, zoals The Little Mermaid.', '#E2B53A', '#172757'],
     ['single', 'Eén personage, alle versies', 'crown', 'Elke versie van je favoriet naast elkaar.', '#3A5BD9', '#FFFDF7'],
     ['fullart', 'Alleen full art', 'star', 'Alle Enchanted-, Epic- en Iconic-kaarten.', '#172757', '#E2B53A'],
     ILLUSTRATOR,
@@ -58,7 +58,7 @@ export const config: GameConfig = {
     single: ['species', 'langs', 'order'],
     fullart: ['langs', 'order'],
   },
-  stepTitles: { ptype: ['Inkkleur', 'Welke inkkleur?'], species: ['Personage', 'Welk personage?'] },
+  stepTitles: { ptype: ['Inkkleur', 'Welke inkkleur?'], species: ['Personage', 'Welk personage?'], story: ['Film of serie', 'Uit welke film of serie?'] },
   prefs: [
     PREF_OWNED,
     ['fullart', 'Enchanted / Epic / Iconic', 'De mooiste versie; zonder full art de gewone kaart.', 'palette'],
@@ -69,10 +69,8 @@ export const config: GameConfig = {
   filters: [
     { key: 'ink', label: 'Alle inkkleuren', options: () => Object.entries(config.types).map(([k, v]) => [k, v[0]]), match: (c, v) => c.inks.includes(v) },
     { key: 'cardType', label: 'Alle kaartsoorten', options: () => Object.entries(CARD_TYPES), match: (c, v) => c.cardType === v },
-    { key: 'cost', label: 'Alle kosten', options: () => [...new Set(CARDS.map((c) => c.cost).filter((x) => x != null))].sort((a, b) => a - b).map((n) => [String(n), n + ' inkt']), match: (c, v) => String(c.cost) === v },
     { key: 'inkwell', label: 'Inkwell: alle', options: () => [['1', 'Inkwell: ja'], ['0', 'Inkwell: nee']], match: (c, v) => (c.inkwell ? '1' : '0') === v },
-    { key: 'story', label: 'Alle verhalen', options: () => [...new Set(CARDS.map((c) => c.story).filter(Boolean))].sort().map((x) => [x, x]), match: (c, v) => c.story === v },
-    { key: 'variant', label: 'Alle varianten', options: () => [['regular', 'Gewoon'], ['fullart', 'Enchanted / Epic / Iconic'], ['promo', 'Promo'], ['foil', 'Heeft foil']], match: (c, v) => (v === 'foil' ? c.foilTypes.some((f: string) => f !== 'None') : c.variant === v) },
+    { key: 'story', label: 'Alle films en series', options: () => [...new Set(CARDS.map((c) => c.story).filter(Boolean))].sort().map((x) => [x, x]), match: (c, v) => c.story === v },
   ],
   cardFacts: (c) => {
     const ink = c.inks.map((i: string) => config.types[i]?.[0] || i).join(' / ');
@@ -86,7 +84,7 @@ export const config: GameConfig = {
     if (c.strength != null) out.push({ label: 'Sterkte', value: String(c.strength) });
     if (c.willpower != null) out.push({ label: 'Wilskracht', value: String(c.willpower) });
     if (c.moveCost != null) out.push({ label: 'Verplaatskosten', value: String(c.moveCost) });
-    if (c.story) out.push({ label: 'Verhaal', value: c.story });
+    if (c.story) out.push({ label: 'Film of serie', value: c.story });
     if (c.illus) out.push({ label: 'Illustrator', value: c.illus });
     out.push({ label: 'Foil', value: c.foilOnly ? 'Alleen foil' : c.foilTypes?.some((f: string) => f !== 'None') ? 'Gewoon en foil' : 'Alleen gewoon' });
     return out;
