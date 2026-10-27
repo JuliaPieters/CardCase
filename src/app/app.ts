@@ -81,7 +81,7 @@ export class App {
 
   constructor() {
     this.store.init();
-    if (inject(CatalogService).source() === 'mock') this.store.toast('TCGdex niet bereikbaar · voorbeelddata geladen');
+    if (inject(CatalogService).sourceKind() === 'mock') this.store.toast('TCGdex niet bereikbaar · voorbeelddata geladen');
     effect(() => document.body.classList.toggle('cc-dark', !!this.store.state.dark));
     effect(() => {
       this.store.scrollTick();

@@ -1,0 +1,156 @@
+import { RARITIES, pad } from '../../core/data';
+
+/**
+ * The Pokémon catalog: public/catalog.json, built by `npm run sync-catalog` from TCGdex and completed with the official
+ * Japanese and Asian card databases and pokemontcg.io (scripts/sync-*.mjs).
+ */
+
+const TYPE_MAP: Record<string, string> = {
+  Fire: 'fire',
+  Water: 'water',
+  Grass: 'grass',
+  Lightning: 'electric',
+  Psychic: 'psychic',
+  Fairy: 'psychic',
+  Fighting: 'fighting',
+  Darkness: 'dark',
+  Metal: 'metal',
+  Dragon: 'dragon',
+  Colorless: 'colorless',
+};
+
+/** Expands the compact catalog.json into the card objects data.ts works with. */
+export function buildCatalog(raw: any) {
+  const T: string[] = raw.strings;
+  const s = (i: number) => (i >= 0 ? T[i] : null);
+  const sets = raw.sets.map((x: any) => ({
+    code: x.code,
+    name: x.name,
+    serie: x.serie,
+    n: 0,
+    year: x.year,
+    released: x.released ?? null,
+    lang: x.lang,
+    avail: x.lang === 'EN' ? (x.hasDE ? ['EN', 'DE'] : ['EN']) : [x.lang],
+  }));
+  const cards = raw.cards.map((t: any[], i: number) => {
+    const [setIdx, localId, name, nameDE, rar, type, dex, illus, imgFlags, category, altRef] = t;
+    const set = raw.sets[setIdx];
+    sets[setIdx].n++;
+    const lang = set.lang;
+    const avail = lang === 'EN' ? (nameDE ? ['EN', 'DE'] : ['EN']) : [lang];
+    const rarity = s(rar);
+    return {
+      key: 'pokemon:' + set.code + '-' + localId,
+      game: 'pokemon',
+      uid: set.code + '/' + localId,
+      api: set.api,
+      /** Card id at TCGdex, for prices; null for Japanese sets that only the official database has. */
+      apiId: set.api ? set.id + '-' + localId : null,
+      set: set.code,
+      setName: set.name,
+      num: parseInt(localId, 10) || 0,
+      localId,
+      total: set.official,
+      numStr: pad(localId) + '/' + pad(set.official),
+      names: { EN: name, DE: nameDE ?? name, JA: name, ZH: name },
+      type: TYPE_MAP[s(type) ?? ''] ?? 'colorless',
+      /** Type as printed (e.g. Fairy, which `type` groups under psychic), or Trainer/Energy for those cards. */
+      typeName: s(type) ?? (category === 1 ? 'Trainer' : category === 2 ? 'Energy' : null),
+      rarity: mapRarity(rarity),
+      rarityName: rarity,
+      variant: mapVariant(rarity),
+      form: formOf(name),
+      category,
+      avail,
+      sp: dex || 5000 + i,
+      year: set.year ?? 0,
+      /** Release date of the set (YYYY-MM-DD), or null when TCGdex doesn't know it. */
+      released: set.released ?? null,
+      illus: s(illus) ?? '',
+      img: {
+        [lang]: imgFlags & 1 && set.img ? set.img + localId + '/low.webp' : altImage(altRef, true),
+        DE: imgFlags & 2 && set.imgDE ? set.imgDE + localId + '/low.webp' : null,
+      },
+      /** Full-size original of an image from another source, tried when the resized copy fails to load. */
+      imgAlt: imgFlags & 1 && set.img ? null : altImage(altRef, false),
+      /** Row in public/card-hashes.bin with the hash of the photo shown (another card's when it is borrowed). */
+      hashRow: i,
+      trend: null,
+    };
+  });
+  borrowJapaneseImages(cards);
+  return { sets, cards };
+}
+
+/**
+ * Image from a source other than TCGdex (see scripts/sync-images.mjs, sync-japanese.mjs): the official Japanese or
+ * Asian card database, or pokemontcg.io. Those originals are 150–250 kB, so they go through a resizing proxy (≈15 kB, like TCGdex's).
+ */
+function altImage(ref: string | undefined, resized: boolean): string | null {
+  if (!ref) return null;
+  const path = ref.slice(2);
+  const url =
+    ref[0] === 'J'
+      ? `https://www.pokemon-card.com/assets/images/card_images/${path}`
+      : ref[0] === 'j'
+        ? `https://www.pokemon-card.com/assets/images/card_images/large/${path}.jpg`
+        : ref[0] === 'c'
+          ? `https://asia.pokemon-card.com/tw/card-img/${path}.png`
+          : `https://images.pokemontcg.io/${path}.png`;
+  return resized ? `https://images.weserv.nl/?url=${encodeURIComponent(url.slice(8))}&w=250&output=webp&q=80` : url;
+}
+
+/**
+ * Taiwanese and Chinese sets reuse the Japanese set codes and numbering ("ZH-TW-SV2a" 025 = "JA-SV2a" 025), and the
+ * artwork is the same: a Chinese card without its own photo shows the Japanese one, if it is the same Pokémon
+ * (or, in a Taiwanese set, a trainer/energy card of the same kind). A card with its own photo from the official Asian
+ * database falls back to the Japanese one instead of that site's original, so it still shows when the site is down.
+ */
+function borrowJapaneseImages(cards: any[]) {
+  const ja = new Map<string, any>();
+  for (const c of cards) if (c.avail[0] === 'JA' && c.img.JA) ja.set(c.set.slice(3) + '/' + c.num, c);
+  for (const c of cards) {
+    if (c.avail[0] !== 'ZH') continue;
+    const j = ja.get(c.set.replace(/^ZH-(TW|CN)-/, '') + '/' + c.num);
+    const same = c.sp <= 1025 ? j?.sp === c.sp : c.category !== 0 && j?.category === c.category && c.set.startsWith('ZH-TW-');
+    if (c.img.ZH) {
+      if (j && same && c.imgAlt?.includes('asia.pokemon-card.com')) c.imgAlt = j.img.JA;
+    } else if (j && same) {
+      c.img.ZH = j.img.JA;
+      c.imgAlt = j.imgAlt;
+      c.hashRow = j.hashRow;
+    }
+  }
+}
+
+function mapRarity(r: string | null): string {
+  const x = (r || '').toLowerCase();
+  if (!x) return 'X'; // TCGdex has no rarity for this card
+  const tier = RARITIES[r!]?.[2];
+  if (tier) return tier;
+  if (x === 'common' || x === 'none' || x === 'one diamond') return 'C';
+  if (x === 'uncommon' || x === 'two diamond') return 'U';
+  if (x === 'rare' || x === 'promo' || x === 'three diamond') return 'R';
+  return 'HR';
+}
+
+/** Regional form a card shows ("Alolan Vulpix", "アローラロコン", "阿羅拉 六尾"), or null. */
+function formOf(name: string | null): string | null {
+  const n = name || '';
+  if (/^alolan |^アローラ|^阿羅拉|^阿罗拉/i.test(n)) return 'alola';
+  if (/^galarian |^ガラル|^伽勒爾|^伽勒尔/i.test(n)) return 'galar';
+  if (/^hisuian |^ヒスイ|^洗翠/i.test(n)) return 'hisui';
+  if (/^paldean |^パルデア|^帕底亞|^帕底亚/i.test(n)) return 'paldea';
+  return null;
+}
+
+function mapVariant(r: string | null): string {
+  const x = (r || '').toLowerCase();
+  if (x.includes('illustration')) return 'illus';
+  if (x.includes('ultra') || x.includes('hyper') || x.includes('secret') || x.includes('full art') || x.includes('character')) return 'fullart';
+  if (x.includes('promo')) return 'promo';
+  if (x.includes('holo') || x.includes('double') || x.includes('triple')) return 'holo';
+  return 'regular';
+}
+

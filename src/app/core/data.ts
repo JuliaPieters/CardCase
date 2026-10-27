@@ -48,8 +48,15 @@ Staticune|Statikun|セイデン|静电兽|colorless
 Thunderion|Donnerion|ライオネル|雷狮王|electric`;
 /** Sets and cards are filled at startup by setCatalog() (real TCGdex data or mockCatalog()). */
 export const SETS: any[] = [];
-export const LANGS = ['EN', 'DE', 'JA', 'ZH'];
-export const LNAME = { EN: 'Engels', DE: 'Duits', JA: 'Japans', ZH: 'Chinees' };
+/** Languages of the active department's cards, and their names (set from its config by setLanguages). */
+export const LANGS: string[] = ['EN', 'DE', 'JA', 'ZH'];
+export const LNAME: Record<string, string> = { EN: 'Engels', DE: 'Duits', JA: 'Japans', ZH: 'Chinees' };
+
+export function setLanguages(langs: { code: string; label: string }[]) {
+  LANGS.length = 0; LANGS.push(...langs.map(l => l.code));
+  for (const k of Object.keys(LNAME)) delete LNAME[k];
+  langs.forEach(l => { LNAME[l.code] = l.label; });
+}
 /** Pokémon TCG energy types, with their English card names. */
 export const TYPES = { fire: ['Fire', 'oklch(0.80 0.11 40)'], water: ['Water', 'oklch(0.80 0.09 235)'], grass: ['Grass', 'oklch(0.83 0.10 140)'], electric: ['Lightning', 'oklch(0.88 0.11 95)'], psychic: ['Psychic', 'oklch(0.80 0.09 340)'], fighting: ['Fighting', 'oklch(0.76 0.09 60)'], dark: ['Darkness', 'oklch(0.64 0.05 290)'], metal: ['Metal', 'oklch(0.82 0.03 250)'], dragon: ['Dragon', 'oklch(0.75 0.09 285)'], colorless: ['Colorless', 'oklch(0.90 0.02 90)'] };
 export const RAR = { C: ['Gewoon', '●'], U: ['Ongewoon', '◆'], R: ['Zeldzaam', '★'], HR: ['Holo-zeldzaam', '✦'], X: ['Onbekend', '?'] };

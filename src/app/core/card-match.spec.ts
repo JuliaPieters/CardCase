@@ -1,4 +1,4 @@
-import { buildCatalog } from './catalog';
+import { buildCatalog } from '../games/pokemon/catalog';
 import { matchCards, parseNumber } from './card-match';
 import { CARDS, setCatalog } from './data';
 

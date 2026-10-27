@@ -1,6 +1,7 @@
 import { ApplicationConfig, inject, isDevMode, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideServiceWorker } from '@angular/service-worker';
 import { CatalogService } from './core/catalog';
+import { initialGame } from './games/registry';
 import { loadFirebaseConfig } from './core/firebase.config';
 
 export const appConfig: ApplicationConfig = {
@@ -11,7 +12,7 @@ export const appConfig: ApplicationConfig = {
     // The store builds its initial state from the catalog and the auth setup, so load both before the app renders.
     provideAppInitializer(() => {
       const catalog = inject(CatalogService);
-      return Promise.all([catalog.load(), loadFirebaseConfig()]);
+      return Promise.all([catalog.load(initialGame()), loadFirebaseConfig()]);
     }),
   ],
 };
