@@ -40,7 +40,15 @@ import { Led } from '../shared/bits';
               }
             </div>
           </div>
-          <div class="ml-auto grid grid-cols-2 gap-[2px] bg-black border-2 border-black rounded-[9px] overflow-hidden">
+          <button
+            (click)="s.toggleQuick()"
+            title="Snel scannen: zekere kaarten gaan meteen in je collectie"
+            class="ml-auto border-2 border-black rounded-[9px] px-3 py-[12px] font-pixel text-[12px] leading-none"
+            [class]="s.scanQuick ? 'bg-lcd text-lcd-ink' : 'bg-[var(--device-raised)] text-[var(--device-text)]'"
+          >
+            SNEL{{ s.scanQuick ? ' · ' + s.quickCount : '' }}
+          </button>
+          <div class="grid grid-cols-2 gap-[2px] bg-black border-2 border-black rounded-[9px] overflow-hidden">
             <button (click)="s.goScan()" class="border-0 px-3 py-[14px] font-pixel text-[12px] leading-none" [style.background]="s.modeCardBg" [style.color]="s.modeCardFg">
               KAART
             </button>
@@ -72,7 +80,17 @@ import { Led } from '../shared/bits';
           class="relative flex-1 mx-3 rounded-[18px] border-2 border-black overflow-hidden bg-[repeating-linear-gradient(45deg,#1E2128_0_12px,var(--coal)_12px_24px)]"
         >
           <video #video class="absolute inset-0 w-full h-full object-cover" autoplay muted playsinline></video>
-          <div #guide class="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-[min(62%,280px)] max-h-[80%] aspect-[63/88]">
+          <div #guide class="cc-scan-guide absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-[min(62%,280px)] max-h-[80%] aspect-[63/88]">
+            @if (s.scanStrip && s.scanSearching) {
+              <!-- Where the collector number is printed: the scanner reads it there. -->
+              <div
+                class="absolute left-[4%] right-[4%] border-2 border-dashed rounded-md flex items-center justify-center font-pixel text-[10px] tracking-[.1em] text-white/80 border-white/60"
+                [style.top.%]="s.scanStrip[0] * 100"
+                [style.height.%]="s.scanStrip[1] * 100"
+              >
+                NUMMER HIER
+              </div>
+            }
             @if (s.scanLocked) {
               <div class="absolute inset-[5%] border-2 border-[color-mix(in_srgb,var(--display)_70%,_transparent)] rounded-[10px] bg-[color-mix(in_srgb,var(--display)_14%,_transparent)]"></div>
             }
@@ -90,6 +108,30 @@ import { Led } from '../shared/bits';
             </div>
           </div>
         </div>
+        @if (s.scanQuick && s.quickLog.length) {
+          <div class="mx-3 mt-3 flex flex-col gap-[6px]">
+            @for (q of s.quickLog; track q.key) {
+              <div class="flex items-center gap-2 bg-[var(--device-raised)] text-[var(--device-text)] border-2 border-black rounded-[10px] px-3 py-[6px]">
+                <span class="icon text-[18px] text-lcd">check_circle</span>
+                <span class="flex-1 min-w-0 truncate font-bold text-[13px]">{{ q.name }} <span class="text-[var(--device-muted)]">· {{ q.meta }}</span></span>
+                <button (click)="q.undo()" title="Verkeerde kaart: weer verwijderen" class="icon text-[20px] text-[var(--device-muted)]">undo</button>
+              </div>
+            }
+          </div>
+        }
+        @if (stuck() && s.scanSearching) {
+          <div class="mx-3 mt-3 bg-[var(--device-raised)] text-[var(--device-text)] border-2 border-black rounded-[12px] p-3 flex flex-col gap-2">
+            <div class="font-pixel text-[12px] tracking-[.08em]">LUKT HET NIET?</div>
+            <ul class="m-0 pl-5 text-[13px] font-bold leading-[1.5]">
+              <li>Te veel glans? Kantel de kaart een beetje.</li>
+              <li>Te donker? Zet de flitser aan of zoek meer licht.</li>
+              <li>Houd de kaart recht en laat hem het kader vullen.</li>
+            </ul>
+            <button (click)="searchByHand()" class="self-start flex items-center gap-2 bg-lcd text-lcd-ink border-2 border-black rounded-[9px] px-3 py-2 font-extrabold text-[13px]">
+              <span class="icon text-[18px]">search</span>Zoek handmatig{{ lastRead() ? ' · ' + lastRead() : '' }}
+            </button>
+          </div>
+        }
         <div class="px-5 pt-[14px] pb-5 text-center text-[13px] font-bold text-[var(--device-muted)] text-pretty">{{ hint() }}</div>
 
         @if (s.scanSheet) {
@@ -229,6 +271,18 @@ export class ScanOverlay implements OnDestroy {
     if (this.ocr() === 'loading' && this.v().scanSearching) return 'SCANNER LADEN…';
     return this.v().statusText;
   });
+  /** Searching for a while without a match: show tips and searching by hand. */
+  protected readonly stuck = signal(false);
+  /** The collector number read last ("12/204"), to fill in when searching by hand. */
+  protected readonly lastRead = signal('');
+  private searchSince = Date.now();
+  private added = 0;
+
+  protected searchByHand() {
+    const n = this.lastRead();
+    this.store.go('search', { q: n ? n.split('/')[0] : '', fSet: '', fRar: '', fLangs: [] });
+  }
+
   protected readonly hint = computed(() => {
     const cam = this.cam();
     if (cam === 'denied') return 'Sta cameratoegang toe in je browser, of kies een foto van de kaart.';
@@ -306,12 +360,18 @@ export class ScanOverlay implements OnDestroy {
     let wasSearching = true;
     while (this.alive) {
       const searching = this.store.state.scan.phase === 'search';
+      // Searching starts again after a match, or after each card added by quick scanning.
+      const added = this.store.state.quickLog?.length || 0;
+      if (!searching || added !== this.added) { this.searchSince = Date.now(); this.added = added; }
+      this.stuck.set(searching && Date.now() - this.searchSince > 12000);
       if (searching && !wasSearching) this.skip.until = Date.now() + 2500;
       wasSearching = searching;
       const frame = searching && !this.reading() && this.ocr() === 'ready' && this.scanner.grabGuide(this.video().nativeElement, this.guide().nativeElement, this.crops[this.crop++ % this.crops.length]);
       if (frame) {
         try {
           const { text, numText } = await this.scanner.readCard(frame, 0, 0, undefined, undefined, this.profile.strips);
+          const num = /\d{1,3}[a-zA-Z]?\s*\/\s*[A-Z]{0,2}\d{1,3}/.exec(numText)?.[0].replace(/\s/g, '');
+          if (num) this.lastRead.set(num);
           const ms = this.rerank(this.profile.match(text, { numText, lang: this.lang(), limit: POOL }), () => this.scanner.hashCard(frame, frame.width, frame.height, { x: 0, y: 0, w: frame.width, h: frame.height }));
           if (DEBUG) console.debug('[scan]', frame.width + '×' + frame.height, JSON.stringify(text), ms.map((m) => `${CARDS[m.id].names.EN} ${CARDS[m.id].set} ${m.conf}%`));
           if (this.alive && this.store.state.scan.phase === 'search') this.consider(ms);

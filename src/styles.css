@@ -625,6 +625,28 @@ body.cc-dark {
   background: var(--logo-case);
 }
 
+/* Lorcana's scanner frame: an open book page with a gold edge (the spine on the left) around the card. */
+[data-game='lorcana'] .cc-scan-guide::before {
+  content: '';
+  position: absolute;
+  inset: -12px -12px -12px -22px;
+  border: 4px double var(--highlight);
+  border-radius: 4px 10px 10px 4px;
+  background: color-mix(in srgb, #fffdf7 8%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--highlight) 35%, transparent);
+  pointer-events: none;
+}
+[data-game='lorcana'] .cc-scan-guide::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: -22px;
+  width: 12px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--highlight) 70%, transparent), transparent);
+  pointer-events: none;
+}
+
 /* Print sheets (screens/print.ts): only on paper, and then on their own, at real size. */
 .cc-print-sheets {
   display: none;

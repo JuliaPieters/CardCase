@@ -361,9 +361,12 @@ export class CardcaseStore {
     this.setState(s => ({ scan: { phase: 'search', matches: [], sel: 0, lang: LANGS[0], cond: s.scan.cond, qty: 1, foil: false } }));
   }
   /** The scanner recognised a card: show it briefly in the frame, then the matches sheet. `matches` is [{ id, conf }], best first. */
-  scanFound(matches) {
+  scanFound(matches, readLang?) {
     if (this.state.scan.phase !== 'search' || !matches.length) return;
-    this.setScan({ phase: 'found', matches, sel: 0, lang: CARDS[matches[0].id].avail[0] });
+    const lang = readLang && CARDS[matches[0].id].avail.includes(readLang) ? readLang : CARDS[matches[0].id].avail[0];
+    // Quick scanning (a stack in a row): a sure match goes straight into the collection, and the scanner keeps going.
+    if (this.state.scanQuick && matches[0].conf >= 80) { this.setScan({ matches, sel: 0, lang }); this.addScan(true); return; }
+    this.setScan({ phase: 'found', matches, sel: 0, lang });
     clearTimeout(this.t1); this.t1 = setTimeout(() => this.setScan({ phase: 'sheet' }), 700);
   }
   setScan(p) { this.setState(s => ({ scan: { ...s.scan, ...p } })); }
@@ -374,13 +377,20 @@ export class CardcaseStore {
   scanProfile() { return this.catalog.config.scan; }
   /** OCR models for a scan language of the active department. */
   scanOcr(l: string) { const ls = this.scanProfile().langs; return (ls.find(x => x.key === l) || ls[0]).ocr; }
-  addScan() {
+  addScan(quick = false) {
     const s = this.state.scan; const m = s.matches[s.sel]; if (!m) return; const c = CARDS[m.id];
     const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;
     const foil = !!s.foil && !!this.catalog.config?.hasFoil?.(c);
     this.setState(st => { const o = st.owned[c.id]; return { owned: { ...st.owned, [c.id]: { ...o, [lang]: (o[lang] || 0) + s.qty, ...(foil ? { foil: { ...(o.foil || {}), [lang]: foilOf(o, lang) + s.qty } } : {}) } }, added: { ...st.added, [c.id]: Date.now() } }; });
     this.toast(`${c.names[lang]} toegevoegd · ${lang}${foil ? ' · foil' : ''} · ${s.cond} · ×${s.qty}`);
+    if (quick) this.setState(st => ({ quickLog: [{ seq, id: c.id, lang, foil, qty: s.qty }, ...(st.quickLog || [])].slice(0, 30) }));
     this.startScan();
+  }
+  /** Takes a card added by quick scanning out again (it was the wrong one). */
+  undoQuick(seq) {
+    const it = (this.state.quickLog || []).find(x => x.seq === seq); if (!it) return;
+    this.setOwn(it.id, it.lang, -it.qty); if (it.foil) this.setFoil(it.id, it.lang, -it.qty);
+    this.setState(st => ({ quickLog: st.quickLog.filter(x => x.seq !== seq) })); this.toast(CARDS[it.id].names[it.lang] + ' weer verwijderd');
   }
   cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, img2: c.imgAlt || null, big: c.imgBig ? (c.imgBig[l] || c.imgBig[c.avail[0]] || null) : null, art: spriteOf(c) }; }
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0], sameLimit: 20 }); }
@@ -1292,6 +1302,10 @@ export class CardcaseStore {
       scanHasFoil: !!(selCard && this.catalog.config?.hasFoil?.(selCard)), scanFoil: !!sc.foil, setScanFoil: f => this.setScan({ foil: f }),
       qtyInc: () => this.setScan({ qty: sc.qty + 1 }), qtyDec: () => this.setScan({ qty: Math.max(1, sc.qty - 1) }),
       addScan: () => this.addScan(), rescan: () => this.startScan(), closeScan: () => this.go('home'),
+      scanQuick: !!st.scanQuick, toggleQuick: () => this.setState(s => ({ scanQuick: !s.scanQuick, quickLog: s.scanQuick ? s.quickLog : [] })),
+      quickCount: (st.quickLog || []).reduce((a, x) => a + x.qty, 0),
+      quickLog: (st.quickLog || []).slice(0, 5).map(x => ({ key: x.seq, name: CARDS[x.id].names[x.lang], meta: (this.catalog.config?.cardNumber?.(CARDS[x.id]) ?? CARDS[x.id].numStr) + ' · ' + x.lang + (x.foil ? ' · foil' : ''), undo: () => this.undoQuick(x.seq) })),
+      scanStrip: this.catalog.config?.scan.strips.number,
     };
   }
 }

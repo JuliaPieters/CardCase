@@ -47,6 +47,20 @@ describe('CardcaseStore', () => {
     expect(store.vals().totalCards).toBe(before + 2);
   });
 
+  it('adds sure matches straight away when quick scanning, and takes one back', () => {
+    const store = TestBed.inject(CardcaseStore);
+    store.setState({ scanQuick: true, quickLog: [] });
+    store.startScan();
+    const before = store.vals().totalCards;
+    store.scanFound([{ id: 3, conf: 95 }]);
+    expect(store.vals().totalCards).toBe(before + 1);
+    expect(store.state.scan.phase).toBe('search');
+    store.scanFound([{ id: 4, conf: 60 }]);
+    expect(store.state.scan.phase).toBe('found');
+    store.undoQuick(store.state.quickLog[0].seq);
+    expect(store.vals().totalCards).toBe(before);
+  });
+
   it('checks a scanned binder page against the plan', () => {
     const store = TestBed.inject(CardcaseStore);
     const b = store.state.binders.find((x: any) => x.slots.some((s: any) => typeof s === 'number'));
