@@ -240,17 +240,28 @@ export const REGIONS = [['kanto', 'Kanto', 1, 151], ['johto', 'Johto', 152, 251]
 export const VARL = { regular: 'Standaard', holo: 'Holo', fullart: 'Full art', illus: 'Illustration rare', promo: 'Promo', form: 'Regionale vorm' };
 export const tot = o => o ? LANGS.reduce((a, l) => a + (o[l] || 0), 0) : 0;
 /**
- * Foil copies: an owned entry is { EN: 3, …, foil?: { EN: 1 } }, the foil counts being part of the language counts
- * (3 English cards, one of them foil). Departments without foil prices never set them.
+ * Copies of other versions than the plain one: an owned entry is { EN: 3, …, foil?: { EN: 1 }, reverse?: { EN: 1 } },
+ * the version counts being part of the language counts (3 English cards: one foil, one reverse holo, one plain).
+ * Version keys are lowercase, languages uppercase; departments with one version per card never set them.
  */
-export const foilOf = (o, l) => Math.min(o?.foil?.[l] || 0, o?.[l] || 0);
-export const totFoil = o => o ? LANGS.reduce((a, l) => a + foilOf(o, l), 0) : 0;
-/** Value of the copies of a card in an owned entry, `d` days ago: foil copies at the foil price when it has one. */
+export const verOf = (o, l, k) => Math.min(o?.[k]?.[l] || 0, o?.[l] || 0);
+/** The version keys an owned entry has copies of. */
+export const verKeys = o => o ? Object.keys(o).filter(k => o[k] && typeof o[k] === 'object') : [];
+export const totVer = (o, k) => o ? LANGS.reduce((a, l) => a + verOf(o, l, k), 0) : 0;
+export const foilOf = (o, l) => verOf(o, l, 'foil');
+export const totFoil = o => totVer(o, 'foil');
+/** Prices of a version of a card ({ trend, low, avg1, avg7, avg30 }), when it has its own. */
+export const verPrice = (c, k) => c.vp?.[k] ?? (k === 'foil' ? c.foil : null);
+/** Value of the copies of a card in an owned entry, `d` days ago: other versions at their own price when they have one. */
 export function ownedValue(c, o, d = 0) {
   const n = tot(o); if (!n) return 0;
-  const p = priceAt(c, d); const f = totFoil(o);
-  const fp = c.foil?.trend ? (c.trend ? p * c.foil.trend / c.trend : c.foil.trend) : p;
-  return (n - f) * p + f * fp;
+  const p = priceAt(c, d); let rest = n; let v = 0;
+  for (const k of verKeys(o)) {
+    const m = totVer(o, k); if (!m) continue;
+    const vp = verPrice(c, k); rest -= m;
+    v += m * (vp?.trend ? (c.trend ? p * vp.trend / c.trend : vp.trend) : p);
+  }
+  return Math.max(0, rest) * p + v;
 }
 
 /**

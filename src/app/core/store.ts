@@ -6,7 +6,7 @@ import { CatalogService } from './catalog';
 import { IMG_DATA, compressImage, deleteLocalImage, imageRefs, loadLocalImages, putLocalImage, rememberImage, resolveFill } from './images';
 import { FriendsService } from './friends';
 import { binderFromSaved, deserializeUser, freshUser, ownedFromSaved, lastAccount, readLocal, removeLocal, savedCardCount, serializeUser, setLastAccount, shareForm, writeLocal } from './persist';
-import { NOUN, GAME, foilOf, totFoil, ownedValue, spKeys, spLabel, SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
+import { NOUN, GAME, verOf, verKeys, totVer, verPrice, ownedValue, spKeys, spLabel, SETS, LANGS, LNAME, TYPES, RAR, CONDS, COLS, isCard, isRes, COVERS, RAR_ORDER, IMGS, BGS, PIX, pixShadow, STK_ICONS, STK_TEXT, TEMPLATES, SIZES, EMPTYD, DEFCROP, tplAreas, syncSlots, decoPiece, artPiece, isBufD, KINDS, smartCards, kindDesc, buildLayout, pad, CARDS, ILLUS, REGIONS, VARL, SP, BYSP, tot, priceAt, priceInfo, eur, pctf, UPDATED, chgStyle, initOwned, range, mkB, RECIPES, RSTEPS, STEPT, PREFS, DEFRECIPE, pixShadowU, pickVersion, recipeItems, buildRecipe, regLabel, autoName, recipeLabel, mkRecipeBinder, initBinders, NAV, BYSET, CATALOG_MOCK, ILLUS_N, RARITIES, BASIC_RARITIES, rarAbbr, rarLabel, relKey, relLabel } from './data';
 
 /**
  * Central app state + all derived view values, ported from the Cardcase design prototype.
@@ -44,6 +44,9 @@ export const shareUrl = (id: string) => `${location.origin}/?b=${id}`;
 /** Puts text on the clipboard; false when the browser doesn't allow it. */
 export async function copyText(text: string) { try { await navigator.clipboard.writeText(text); return true; } catch { return false; } }
 const spriteOf = c => c.sp >= 1 && c.sp <= 1025 ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.sp}.png` : null;
+
+/** A version label inside a sentence ("reverse holo · Poké Ball"): only its first letter lowercased. */
+const lc = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 @Injectable({ providedIn: 'root' })
 export class CardcaseStore {
@@ -197,6 +200,7 @@ export class CardcaseStore {
       const st = this.state; const v = this.vals(); const ids = new Set<number>();
       for (const k in st.owned) if (tot(st.owned[k])) ids.add(+k);
       ids.add(st.detailId);
+      (st.scan?.matches || []).forEach(m => ids.add(m.id));
       [v.resultsShown, v.collShown, v.sideItems, v.recent, v.dSame].forEach(list => (list || []).forEach(x => ids.add(x.key)));
       const b = this.curB(); if (b) b.slots.forEach(x => { if (isCard(x)) ids.add(x); });
       this.catalog.ensurePrices(ids);
@@ -373,7 +377,7 @@ export class CardcaseStore {
   clearScan() { clearTimeout(this.t1); }
   startScan() {
     this.clearScan();
-    this.setState(s => ({ scan: { phase: 'search', matches: [], sel: 0, lang: LANGS[0], cond: s.scan.cond, qty: 1, foil: false } }));
+    this.setState(s => ({ scan: { phase: 'search', matches: [], sel: 0, lang: LANGS[0], cond: s.scan.cond, qty: 1, ver: '' } }));
   }
   /** The scanner recognised a card: show it briefly in the frame, then the matches sheet. `matches` is [{ id, conf }], best first. */
   scanFound(matches, readLang?) {
@@ -395,16 +399,16 @@ export class CardcaseStore {
   addScan(quick = false) {
     const s = this.state.scan; const m = s.matches[s.sel]; if (!m) return; const c = CARDS[m.id];
     const lang = c.avail.includes(s.lang) ? s.lang : c.avail[0]; const seq = ++this.seq;
-    const foil = !!s.foil && !!this.catalog.config?.hasFoil?.(c);
-    this.setState(st => { const o = st.owned[c.id]; return { owned: { ...st.owned, [c.id]: { ...o, [lang]: (o[lang] || 0) + s.qty, ...(foil ? { foil: { ...(o.foil || {}), [lang]: foilOf(o, lang) + s.qty } } : {}) } }, added: { ...st.added, [c.id]: Date.now() } }; });
-    this.toast(`${c.names[lang]} toegevoegd · ${lang}${foil ? ' · foil' : ''} · ${s.cond} · ×${s.qty}`);
-    if (quick) this.setState(st => ({ quickLog: [{ seq, id: c.id, lang, foil, qty: s.qty }, ...(st.quickLog || [])].slice(0, 30) }));
+    const v = s.ver && this.vers(c).find(x => x.key === s.ver); const ver = v ? v.key : '';
+    this.setState(st => { const o = st.owned[c.id]; return { owned: { ...st.owned, [c.id]: { ...o, [lang]: (o[lang] || 0) + s.qty, ...(ver ? { [ver]: { ...(o[ver] || {}), [lang]: verOf(o, lang, ver) + s.qty } } : {}) } }, added: { ...st.added, [c.id]: Date.now() } }; });
+    this.toast(`${c.names[lang]} toegevoegd · ${lang}${v ? ' · ' + lc(v.label) : ''} · ${s.cond} · ×${s.qty}`);
+    if (quick) this.setState(st => ({ quickLog: [{ seq, id: c.id, lang, ver, verLabel: v ? lc(v.label) : '', qty: s.qty }, ...(st.quickLog || [])].slice(0, 30) }));
     this.startScan();
   }
   /** Takes a card added by quick scanning out again (it was the wrong one). */
   undoQuick(seq) {
     const it = (this.state.quickLog || []).find(x => x.seq === seq); if (!it) return;
-    this.setOwn(it.id, it.lang, -it.qty); if (it.foil) this.setFoil(it.id, it.lang, -it.qty);
+    if (it.ver) this.addVer(it.id, it.lang, it.ver, -it.qty); else this.setOwn(it.id, it.lang, -it.qty);
     this.setState(st => ({ quickLog: st.quickLog.filter(x => x.seq !== seq) })); this.toast(CARDS[it.id].names[it.lang] + ' weer verwijderd');
   }
   /**
@@ -421,9 +425,11 @@ export class CardcaseStore {
   numLabel(c) { return this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + pad(c.num); }
   cv(c, lang, missing) { const l = c.avail.includes(lang) ? lang : c.avail[0]; return { name: c.names[l], num: this.catalog.config?.cardNumber?.(c) ?? c.set + ' ' + c.numStr, bg: TYPES[c.type][1], typeLabel: TYPES[c.type][0], rar: rarAbbr(c), badge: c.rarityName && !BASIC_RARITIES.includes(c.rarityName) ? rarAbbr(c) : null, holo: c.rarity === 'HR', missing: !!missing, img: c.img ? (c.img[l] || c.img[c.avail[0]] || c.img.EN || null) : null, img2: c.imgAlt || null, big: c.imgBig ? (c.imgBig[l] || c.imgBig[c.avail[0]] || null) : null, art: spriteOf(c) }; }
   openDetail(id, lang) { const c = CARDS[id]; this.go('detail', { detailId: id, detailLang: lang && c.avail.includes(lang) ? lang : c.avail[0], sameLimit: 20 }); }
-  setOwn(id, l, delta) { this.setState(s => { const o = s.owned[id]; const n = Math.max(0, (o[l] || 0) + delta); return { owned: { ...s.owned, [id]: { ...o, [l]: n, ...(o.foil ? { foil: { ...o.foil, [l]: Math.min(o.foil[l] || 0, n) } } : {}) } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added }; }); }
-  /** One more or fewer of the copies in language `l` counted as foil (never more than there are). */
-  setFoil(id, l, delta) { this.setState(s => { const o = s.owned[id]; const f = Math.max(0, Math.min((o[l] || 0), foilOf(o, l) + delta)); return { owned: { ...s.owned, [id]: { ...o, foil: { ...(o.foil || {}), [l]: f } } } }; }); }
+  setOwn(id, l, delta) { this.setState(s => { const o = s.owned[id]; const n = Math.max(0, (o[l] || 0) + delta); const vs = Object.fromEntries(verKeys(o).map(k => [k, { ...o[k], [l]: Math.min(o[k][l] || 0, n) }])); return { owned: { ...s.owned, [id]: { ...o, [l]: n, ...vs } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added }; }); }
+  /** One more or fewer copy of version `k` (foil, reverse holo…) in language `l`: the total changes with it, the plain copies stay. */
+  addVer(id, l, k, delta) { this.setState(s => { const o = s.owned[id]; const f = Math.max(0, verOf(o, l, k) + delta); const d = f - verOf(o, l, k); return { owned: { ...s.owned, [id]: { ...o, [l]: (o[l] || 0) + d, [k]: { ...(o[k] || {}), [l]: f } } }, added: d > 0 ? { ...s.added, [id]: Date.now() } : s.added }; }); }
+  /** The versions of a card (games/config.ts), the plain one first; empty when it has only one. */
+  vers(c): { key: string; label: string }[] { return (c && this.catalog.config?.versions?.(c)) || []; }
 
   /**
    * The editor's side panel, about the open binder: the cards still missing (Nodig), cards you own that fit the
@@ -965,6 +971,10 @@ export class CardcaseStore {
     const mover = ({ c, chg }) => ({ key: c.id, cv: this.cv(c, 'EN'), name: c.names.EN, meta: this.numLabel(c), price: eur(c.trend), chg: pctf(chg), up: chg >= 0, down: chg < 0, ...chgStyle(chg), open: () => this.openDetail(c.id) });
     const hp = items => { const mx = Math.max(...items.map(i => i.v), 0.01); return items.map(i => { const n = i.v > 0 ? Math.max(1, Math.round(i.v / mx * 20)) : 0; return { key: i.key, label: i.label, value: eur(i.v), segs: range(0, 20).map(k => ({ key: k, bg: k < n ? 'var(--display)' : '#3A3E47' })) }; }); };
     const dc = CARDS[st.detailId]; const dp = priceInfo(dc); const dn = tot(owned[dc.id]);
+    // The other versions of the card: how many are owned ("1 foil, 2 reverse holo") and their own prices.
+    const dcVers = this.vers(dc); const dLabel = k => lc(dcVers.find(v => v.key === k)?.label || k);
+    const dVerN = verKeys(owned[dc.id]).filter(k => totVer(owned[dc.id], k)).map(k => totVer(owned[dc.id], k) + ' ' + dLabel(k)).join(', ');
+    const dVerPrices = dcVers.slice(1).map(v => ({ v, p: verPrice(dc, v.key) })).filter(x => x.p && (x.p.trend || x.p.low)).map(({ v, p }) => ({ key: v.key, label: v.label, trend: eur(p.trend), low: eur(p.low), avg30: eur(p.avg30) }));
     const missC = this.memo('missing', [owned, st.collSet], () => CARDS.filter(c => !tot(owned[c.id]) && (!st.collSet || c.set === st.collSet))); const setNm = st.collSet ? SETS.find(s => s.code === st.collSet).name : '';
     const eb = this.curB();
     return {
@@ -980,7 +990,7 @@ export class CardcaseStore {
       byType: hp(Object.entries(TYPES).map(([k, t]) => ({ key: k, label: t[0], v: own.filter(c => c.type === k).reduce((a, c) => a + ownedValue(c, owned[c.id]), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v)), byTypeTitle: 'PER ' + STEPT.ptype[0].toUpperCase(),
       byLang: hp(LANGS.map(l => ({ key: l, label: l + ' · ' + LNAME[l], v: own.reduce((a, c) => a + (owned[c.id][l] || 0) * c.trend, 0) }))),
       byBinder: hp(st.binders.map(b => ({ key: b.id, label: b.name, v: b.slots.filter(x => isCard(x) && tot(owned[x])).reduce((a, x) => a + CARDS[x].trend, 0) }))),
-      dv: { trend: eur(dp.trend), low: eur(dp.low), avg7: eur(dp.avg7), avg30: eur(dp.avg30), chg: pctf(dp.chg), up: dp.chg >= 0, down: dp.chg < 0, ...chgStyle(dp.chg, true), owned: dn ? dn + '× in bezit' + (totFoil(owned[dc.id]) ? ' (' + totFoil(owned[dc.id]) + ' foil)' : '') + ' · ' + eur(ownedValue(dc, owned[dc.id])) : 'Nog niet in bezit · vanaf ' + eur(dp.low), foil: dc.foil && (dc.foil.trend || dc.foil.low) ? { trend: eur(dc.foil.trend), low: eur(dc.foil.low), avg7: eur(dc.foil.avg7), avg30: eur(dc.foil.avg30) } : null, foilOnly: !!dc.foilOnly },
+      dv: { trend: eur(dp.trend), low: eur(dp.low), avg7: eur(dp.avg7), avg30: eur(dp.avg30), chg: pctf(dp.chg), up: dp.chg >= 0, down: dp.chg < 0, ...chgStyle(dp.chg, true), owned: dn ? dn + '× in bezit' + (dVerN ? ' (' + dVerN + ')' : '') + ' · ' + eur(ownedValue(dc, owned[dc.id])) : 'Nog niet in bezit · vanaf ' + eur(dp.low), vers: dVerPrices, foilOnly: !!dc.foilOnly },
       dBars: bars(dp.series).map((b, i) => { const ago = dp.series.length - 1 - i; return { ...b, price: eur(dp.series[i]), when: ago ? DAYF.format(Date.now() - ago * 864e5).replace('.', '').toUpperCase() + ' · GESCHAT' : 'VANDAAG · TRENDPRIJS', approx: ago > 0 }; }), tip: st.tip, toggleTip: () => this.setState(s => ({ tip: !s.tip })),
       fSort: st.fSort, onFSort: e => this.setState({ fSort: e.target.value }),
       hasCollNeed: st.missingOnly && missC.length > 0, collNeedText: (st.collSet ? 'Nog nodig om ' + setNm + ' compleet te maken: ' : 'Nog nodig om alle sets compleet te maken: ') + costLabel(missC),
@@ -1217,8 +1227,15 @@ export class CardcaseStore {
     // Other cards of the same Pokémon (Trainers and Energy have no dex number): owned first, then newest.
     const sameAll = dc.sp <= 1025 ? (BYSP[dc.sp] || []).filter(c => c.id !== dc.id).sort((a, b) => (tot(owned[b.id]) ? 1 : 0) - (tot(owned[a.id]) ? 1 : 0) || byNew(a, b)) : [];
     const dSame = sameAll.slice(0, st.sameLimit).map(c => { const n = tot(owned[c.id]); return { key: c.id, cv: this.cv(c, c.avail[0], !n), name: c.names[c.avail[0]], meta: c.set + ' · ' + relLabel(c, true), price: eur(c.trend), qtyLabel: n ? '×' + n : '', open: () => this.openDetail(c.id) }; });
-    const hasFoil = !!this.catalog.config?.hasFoil?.(dc);
-    const dOwnRows = dc.avail.map(l => ({ key: l, code: l, lname: LNAME[l], name: dc.names[l], n: dOwn[l] || 0, inc: () => this.setOwn(dc.id, l, 1), dec: () => this.setOwn(dc.id, l, -1), hasFoil: hasFoil && (dOwn[l] || 0) > 0, foil: foilOf(dOwn, l), foilInc: () => this.setFoil(dc.id, l, 1), foilDec: () => this.setFoil(dc.id, l, -1) }));
+    // Each version (foil, reverse holo…) has its own counter, the plain copies being the rest: a foil copy is added directly.
+    const dVers = this.vers(dc); const verLabel = k => dVers.find(v => v.key === k)?.label || k;
+    const dVerKeys = [...dVers.slice(1).map(v => v.key), ...verKeys(dOwn).filter(k => totVer(dOwn, k) && !dVers.some(v => v.key === k))];
+    const dOwnRows = dc.avail.map(l => {
+      const n = dOwn[l] || 0;
+      const vers = dVerKeys.map(k => ({ key: k, label: lc(verLabel(k)), n: verOf(dOwn, l, k), inc: () => this.addVer(dc.id, l, k, 1), dec: () => this.addVer(dc.id, l, k, -1) }));
+      const plain = Math.max(0, n - vers.reduce((a, v) => a + v.n, 0));
+      return { key: l, code: l, lname: LNAME[l], name: dc.names[l], n: plain, base: dVers.length ? lc(dVers[0].label) : '', inc: () => this.setOwn(dc.id, l, 1), dec: () => { if (plain > 0) this.setOwn(dc.id, l, -1); }, vers };
+    });
 
     // collection
     let cl = CARDS.filter(c => st.missingOnly ? !tot(owned[c.id]) : tot(owned[c.id]) > 0);
@@ -1333,12 +1350,12 @@ export class CardcaseStore {
       statusText: sc.phase === 'search' ? 'ZOEKEN NAAR KAART…' : sc.phase === 'found' ? 'KAART GEVONDEN…' : ms.length === 1 ? '1 MATCH GEVONDEN' : ms.length + ' MATCHES GEVONDEN', matchCount: ms.length,
       statusDotColor: sc.phase === 'search' ? 'var(--display-muted)' : 'var(--display-text)', statusDotBlink: sc.phase !== 'sheet',
       matches, langOpts, condOpts, scanQty: sc.qty,
-      scanHasFoil: !!(selCard && this.catalog.config?.hasFoil?.(selCard)), scanFoil: !!sc.foil, setScanFoil: f => this.setScan({ foil: f }),
+      scanVers: this.vers(selCard).map(v => ({ key: v.key, label: v.label, on: (sc.ver || '') === v.key, pick: () => this.setScan({ ver: v.key }) })),
       qtyInc: () => this.setScan({ qty: sc.qty + 1 }), qtyDec: () => this.setScan({ qty: Math.max(1, sc.qty - 1) }),
       addScan: () => this.addScan(), rescan: () => this.startScan(), closeScan: () => this.go('home'),
       scanQuick: !!st.scanQuick, toggleQuick: () => this.setState(s => ({ scanQuick: !s.scanQuick, quickLog: s.scanQuick ? s.quickLog : [] })),
       quickCount: (st.quickLog || []).reduce((a, x) => a + x.qty, 0),
-      quickLog: (st.quickLog || []).slice(0, 5).map(x => ({ key: x.seq, name: CARDS[x.id].names[x.lang], meta: (this.catalog.config?.cardNumber?.(CARDS[x.id]) ?? CARDS[x.id].numStr) + ' · ' + x.lang + (x.foil ? ' · foil' : ''), undo: () => this.undoQuick(x.seq) })),
+      quickLog: (st.quickLog || []).slice(0, 5).map(x => ({ key: x.seq, name: CARDS[x.id].names[x.lang], meta: (this.catalog.config?.cardNumber?.(CARDS[x.id]) ?? CARDS[x.id].numStr) + ' · ' + x.lang + (x.verLabel ? ' · ' + x.verLabel : ''), undo: () => this.undoQuick(x.seq) })),
       scanStrip: this.catalog.config?.scan.strips.number,
     };
   }

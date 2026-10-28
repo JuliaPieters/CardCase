@@ -19,3 +19,14 @@ describe('foil copies', () => {
     expect(ownedValue({ trend: 2, avg30: 2 }, { EN: 2, foil: { EN: 2 } })).toBe(4);
   });
 });
+
+describe('other versions (Pokémon)', () => {
+  beforeEach(() => applyGameConfig(config));
+
+  it('values each version at its own price, the rest at the plain one', () => {
+    const card = { trend: 1, avg1: 1, avg7: 1, avg30: 1, vp: { reverse: { trend: 4 }, holo_1st_edition: { trend: null } } };
+    const o = { EN: 4, reverse: { EN: 2 }, holo_1st_edition: { EN: 1 } };
+    // One plain at 1, two reverse holo at 4, the 1st edition without a price of its own at the plain price.
+    expect(ownedValue(card, o)).toBe(1 + 8 + 1);
+  });
+});

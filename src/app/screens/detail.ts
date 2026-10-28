@@ -159,16 +159,16 @@ import { Trend } from '../shared/bits';
                 <span class="text-[12px] font-extrabold text-muted">Gem. 30 dagen</span><span class="font-pixel text-[17px] leading-none">{{ dv.avg30 }}</span>
               </div>
             </div>
-            @if (dv.foil) {
+            @for (v of dv.vers; track v.key) {
               <div class="grid grid-cols-3 gap-[10px] border-t-2 border-dashed border-soft pt-[10px]">
                 <div class="flex flex-col gap-1">
-                  <span class="text-[12px] font-extrabold text-muted">Foil · trend</span><span class="font-pixel text-[17px] leading-none">{{ dv.foil.trend }}</span>
+                  <span class="text-[12px] font-extrabold text-muted">{{ v.label }} · trend</span><span class="font-pixel text-[17px] leading-none">{{ v.trend }}</span>
                 </div>
                 <div class="flex flex-col gap-1">
-                  <span class="text-[12px] font-extrabold text-muted">Foil · laagste</span><span class="font-pixel text-[17px] leading-none">{{ dv.foil.low }}</span>
+                  <span class="text-[12px] font-extrabold text-muted">{{ v.label }} · laagste</span><span class="font-pixel text-[17px] leading-none">{{ v.low }}</span>
                 </div>
                 <div class="flex flex-col gap-1">
-                  <span class="text-[12px] font-extrabold text-muted">Foil · 30 dagen</span><span class="font-pixel text-[17px] leading-none">{{ dv.foil.avg30 }}</span>
+                  <span class="text-[12px] font-extrabold text-muted">{{ v.label }} · 30 dagen</span><span class="font-pixel text-[17px] leading-none">{{ v.avg30 }}</span>
                 </div>
               </div>
             }
@@ -186,20 +186,20 @@ import { Trend } from '../shared/bits';
             @for (o of s.dOwnRows; track o.key) {
               <div class="flex items-center gap-3 py-[6px] border-t-2 border-dashed border-soft">
                 <span class="font-pixel font-semibold text-[14px] leading-none w-[30px]">{{ o.code }}</span>
-                <span class="flex-1 min-w-0 font-bold text-[14px] overflow-hidden text-ellipsis whitespace-nowrap">{{ o.lname }} · {{ o.name }}</span>
+                <span class="flex-1 min-w-0 font-bold text-[14px] overflow-hidden text-ellipsis whitespace-nowrap">{{ o.lname }} · {{ o.name }}@if (o.base) {<span class="text-muted"> · {{ o.base }}</span>}</span>
                 <div class="flex items-center border-2 border-line rounded-[9px] overflow-hidden bg-bg">
                   <button (click)="o.dec()" class="w-11 h-10 border-0 bg-transparent font-black text-[18px]">−</button>
                   <span class="w-7 text-center font-pixel font-semibold text-[16px] leading-none">{{ o.n }}</span>
                   <button (click)="o.inc()" class="w-11 h-10 border-0 bg-transparent font-black text-[18px]">+</button>
                 </div>
               </div>
-              @if (o.hasFoil) {
+              @for (v of o.vers; track v.key) {
                 <div class="flex items-center gap-3 -mt-1 pl-[42px]">
-                  <span class="flex-1 font-bold text-[13px] text-muted">waarvan foil</span>
+                  <span class="flex-1 font-bold text-[13px] text-muted">{{ v.label }}</span>
                   <div class="flex items-center border-2 border-line rounded-[9px] overflow-hidden bg-bg">
-                    <button (click)="o.foilDec()" class="w-9 h-8 border-0 bg-transparent font-black text-[16px]">−</button>
-                    <span class="w-7 text-center font-pixel font-semibold text-[14px] leading-none">{{ o.foil }}</span>
-                    <button (click)="o.foilInc()" class="w-9 h-8 border-0 bg-transparent font-black text-[16px]">+</button>
+                    <button (click)="v.dec()" class="w-9 h-8 border-0 bg-transparent font-black text-[16px]">−</button>
+                    <span class="w-7 text-center font-pixel font-semibold text-[14px] leading-none">{{ v.n }}</span>
+                    <button (click)="v.inc()" class="w-9 h-8 border-0 bg-transparent font-black text-[16px]">+</button>
                   </div>
                 </div>
               }

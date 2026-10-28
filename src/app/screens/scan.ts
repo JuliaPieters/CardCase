@@ -204,18 +204,18 @@ import { Led } from '../shared/bits';
                 }
               </div>
             </div>
-            @if (s.scanHasFoil) {
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-[13px] font-extrabold text-muted">Gewoon of foil?</span>
-                <div class="grid grid-cols-2 gap-[2px] bg-line border-2 border-line rounded-[11px] overflow-hidden">
-                  @for (f of [false, true]; track f) {
+            @if (s.scanVers.length) {
+              <div class="flex flex-col gap-2">
+                <span class="text-[13px] font-extrabold text-muted">Welke versie?</span>
+                <div class="flex flex-wrap gap-[6px]">
+                  @for (v of s.scanVers; track v.key) {
                     <button
-                      (click)="s.setScanFoil(f)"
-                      class="border-0 px-4 py-[10px] font-extrabold text-[14px]"
-                      [style.background]="s.scanFoil === f ? 'var(--ink)' : 'var(--surface)'"
-                      [style.color]="s.scanFoil === f ? 'var(--bg)' : 'var(--ink)'"
+                      (click)="v.pick()"
+                      class="border-2 border-line rounded-[11px] px-3 py-[8px] font-extrabold text-[13px]"
+                      [style.background]="v.on ? 'var(--ink)' : 'var(--surface)'"
+                      [style.color]="v.on ? 'var(--bg)' : 'var(--ink)'"
                     >
-                      {{ f ? '✦ Foil' : 'Gewoon' }}
+                      {{ v.label }}
                     </button>
                   }
                 </div>

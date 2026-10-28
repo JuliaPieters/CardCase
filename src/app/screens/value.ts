@@ -113,7 +113,7 @@ import { Led, Trend } from '../shared/bits';
       <div class="flex flex-col gap-1 border-t-2 border-dashed border-soft pt-[14px]">
         <div class="flex items-center gap-[6px] text-[12.5px] font-bold text-muted"><span class="icon text-[16px]">storefront</span>{{ s.priceSource }}</div>
         <div class="text-[12.5px] font-bold text-muted pl-[22px]">
-          Waarde = trendprijs × aantal exemplaren; foil-exemplaren tegen de foilprijs. Cardmarket-prijzen gelden per kaart, niet per taal.
+          Waarde = trendprijs × aantal exemplaren; andere versies (foil, reverse holo, 1st edition…) tegen hun eigen prijs als Cardmarket die apart heeft. Cardmarket-prijzen gelden per kaart, niet per taal.
         </div>
       </div>
     </div>

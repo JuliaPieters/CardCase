@@ -3,7 +3,7 @@ import { CARDS, applyGameConfig, mockCatalog, setCatalog } from './data';
 import type { GameConfig } from '../games/config';
 import { applyGameChrome } from '../games/chrome';
 import { loadGame, rememberGame } from '../games/registry';
-import type { CardSource, Game, PriceEntry } from '../games/types';
+import type { CardSource, Game, PriceEntry, PriceVersions } from '../games/types';
 
 const PRICE_TTL = 24 * 60 * 60 * 1000;
 
@@ -122,20 +122,26 @@ function applyPrice(c: any, p: PriceEntry) {
   c.avg1 = p[3];
   c.avg7 = p[4];
   c.avg30 = p[5];
-  // The foil print, when it has a price of its own.
-  c.foil = p.length > 6 ? { trend: p[6], low: p[7], avg1: p[8], avg7: p[9], avg30: p[10] } : null;
+  // The foil print, when it has a price of its own; or the versions of the card (Pokémon), each with its prices.
+  const rest = p.slice(6);
+  const pv = rest.find((x) => x && typeof x === 'object') as PriceVersions | undefined;
+  const n = rest as (number | null)[];
+  c.foil = !pv && rest.length ? { trend: n[0], low: n[1], avg1: n[2], avg7: n[3], avg30: n[4] } : null;
+  c.pv = pv ?? null;
+  c.vp = pv ? Object.fromEntries(pv.v.map(([k, , trend, low, avg1, avg7, avg30]) => [k, { trend, low, avg1, avg7, avg30 }])) : c.foil ? { foil: c.foil } : {};
 }
 
 const today = () => new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
 
-/** Pokémon keeps the key it had before there were departments. */
-const priceKey = (game: Game) => (game === 'pokemon' ? 'cc-prices-v1' : `cc-prices-${game}-v1`);
+/** Pokémon keeps the key it had before there were departments (v2: with the versions of each card). */
+const priceKey = (game: Game) => (game === 'pokemon' ? 'cc-prices-v2' : `cc-prices-${game}-v1`);
 
 function readPrices(game: Game): Record<string, PriceEntry> {
   try {
     const raw: Record<string, PriceEntry> = JSON.parse(localStorage.getItem(priceKey(game)) || '{}');
-    // Pokémon prices cached before card keys had a game prefix ("sv08/250").
     if (game !== 'pokemon') return raw;
+    localStorage.removeItem('cc-prices-v1'); // Pokémon prices without the versions of each card
+    // Pokémon prices cached before card keys had a game prefix ("sv08/250").
     return Object.fromEntries(Object.entries(raw).map(([k, p]) => [k.includes(':') ? k : 'pokemon:' + k.replace('/', '-'), p]));
   } catch {
     return {};

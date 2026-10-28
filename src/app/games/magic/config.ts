@@ -1,5 +1,5 @@
 import { CARDS } from '../../core/data';
-import type { GameConfig } from '../config';
+import { FOIL_VERSIONS, type GameConfig } from '../config';
 import { EMPTY, ILLUSTRATOR, MASTER, PREF_OLDEST, PREF_OWNED, PREF_SET, SHARED_STEPS, prefValue } from '../recipes';
 import { matchMagic } from './scan';
 import { rules as deckRules } from './decks';
@@ -73,7 +73,7 @@ export const config: GameConfig = {
     { key: 'cmc', label: 'Alle manawaardes', options: () => [...new Set(CARDS.map((c) => Math.min(8, Math.floor(c.cmc))))].sort((a, b) => a - b).map((n) => [String(n), n === 8 ? 'Mana value 8+' : 'Mana value ' + n]), match: (c, v) => String(Math.min(8, Math.floor(c.cmc))) === v },
   ],
   decks: deckRules,
-  hasFoil: (c) => !c.foilOnly && c.foilTypes.length > 1,
+  versions: (c) => (!c.foilOnly && c.foilTypes.length > 1 ? FOIL_VERSIONS : []),
   cardNumber: (c) => c.set.toUpperCase() + ' ' + c.numStr,
   cardFacts: (c) => [
     { label: 'Manakosten', value: c.manaCost || '–' },

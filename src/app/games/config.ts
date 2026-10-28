@@ -54,8 +54,11 @@ export interface GameConfig {
   };
   /** Decks to play with (departments where people build them): the rules, analysis and generator. */
   decks?: import('../core/decks').DeckRules;
-  /** The card also exists as a foil with its own price, so the collection asks regular or foil. */
-  hasFoil?: (card: any) => boolean;
+  /**
+   * The versions a card was printed in (regular and foil, reverse holo, 1st edition…), the plain one first; each is
+   * counted apart in the collection. Empty or left out: only one version.
+   */
+  versions?: (card: any) => { key: string; label: string }[];
   /** The number as shown on a card tile (default: set and number). */
   cardNumber?: (card: any) => string;
   /** Game facts shown on the card page (cost, lore…), in the card's language. */
@@ -70,3 +73,9 @@ export interface GameConfig {
   /** Extra 8×8 pixel icons for the recipe tiles (rows of '#' and '.'). */
   icons?: Record<string, string[]>;
 }
+
+/** The versions of a card that exists as regular and as foil (Magic, Lorcana): foil copies are kept under `foil`. */
+export const FOIL_VERSIONS = [
+  { key: '', label: 'Gewoon' },
+  { key: 'foil', label: 'Foil' },
+];

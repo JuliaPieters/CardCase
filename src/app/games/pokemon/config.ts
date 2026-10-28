@@ -145,4 +145,6 @@ export const config: GameConfig = {
     ],
   ],
   basicRarities: ['Common', 'Uncommon', 'Rare', 'Holo Rare', 'Rare Holo', 'Promo', 'None'],
+  // Which versions a card has comes with its price from TCGdex (source.ts); until then it is counted as one.
+  versions: (c) => (c.pv?.v.length ? [{ key: '', label: c.pv.base }, ...c.pv.v.map(([key, label]: [string, string]) => ({ key, label }))] : []),
 };

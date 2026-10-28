@@ -10,9 +10,18 @@ export type CardKey = string;
 
 /**
  * Cardmarket-style price of one card in EUR: [fetchedAt, trend, low, avg1, avg7, avg30], followed by the same five for
- * its foil print when that is priced apart.
+ * its foil print when that is priced apart, or (Pokémon) by the versions the card was printed in.
  */
-export type PriceEntry = [number, number | null, number | null, number | null, number | null, number | null, ...(number | null)[]];
+export type PriceEntry = [number, number | null, number | null, number | null, number | null, number | null, ...(number | null | PriceVersions)[]];
+
+/**
+ * The versions of a card (Pokémon: reverse holo, 1st edition, stamps…): the label of the plain one the prices above are
+ * for, and per other version [key, label, trend, low, avg1, avg7, avg30] (prices null when Cardmarket has none apart).
+ */
+export interface PriceVersions {
+  base: string;
+  v: [string, string, number | null, number | null, number | null, number | null, number | null][];
+}
 
 /** A catalog as the app works with it (see setCatalog in core/data.ts). */
 export interface LoadedCatalog {
