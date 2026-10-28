@@ -250,7 +250,7 @@ export class FriendsService {
   async friendData(uid: string): Promise<FriendData | null> {
     const { fs, db } = await this.auth.firestore();
     const d = (await fs.getDoc(fs.doc(db, 'shared', uid))).data();
-    return d ? { owned: d['owned'] || {}, binders: d['binders'] || [] } : null;
+    return d ? { owned: d['owned'] || {}, binders: d['binders'] || [], games: d['games'] || {} } : null;
   }
 
   /** A binder shared by link, or null when the link doesn't (or no longer) work. Needs no account. */
