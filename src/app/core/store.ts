@@ -1035,7 +1035,7 @@ export class CardcaseStore {
       crName: cr.name, onCrName: e => setCr({ name: e.target.value }),
       coverOpts: COVERS.map(c => ({ key: c, color: c, ring: cr.cover === c ? 'var(--ink)' : 'transparent', select: () => setCr({ cover: c }) })),
       crFmtOpts: [4, 9, 12, 16].map(n => ({ key: n, label: String(n), sub: COLS[n] + '×' + (n / COLS[n]), ...segBtn(cr.fmt === n), select: () => setCr({ fmt: n }) })),
-      setChips: SETS.map(s => { const on = cr.sets.includes(s.code); return { key: s.code, code: s.code, label: s.name, bg: on ? 'var(--display)' : 'var(--surface)', fg: on ? 'var(--display-text)' : 'var(--ink)', toggle: () => setCr({ sets: on ? cr.sets.filter(x => x !== s.code) : [...cr.sets, s.code] }) }; }),
+      setChips: this.listedSets(cr.sets).map(s => { const on = cr.sets.includes(s.code); return { key: s.code, code: s.code, label: s.name, bg: on ? 'var(--display)' : 'var(--surface)', fg: on ? 'var(--display-text)' : 'var(--ink)', toggle: () => setCr({ sets: on ? cr.sets.filter(x => x !== s.code) : [...cr.sets, s.code] }) }; }),
       crSort: cr.sort, onCrSort: e => setCr({ sort: e.target.value }),
       toggleNewPage: () => setCr({ newPage: !cr.newPage }), npTrack: cr.newPage ? 'var(--display)' : 'var(--soft)', npKnob: cr.newPage ? '22px' : '2px',
       bufOpts: [0, 1, 2].map(n => ({ key: n, label: n === 0 ? 'Geen' : n + (n > 1 ? ' rijen' : ' rij'), ...segBtn(cr.buffer === n), select: () => setCr({ buffer: n }) })),
@@ -1152,6 +1152,19 @@ export class CardcaseStore {
     clearTimeout(this.ft); this.ft = setTimeout(() => this.setState({ vSpread: s + dir, flip: null }), 780);
   }
 
+  /**
+   * The sets offered in set lists, newest first: only those out already (not in spoiler season; a set appears by
+   * itself on its release date), and with `main` only the department's main sets (Magic: no promo or Commander sets),
+   * as on the home screen. Sets you own cards from, or have chosen (`keep`), always stay in.
+   */
+  listedSets(keep: Iterable<string> = [], main = false) {
+    const owned = this.state.owned; const k = new Set(keep);
+    const own = this.memo('ownedSets', [owned], () => new Set(CARDS.filter(c => tot(owned[c.id])).map(c => c.set)));
+    const today = new Date().toISOString().slice(0, 10); const isMain = main && this.catalog.config?.mainSet;
+    return SETS.filter(x => k.has(x.code) || own.has(x.code) || ((!x.released || x.released <= today) && (!isMain || isMain(x))))
+      .sort((a, b) => (b.released || String(b.year || 0)).localeCompare(a.released || String(a.year || 0)));
+  }
+
   /** Sets for the set dropdowns, grouped by edition and newest first. With `langs`, only groups in those languages. */
   setGroups(langs = []) {
     // Departments whose sets differ per language (Pokémon) group them by edition; the others have one list.
@@ -1159,7 +1172,7 @@ export class CardcaseStore {
     const fSet = this.state.fSet;
     return groups
       .filter(([, , , ls]) => !langs.length || !ls.length || ls.some(l => langs.includes(l)))
-      .map(([l, label, placeholder]) => { const sets = SETS.filter(x => l == null || (x.lang || 'EN') === l).sort((a, b) => (b.year || 0) - (a.year || 0)); return { key: l, label, placeholder, active: sets.some(x => x.code === fSet), sets: sets.map(x => ({ key: x.code, code: x.code, name: x.name + (x.year ? ' (' + x.year + ')' : '') })) }; })
+      .map(([l, label, placeholder]) => { const sets = this.listedSets([fSet, this.state.collSet].filter(Boolean)).filter(x => l == null || (x.lang || 'EN') === l); return { key: l, label, placeholder, active: sets.some(x => x.code === fSet), sets: sets.map(x => ({ key: x.code, code: x.code, name: x.name + (x.year ? ' (' + x.year + ')' : '') })) }; })
       .filter(g => g.sets.length);
   }
 
@@ -1196,7 +1209,7 @@ export class CardcaseStore {
       const langN = LANGS.map(l => ownedCards.reduce((a, c) => a + (owned[c.id][l] || 0), 0));
       // Sets you own cards from (most complete first); before you own anything, the newest sets.
       const ownSets = new Set(ownedCards.map(c => c.set)); const h = SETS.filter(x => ownSets.has(x.code));
-      return { ownedCards, totalCards: langN.reduce((a, n) => a + n, 0), langN, progressSets: h.length ? h : [...SETS].sort((a, b) => (b.year || 0) - (a.year || 0)).slice(0, 4) };
+      return { ownedCards, totalCards: langN.reduce((a, n) => a + n, 0), langN, progressSets: h.length ? h : this.listedSets([], true).slice(0, 4) };
     });
     const maxL = Math.max(...langN, 1);
     const setProgress = progressSets.map(s => { const cs = (BYSET[s.code] || []); const have = cs.filter(c => tot(owned[c.id])).length; const pct = Math.round(have / cs.length * 100); return { key: s.code, code: s.code, name: s.name, pct, done: have === cs.length, notDone: have < cs.length, label: `${have}/${cs.length}`, langs: s.avail.join(' · '), needLabel: have === cs.length ? 'Set compleet' : 'Nog nodig: ' + costLabel(cs.filter(c => !tot(owned[c.id]))), open: () => this.go('search', { fSet: s.code, q: '', fLangs: [], fRar: '' }) }; }).sort((a, b) => b.pct - a.pct);
@@ -1230,7 +1243,7 @@ export class CardcaseStore {
     // Each version (foil, reverse holo…) has its own counter, the plain copies being the rest: a foil copy is added directly.
     const dVers = this.vers(dc); const verLabel = k => dVers.find(v => v.key === k)?.label || k;
     const dVerKeys = [...dVers.slice(1).map(v => v.key), ...verKeys(dOwn).filter(k => totVer(dOwn, k) && !dVers.some(v => v.key === k))];
-    const dOwnRows = dc.avail.map(l => {
+    const dOwnRows = [...dc.avail, ...LANGS.filter(l => !dc.avail.includes(l) && dOwn[l])].map(l => {
       const n = dOwn[l] || 0;
       const vers = dVerKeys.map(k => ({ key: k, label: lc(verLabel(k)), n: verOf(dOwn, l, k), inc: () => this.addVer(dc.id, l, k, 1), dec: () => this.addVer(dc.id, l, k, -1) }));
       const plain = Math.max(0, n - vers.reduce((a, v) => a + v.n, 0));

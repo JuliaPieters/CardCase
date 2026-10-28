@@ -19,6 +19,11 @@ export interface GameConfig {
    * Chinese): [set language, label, placeholder, card languages it holds]. Without it all sets are one list.
    */
   setGroups?: [string, string, string, string[]][];
+  /**
+   * Whether a set is one of the department's main sets, the ones the home screen shows before you own anything (Magic:
+   * core, expansion and masters, not promo or Commander sets). Left out: all sets. Set lists offer every set that is out.
+   */
+  mainSet?: (set: any) => boolean;
   /** What a recipe lists one card of ("één per Pokémon", "één per personage"). */
   noun: { one: string; many: string };
   /**

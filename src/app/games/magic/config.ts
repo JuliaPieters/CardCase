@@ -73,6 +73,7 @@ export const config: GameConfig = {
     { key: 'cmc', label: 'Alle manawaardes', options: () => [...new Set(CARDS.map((c) => Math.min(8, Math.floor(c.cmc))))].sort((a, b) => a - b).map((n) => [String(n), n === 8 ? 'Mana value 8+' : 'Mana value ' + n]), match: (c, v) => String(Math.min(8, Math.floor(c.cmc))) === v },
   ],
   decks: deckRules,
+  mainSet: (s) => ['core', 'expansion', 'masters'].includes(s.kind),
   versions: (c) => (!c.foilOnly && c.foilTypes.length > 1 ? FOIL_VERSIONS : []),
   cardNumber: (c) => c.set.toUpperCase() + ' ' + c.numStr,
   cardFacts: (c) => [

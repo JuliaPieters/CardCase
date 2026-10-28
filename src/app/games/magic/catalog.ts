@@ -24,10 +24,10 @@ const mainType = (line: string) => Object.keys(CARD_TYPES).find((t) => line.spli
 /** Expands public/catalogs/magic.json (built by `npm run sync-magic` from Scryfall) into the app's card objects. */
 export function buildCatalog(raw: any, langs: string[]) {
   const str = (i: number) => (i >= 0 ? raw.strings[i] : null);
-  const sets = raw.sets.map((x: any) => ({ code: x.code, name: x.name, n: 0, year: x.released ? +x.released.slice(0, 4) : 0, released: x.released, kind: x.type, avail: langs }));
+  const sets = raw.sets.map((x: any) => ({ code: x.code, name: x.name, n: 0, year: x.released ? +x.released.slice(0, 4) : 0, released: x.released, kind: x.type, avail: [] as string[] }));
   const groups = new Map<string, number>();
   const cards = raw.cards.map((t: any[]) => {
-    const [b64, nameI, setI, num, rar, colourMask, identityMask, cmc, typeI, eur, eurFoil, legal, finish, flags, artistI, rank, costI, kws, restricted, maxCopies, partnerI] = t;
+    const [b64, nameI, setI, num, rar, colourMask, identityMask, cmc, typeI, eur, eurFoil, legal, finish, flags, artistI, rank, costI, kws, restricted, maxCopies, partnerI, langMask] = t;
     const set = sets[setI];
     set.n++;
     const id = uuid(b64);
@@ -36,6 +36,9 @@ export function buildCatalog(raw: any, langs: string[]) {
     const typeLine = str(typeI) || '';
     const cs = colours(colourMask);
     const names = Object.fromEntries(langs.map((l) => [l, name]));
+    // English and the other languages it was printed in (scripts/sync-magic.mjs: bit i is langs[i + 1]); a catalog
+    // from before that was known offers them all.
+    const avail = langMask == null ? langs : langs.filter((_, i) => i === 0 || langMask & (1 << (i - 1)));
     const special = flags & (2 | 4 | 8 | 16);
     const foilOnly = !(finish & 1);
     return {
@@ -60,7 +63,7 @@ export function buildCatalog(raw: any, langs: string[]) {
       rarityName: RARITY_NAMES[rar],
       variant: special ? 'fullart' : flags & 1 ? 'promo' : 'regular',
       category: 0,
-      avail: langs,
+      avail,
       sp: groups.get(name)!,
       year: set.year,
       released: set.released,
@@ -95,5 +98,9 @@ export function buildCatalog(raw: any, langs: string[]) {
       foil: !foilOnly && eurFoil ? { trend: eurFoil, low: null, avg1: null, avg7: null, avg30: null } : null,
     };
   });
+  // A set is available in every language one of its cards was printed in.
+  const setLangs = sets.map(() => new Set<string>());
+  raw.cards.forEach((t: any[], i: number) => cards[i].avail.forEach((l: string) => setLangs[t[2]].add(l)));
+  sets.forEach((x: any, i: number) => (x.avail = langs.filter((l) => setLangs[i].has(l))));
   return { sets, cards };
 }
