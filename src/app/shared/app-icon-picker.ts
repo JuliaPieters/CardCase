@@ -34,8 +34,7 @@ import type { Game } from '../games/types';
         }
       </div>
       <p class="m-0 text-[12px] font-bold text-muted text-pretty">
-        Je telefoon neemt het icoon over als je CardCase op je beginscherm zet. Later gewisseld? Haal
-        CardCase van je beginscherm en zet hem er opnieuw op (Safari: Deel → Zet op beginscherm).
+        Geldt bij het installeren. Al geïnstalleerd? Verwijder de app en voeg hem opnieuw toe.
       </p>
     </div>
   `,
