@@ -13,6 +13,7 @@
     "sync-japanese": "node scripts/sync-japanese.mjs",
     "sync-chinese": "node scripts/sync-chinese.mjs",
     "sync-hashes": "node --no-warnings scripts/sync-hashes.mjs",
+    "sync-hashes-one-piece": "node --no-warnings scripts/sync-hashes-one-piece.mjs",
     "sync-lorcana": "node scripts/sync-lorcana.mjs",
     "sync-magic": "node scripts/sync-magic.mjs",
     "sync-one-piece": "node scripts/sync-one-piece.mjs",

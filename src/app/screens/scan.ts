@@ -370,7 +370,8 @@ export class ScanOverlay implements OnDestroy {
       if (frame) {
         try {
           const { text, numText } = await this.scanner.readCard(frame, 0, 0, undefined, undefined, this.profile.strips);
-          const num = /\d{1,3}[a-zA-Z]?\s*\/\s*[A-Z]{0,2}\d{1,3}/.exec(numText)?.[0].replace(/\s/g, '');
+          // "12/204" on most cards, "OP01-120" on One Piece.
+          const num = /\d{1,3}[a-zA-Z]?\s*\/\s*[A-Z]{0,2}\d{1,3}|\b[A-Z]{1,3}\d{0,2}-\d{3}\b/.exec(numText)?.[0].replace(/\s/g, '');
           if (num) this.lastRead.set(num);
           const ms = this.rerank(this.profile.match(text, { numText, lang: this.lang(), limit: POOL }), () => this.scanner.hashCard(frame, frame.width, frame.height, { x: 0, y: 0, w: frame.width, h: frame.height }));
           if (DEBUG) console.debug('[scan]', frame.width + '×' + frame.height, JSON.stringify(text), ms.map((m) => `${CARDS[m.id].names.EN} ${CARDS[m.id].set} ${m.conf}%`));

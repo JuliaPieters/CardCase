@@ -224,3 +224,4 @@ await mkdir(new URL('.', OUT), { recursive: true });
 await writeFile(OUT, JSON.stringify(out));
 const perLang = Object.keys(LANGS).map((l) => `${l} ${cards.filter((c) => c.i18n[l]).length}`).join(', ');
 console.log(`[one-piece] ${cards.length} kaarten in ${sets.length} sets (${perLang}) → public/catalogs/one-piece.json`);
+console.log('[one-piece] Draai nu ook `npm run sync-hashes-one-piece`: de scanner gebruikt de plaatjesindex alleen bij deze catalogusversie.');

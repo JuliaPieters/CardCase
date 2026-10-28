@@ -128,7 +128,7 @@ async function main() {
   console.log(`Klaar: ${have} hashes → public/card-hashes.bin (${Math.round(out.length / 1024)} kB, ${failed} afbeeldingen mislukt)`);
 }
 
-export { main as buildHashes };
+export { main as buildHashes, hashImage, fetchImage };
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   main().catch((err) => {

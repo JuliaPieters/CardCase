@@ -14,7 +14,7 @@
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
-        "files": ["/card-hashes.bin"]
+        "files": ["/card-hashes.bin", "/card-hashes/**"]
       }
     },
     {

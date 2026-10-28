@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import type { CardMatch } from './text';
-import { catalogVersion } from './catalog';
+import { CatalogService, catalogVersion } from './catalog';
 import { CARDS } from './data';
 import { distance, HASH_BYTES } from './phash';
 
@@ -21,17 +21,20 @@ export interface HashSearch {
 }
 
 /**
- * The perceptual hashes of all catalog photos (public/card-hashes.bin, built by `npm run sync-hashes`), and the
- * search that finds the cards closest to a camera frame.
+ * The perceptual hashes of all catalog photos of the active department (Pokémon: public/card-hashes.bin, built by
+ * `npm run sync-hashes`; the others public/card-hashes/<game>.bin, e.g. `npm run sync-hashes-one-piece`), and the search
+ * that finds the cards closest to a camera frame. A department without an index scans by text only.
  */
 @Injectable({ providedIn: 'root' })
 export class CardHashes {
   private words: Uint32Array | null = null;
   private loading?: Promise<boolean>;
+  private readonly catalog = inject(CatalogService);
 
   /** Downloads the index (~600 kB) once; false when it is missing or belongs to another catalog version. */
   load(): Promise<boolean> {
-    this.loading ??= fetch('card-hashes.bin')
+    const game = this.catalog.game();
+    this.loading ??= fetch(game === 'pokemon' ? 'card-hashes.bin' : `card-hashes/${game}.bin`)
       .then((res) => (res.ok ? res.arrayBuffer() : null))
       .then((buf) => {
         if (!buf || buf.byteLength < HEADER) return false;

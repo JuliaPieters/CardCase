@@ -42,7 +42,8 @@ export const config: GameConfig = {
       { key: 'EN', label: 'EN', ocr: ['eng'] },
       { key: 'JA', label: 'JA', ocr: ['jpn'] },
     ],
-    strips: { name: [0.8, 0.1], number: [0.9, 0.08] },
+    // The name in the banner near the bottom; below it the types and, bottom right, the card id (tried on official images).
+    strips: { name: [0.86, 0.08], number: [0.925, 0.06] },
     match: matchOnePiece,
   },
   noun: { one: 'personage', many: 'personages' },
