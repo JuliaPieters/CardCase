@@ -89,7 +89,7 @@ export const config: GameConfig = {
       'master',
       'Master set',
       'master',
-      'Elke kaart uit één set, inclusief varianten.',
+      'Elke kaart uit één set: één van elke, elk nummer of echt elke versie.',
       '#3E6FB0',
       '#FFF8EE',
     ],

@@ -144,6 +144,15 @@ const DEMO = {
                 {{ s.warnShort }}
               </div>
             }
+            @if (s.verLabel) {
+              <!-- The version this slot is for (a master set with every version): foil, reverse holo… -->
+              <div
+                [title]="s.verLabel"
+                class="absolute bottom-[4%] left-[4%] max-w-[92%] overflow-hidden text-ellipsis z-[3] bg-paper text-coal border-[1.5px] border-line rounded-[4px] px-[4cqw] py-[3cqw] font-pixel text-[max(9px,8.5cqw)] leading-none whitespace-nowrap shadow-[0_2px_0_var(--line)] uppercase"
+              >
+                {{ s.verLabel }}
+              </div>
+            }
             @if (s.hasAlts) {
               <!-- Several cards fit the recipe (e.g. four IRs): tap to pick another one. -->
               <button

@@ -4,7 +4,7 @@
  */
 type Tile = [string, string, string, string, string, string];
 
-export const MASTER: Tile = ['master', 'Master set', 'master', 'Elke kaart uit één set, met of zonder de speciale versies.', '#3E6FB0', '#FFF8EE'];
+export const MASTER: Tile = ['master', 'Master set', 'master', 'Elke kaart uit één set: één van elke, elk nummer of echt elke versie.', '#3E6FB0', '#FFF8EE'];
 export const ILLUSTRATOR: Tile = ['illus', 'Illustrator', 'brush', 'Alle kaarten van één tekenaar.', '#7A5BC7', '#FFF8EE'];
 export const EMPTY: Tile = ['empty', 'Leeg beginnen', 'page', "Lege pagina's om zelf te vullen of te decoreren.", '#FFFDF6', '#1A1C22'];
 

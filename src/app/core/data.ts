@@ -65,6 +65,7 @@ export function setLanguages(langs: { code: string; label: string }[]) {
 /** Makes a department's settings the active ones (with its catalog, by CatalogService; in tests directly). */
 export function applyGameConfig(config: import('../games/config').GameConfig) {
   setGame(config.game);
+  versionsOf = c => config.versions?.(c) || [];
   setLanguages(config.languages);
   for (const k of Object.keys(TYPES)) delete TYPES[k];
   Object.assign(TYPES, config.types);
@@ -160,20 +161,20 @@ export function tplAreas(t, cols, rows) {
  */
 export function syncSlots(b) {
   const fmt = b.fmt, cols = COLS[fmt]; const isD = x => typeof x === 'string' && x.startsWith('D:');
-  const seq = []; b.slots.forEach((x, i) => { if (!isD(x)) seq.push([x, b.warn && b.warn[i], b.alts && b.alts[i]]); });
+  const seq = []; b.slots.forEach((x, i) => { if (!isD(x)) seq.push([x, b.warn && b.warn[i], b.alts && b.alts[i], b.ver && b.ver[i]]); });
   while (seq.length && seq[seq.length - 1][0] == null) seq.pop();
   const cover = new Map(), soft = new Map(); let last = -1;
   ((b.deco && b.deco.images) || []).forEach(im => { for (let r = im.row; r < im.row + im.h; r++) for (let c = im.col; c < im.col + im.w; c++) { const idx = im.page * fmt + r * cols + c; (im.buffer ? soft : cover).set(idx, 'D:' + im.id); last = Math.max(last, idx); } });
-  const slots = [], warn = {}, alts = {}; let pages = b.pages, k = 0;
+  const slots = [], warn = {}, alts = {}, ver = {}; let pages = b.pages, k = 0;
   for (let i = 0; k < seq.length || i < pages * fmt || i <= last; i++) {
     if (i >= pages * fmt) pages += 2;
     if (cover.has(i)) { slots.push(cover.get(i)); continue; }
     // A buffer image shows where the next card would otherwise leave the pocket empty.
     const it = seq[k]; if (soft.has(i) && (!it || it[0] == null)) { slots.push(soft.get(i)); if (it) k++; continue; }
     k++; if (!it) { slots.push(null); continue; }
-    slots.push(it[0]); if (it[1]) warn[i] = it[1]; if (it[2]) alts[i] = it[2];
+    slots.push(it[0]); if (it[1]) warn[i] = it[1]; if (it[2]) alts[i] = it[2]; if (it[3] != null) ver[i] = it[3];
   }
-  return { slots, pages, warn, alts };
+  return { slots, pages, warn, alts, ver };
 }
 /**
  * One pocket's part (`dx`, `dy` pockets from the top left) of art spanning `im.w` × `im.h` pockets: the image covers
@@ -248,6 +249,10 @@ export const verOf = (o, l, k) => Math.min(o?.[k]?.[l] || 0, o?.[l] || 0);
 /** The version keys an owned entry has copies of. */
 export const verKeys = o => o ? Object.keys(o).filter(k => o[k] && typeof o[k] === 'object') : [];
 export const totVer = (o, k) => o ? LANGS.reduce((a, l) => a + verOf(o, l, k), 0) : 0;
+/** Copies of one version: `k` '' is the plain one (the copies that aren't another version), left out any version. */
+export const ownVer = (o, k?) => k == null ? tot(o) : k === '' ? Math.max(0, tot(o) - verKeys(o).reduce((a, v) => a + totVer(o, v), 0)) : totVer(o, k);
+/** The versions a card was printed in (the department's `versions`), the plain one first; empty when it has only one. */
+export let versionsOf: (c: any) => { key: string; label: string }[] = () => [];
 export const foilOf = (o, l) => verOf(o, l, 'foil');
 export const totFoil = o => totVer(o, 'foil');
 /** Prices of a version of a card ({ trend, low, avg1, avg7, avg30 }), when it has its own. */
@@ -387,7 +392,7 @@ export const RECIPES: [string, string, string, string, string, string][] = [];
 export const RSTEPS: Record<string, string[]> = {};
 export const PREFS: [string, string, string, string][] = [];
 export const NOUN = { one: 'kaart', many: 'kaarten' };
-const BASE_STEPT = { extra: ['Versies', 'Ook de speciale versies?'], region: ['Regio', 'Welke regio?'], per: ['Kaarten per ...', 'Hoeveel kaarten per ...?'], pref: ['Voorkeursversie', 'Welke versie heeft je voorkeur?'], set: ['Set', 'Welke set?'], order: ['Volgorde', 'In welke volgorde?'], species: ['...', 'Welke ...?'], illus: ['Illustrator', 'Welke illustrator?'], story: ['Verhaal', 'Uit welk verhaal?'], ptype: ['Type', 'Welk type?'], pages: ["Pagina's", "Hoeveel pagina's?"], langs: ['Taal', 'In welke talen?'] };
+const BASE_STEPT = { extra: ['Versies', 'Welke versies?'], region: ['Regio', 'Welke regio?'], per: ['Kaarten per ...', 'Hoeveel kaarten per ...?'], pref: ['Voorkeursversie', 'Welke versie heeft je voorkeur?'], set: ['Set', 'Welke set?'], order: ['Volgorde', 'In welke volgorde?'], species: ['...', 'Welke ...?'], illus: ['Illustrator', 'Welke illustrator?'], story: ['Verhaal', 'Uit welk verhaal?'], ptype: ['Type', 'Welk type?'], pages: ["Pagina's", "Hoeveel pagina's?"], langs: ['Taal', 'In welke talen?'] };
 export const STEPT: Record<string, string[]> = {};
 export const DEFRECIPE: any = { type: 'dex', region: 'kanto', custom: false, from: 1, to: 151, forms: true, per: 'one', pref: 'owned', prefSet: 'ART', lang: 'EN', langs: [], fmt: 9, sort: 'dex', buffer: 0, name: '', sp: 25, illus: 'Aiko Mori', ptype: 'fire', set: 'EMB', order: 'oldest', pages: 4 };
 Object.assign(PIX, {
@@ -433,22 +438,43 @@ export function recipeItems(r, owned) {
   } else if (r.type === 'illus') { const cs = CARDS.filter(c => c.illus === r.illus && inLang(c)); if (r.per === 'one') items = one(Array.from(new Set(cs.map(c => c.sp))), c => c.illus === r.illus); else items = cs.map(c => ({ sp: c.sp, card: c })); }
   else if (r.type === 'story') { const cs = CARDS.filter(c => c.story === r.story && inLang(c)); if (r.per === 'one') items = one(Array.from(new Set(cs.map(c => c.sp))), c => c.story === r.story); else items = cs.map(c => ({ sp: c.sp, card: c })); }
   else if (r.type === 'fullart') items = CARDS.filter(c => c.variant === 'fullart' && inLang(c)).map(c => ({ sp: c.sp, card: c }));
-  else if (r.type === 'master') items = (BYSET[r.set] || []).filter(c => r.special !== false || (c.variant !== 'fullart' && c.variant !== 'illus')).map(c => ({ sp: c.sp, card: c }));
+  else if (r.type === 'master') {
+    const cs = BYSET[r.set] || [];
+    if (masterMode(r) === 'one') {
+      // One slot per card: the most valuable version you have (that dear pull), else the regular card.
+      const groups = new Map(); cs.forEach(c => { const k = masterKey(c); groups.set(k, [...(groups.get(k) || []), c]); });
+      items = [...groups.values()].map(g => { const has = g.filter(own).sort((a, b) => (b.trend ?? 0) - (a.trend ?? 0)); const reg = g.filter(c => c.variant === 'regular' || c.variant === 'holo'); const card = has[0] || (reg.length ? reg : g).slice().sort((a, b) => a.num - b.num)[0]; return { sp: card.sp, card, alts: g.length, num: Math.min(...g.map(c => c.num)) }; });
+    } else items = cs.map(c => ({ sp: c.sp, card: c }));
+  }
   else if (r.type === 'single') items = cardsOf(r.sp).map(c => ({ sp: c.sp, card: c }));
   const so = r.sort;
-  if (r.type === 'master') items.sort((a, b) => r.order === 'type' ? (a.card.type.localeCompare(b.card.type) || a.card.num - b.card.num) : r.order === 'value' ? b.card.trend - a.card.trend : a.card.num - b.card.num);
+  if (r.type === 'master') {
+    // In set order a card keeps its regular card's place, also when a later full art of it stands in.
+    const num = it => it.num ?? it.card.num;
+    items.sort((a, b) => r.order === 'type' ? (a.card.type.localeCompare(b.card.type) || num(a) - num(b)) : r.order === 'value' ? b.card.trend - a.card.trend : num(a) - num(b));
+    // Every version apart: the foil, reverse holo… of a card right after its plain one.
+    if (masterMode(r) === 'all') items = items.flatMap(it => { const vs = versionsOf(it.card); return vs.length ? vs.map(v => ({ ...it, ver: v.key })) : [it]; });
+  }
   else if (r.type === 'single' || r.type === 'fullart') items.sort((a, b) => r.order === 'value' ? b.card.trend - a.card.trend : r.order === 'owned' ? ((own(b.card) ? 1 : 0) - (own(a.card) ? 1 : 0)) || a.card.year - b.card.year : a.card.year - b.card.year || a.card.id - b.card.id);
   else items.sort((a, b) => so === 'set' ? (a.card.set.localeCompare(b.card.set) || a.card.num - b.card.num) : so === 'value' ? b.card.trend - a.card.trend : so === 'name' ? a.card.names.EN.localeCompare(b.card.names.EN) : (a.sp - b.sp) || ((a.form ? 1 : 0) - (b.form ? 1 : 0)) || a.card.year - b.card.year);
   return items;
 }
+/**
+ * What a master set holds: one slot per card, whichever version you have ('one'), every number once ('nums'), or
+ * every number in every version, foil and reverse holo apart ('all'). Older recipes only said whether the special
+ * versions were in (`special`).
+ */
+export const masterMode = r => r.mv || (r.special === false ? 'one' : 'nums');
+/** Versions of the same card in a set (regular, full art, showcase…): they share their name. */
+export const masterKey = c => c.set + '|' + c.names.EN;
 export function buildRecipe(r, owned) {
-  const cols = COLS[r.fmt]; const slots = []; const warn = {}; const alts = {}; let ownedN = 0, cost = 0, formsN = 0;
+  const cols = COLS[r.fmt]; const slots = []; const warn = {}; const alts = {}; const ver = {}; let ownedN = 0, cost = 0, formsN = 0;
   const items = r.type === 'empty' ? [] : recipeItems(r, owned);
-  items.forEach(it => { if (it.warn) warn[slots.length] = it.warn; if (it.alts > 1) alts[slots.length] = it.alts; slots.push(it.card.id); if (tot(owned[it.card.id]) > 0) ownedN++; else cost += it.card.trend; if (it.form) formsN++; });
+  items.forEach(it => { if (it.warn) warn[slots.length] = it.warn; if (it.alts > 1) alts[slots.length] = it.alts; if (it.ver != null) ver[slots.length] = it.ver; slots.push(it.card.id); if (ownVer(owned[it.card.id], it.ver) > 0) ownedN++; else cost += (it.ver && verPrice(it.card, it.ver)?.trend) || it.card.trend || 0; if (it.form) formsN++; });
   if (r.buffer && r.type !== 'empty') { while (slots.length % cols) slots.push('B'); for (let i = 0; i < r.buffer * cols; i++) slots.push('B'); }
   let pages = Math.max(r.type === 'empty' ? r.pages : 2, Math.ceil(slots.length / r.fmt)); if (pages % 2) pages++;
   while (slots.length < pages * r.fmt) slots.push(null);
-  return { fmt: r.fmt, pages, slots, warn, alts, n: items.length, ownedN, cost, formsN };
+  return { fmt: r.fmt, pages, slots, warn, alts, ver, n: items.length, ownedN, cost, formsN };
 }
 export function regLabel(r) { const g = REGIONS.find(x => x[0] === r.region); return r.custom ? '#' + pad(r.from) + '–#' + pad(r.to) : g[1] + ' #' + pad(g[2]) + '–#' + pad(g[3]); }
 /** Every species (Pokémon) or character group (other games), in dex order or by name. */
@@ -463,7 +489,7 @@ export function recipeLabel(r) {
   if (r.type === 'dex') return ['REGIO-DEX', regLabel(r).toUpperCase(), lang, per, pref, r.forms ? '+ VORMEN' : ''].filter(Boolean).join(' · ');
   if (r.type === 'type') return [STEPT.ptype[0].toUpperCase(), TYPES[r.ptype][0].toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
   if (r.type === 'illus') return ['ILLUSTRATOR', r.illus.toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
-  if (r.type === 'master') return 'MASTER SET · ' + ((SETS.find(s => s.code === r.set) || {}).name || r.set).toUpperCase();
+  if (r.type === 'master') return 'MASTER SET · ' + ((SETS.find(s => s.code === r.set) || {}).name || r.set).toUpperCase() + ' · ' + { one: 'ÉÉN PER KAART', nums: 'ELK NUMMER', all: 'ELKE VERSIE' }[masterMode(r)];
   if (r.type === 'single') return 'ÉÉN ' + NOUN.one.toUpperCase() + ' · ' + spLabel(r.sp).toUpperCase() + ' · ' + lang + ' · ALLE VERSIES';
   if (r.type === 'story') return [STEPT.story[0].toUpperCase(), (r.story || '').toUpperCase(), lang, per, pref].filter(Boolean).join(' · ');
   if (r.type === 'fullart') return 'FULL ART · ' + lang;
