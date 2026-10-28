@@ -43,6 +43,21 @@ describe('import', () => {
     expect(r.other).toEqual({ lorcana: 2, magic: 1 });
   });
 
+  it('matches One Piece rows by card number, the parallel when the row says so', () => {
+    const shanks = (id: number, set: string, setName: string, localId: string, extra: any) => ({ id, set, setName, localId, num: 120, code: 'OP01-120', names: { EN: 'Shanks', JA: 'シャンクス' }, avail: ['EN', 'JA'], parallel: 0, reprint: 0, ...extra });
+    const cards = [
+      shanks(0, 'OP01', 'Romance Dawn', '120', {}),
+      shanks(1, 'OP01', 'Romance Dawn', '120 P1', { parallel: 1 }),
+      shanks(2, 'PRB01', 'One Piece Card The Best', '120 R1', { reprint: 1 }),
+    ];
+    const csv = 'Category,Set,Product Name,Card Number,Rarity,Quantity\n' +
+      'One Piece Card Game,Romance Dawn,Shanks,OP01-120,Secret Rare,2\n' +
+      'One Piece Card Game,Romance Dawn,Shanks (Parallel),OP01-120,Secret Rare,1\n' +
+      'One Piece Card Game,One Piece Card The Best,Shanks,OP01-120,Secret Rare,1';
+    const r = matchRows(parseFile(csv), cards, 'one-piece', () => []);
+    expect(r.hits.map((h) => [h.id, h.qty])).toEqual([[0, 2], [1, 1], [2, 1]]);
+  });
+
   it('takes Collectr’s set code and Japanese rarities as signs of a Japanese card', () => {
     const card = (id: number, set: string, setName: string, localId: string, names: any, avail: string[], total: number) => ({ id, set, setName, localId, num: +localId, names, avail, total, sp: 25 });
     const cards = [

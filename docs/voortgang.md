@@ -11,7 +11,7 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 | 4a · Lorcana | `lorcana` | 🟡 Alles gebouwd: catalogus, prijzen (ook in de catalogus), thema, filters, recepten, kaartpagina, foil, waardegeschiedenis, scanner (boekpagina, snel scannen, tips), decoratie, delen. Nog testen: camera, mobiel, echt account. |
 | → merge `lorcana` naar `main` | | ✅ 27-10-2026 |
 | 4b · Magic | `magic` | 🟡 Catalogus (Scryfall, 97.781 prints), prijzen, thema, filters, recepten, kaartpagina, decks met formaten en Commander. Nog: scanner testen, telefoonformaat nalopen. |
-| 4c · One Piece | `one-piece` | 🟡 Catalogus (Punk Records, 5.340 kaarten EN/JA met parallels en herdrukken), Cardmarket-prijzen, thema, filters, recepten, kaartpagina, scanner op kaartnummer. Nog: decks, decoratie, scanner testen, telefoonformaat. |
+| 4c · One Piece | `one-piece` | 🟡 Catalogus (Punk Records, 5.340 kaarten EN/JA met parallels en herdrukken), Cardmarket-prijzen, thema, filters, recepten, kaartpagina, decks (leider + 50), decoratie, Collectr-import op kaartnummer, scanner op kaartnummer. Telefoonformaat nagelopen. Nog: scanner met camera testen. |
 
 ## Open punten Lorcana
 
@@ -45,4 +45,7 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 ### 2026-10-28
 - One Piece op branch `one-piece`: catalogus uit Punk Records (de officiële kaartlijsten, Engels en Japans) via `npm run sync-one-piece`. Parallels (`_p1`) en herdrukken (`_r1`, bv. uit PRB-01) zijn eigen kaarten.
 - Prijzen uit de Cardmarket price guide (idGame 18). Cardmarket noemt de prints niet bij naam; per uitgave worden ze op productvolgorde gekoppeld, de gewone print aan het goedkoopste product. Welke uitgaven Japans zijn, staat in de sealed producten ("(Non-English)", "(Asia Region Legal)"). 947 kaarten zonder prijs, vooral promo's.
-- De officiële plaatjes mogen niet op een andere site getoond worden (Cross-Origin-Resource-Policy), dus ze lopen via images.weserv.nl. Engelse plaatjes hebben het watermerk "SAMPLE" van Bandai; een bron zonder watermerk is er niet.
+- De officiële plaatjes mogen niet op een andere site getoond worden (Cross-Origin-Resource-Policy), dus ze lopen via images.weserv.nl. Engelse plaatjes hebben het watermerk "SAMPLE" van Bandai; een bron zonder watermerk is er niet.- Decks voor One Piece: de leider is de "commander" van het deckscherm (kroontje), 50 kaarten, maximaal 4 per kaartnummer (parallels tellen mee), alleen de kleuren van de leider. Lijsten in- en uitlezen op kaartnummer (`4xOP01-016`, zoals OPTCGSim). Het deckscherm kreeg daarvoor `commanderLabel`, `currentFormatLabel` en `listLine` in `DeckRules`.
+- Decoratie: perkament, zeekaart, open zee, wanted-poster, scheepsdek; stickers doodskop, anker, strohoed, munt, kompas.
+- Collectr-import herkent One Piece-kaarten aan hun kaartnummer, en de parallel als de rij "Parallel", "Alternate Art" of "Manga" noemt.
+- Kaartpagina en collectie tonen het nummer zoals de afdeling het schrijft (`cardNumber`); bij One Piece stond het setnummer er dubbel.

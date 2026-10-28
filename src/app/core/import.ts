@@ -127,6 +127,9 @@ export function matchRows(
   const byName = new Map<string, any[]>();
   const bySetNum = new Map<string, any>();
   const byScryfall = new Map<string, any>();
+  // One Piece: every print by its card number ("OP01-120"), parallels and reprints included.
+  const byCardCode = new Map<string, any[]>();
+  for (const c of cards) if (c.code) byCardCode.set(c.code, [...(byCardCode.get(c.code) || []), c]);
   for (const c of cards) {
     const ns = new Set(Object.values(c.names || {}).filter(Boolean).map((n: any) => normName(n)));
     for (const n of ns) byName.set(n, [...(byName.get(n) || []), c]);
@@ -178,6 +181,17 @@ export function matchRows(
     const code = get(r, 'setCode') || prefix;
     const byCode = (cd: string) => (japanese ? ['ja-' + plain(cd), plain(cd)] : [plain(cd), 'ja-' + plain(cd)]).map((k) => bySetNum.get(k + '|' + num)).find(Boolean);
     let c = byScryfall.get(get(r, 'scryfallId').toLowerCase()) ?? (code && num ? byCode(code) : null);
+    // A card number (One Piece: "OP01-120" in the number or name): the parallel when the row says so ("Parallel",
+    // "Alternate Art", "Manga"…), else the regular print; of several, the one in the set the row names.
+    const cardCode = /\b([A-Z]+\d*-\d{3})\b/i.exec(get(r, 'number') + ' ' + name)?.[1]?.toUpperCase();
+    if (!c && cardCode && byCardCode.has(cardCode)) {
+      const prints = byCardCode.get(cardCode)!.filter((x) => !japanese || x.avail.includes('JA'));
+      const parallel = /parallel|alternate art|alt art|manga|\bsp\b|special|\bspr\b|treasure/.test(plain(name + ' ' + get(r, 'finish') + ' ' + get(r, 'rarity')));
+      const fit = prints.filter((x) => !!x.parallel === parallel);
+      const w = words(setName);
+      const score = (x: any) => [...words(x.setName + ' ' + x.set)].filter((y) => w.has(y)).length * 2 - (x.reprint ? 1 : 0) - (x.parallel || 0) * 0.01;
+      c = [...(fit.length ? fit : prints)].sort((a, b) => score(b) - score(a))[0];
+    }
     if (!c && name) {
       const named = (byName.get(normName(name)) || []).filter((x) => !japanese || x.avail.includes('JA'));
       const w = words(setName + ' ' + get(r, 'setCode'));

@@ -64,6 +64,12 @@ export interface DeckRules {
   sizeFor?(format?: string): number;
   /** The format has a commander. */
   hasCommander?(format?: string): boolean;
+  /** What the card leading the deck is called (default "commander"; One Piece: "leider"). */
+  commanderLabel?: string;
+  /** Name of the current (rotating) format, when the generator can keep to it (Lorcana: "Core"). */
+  currentFormatLabel?: string;
+  /** A line of the deck as a list to paste elsewhere (default "4 Ariel - On Human Legs"; One Piece: "4xOP01-016"). */
+  listLine?(line: DeckLine): string;
   /** Whether a card can lead the deck as its commander. */
   canCommand?(card: any): boolean;
   /** Whether a card can be the second commander next to `commander`. */
@@ -130,7 +136,8 @@ export function deckNeeds(lines: DeckLine[], nameOf: (c: any) => string, owned: 
 
 /**
  * A pasted deck list ("4 Ariel - On Human Legs", "2x Be Prepared", one card per line, as Dreamborn, Inkdecks and the
- * like export it) as deck lines. Of several printings it takes one you own, else the regular one.
+ * like export it; or by card number, "4xOP01-016" as One Piece simulators do) as deck lines. Of several printings it
+ * takes one you own, else the regular one.
  */
 export function parseDeckList(text: string, owned: Record<number, Record<string, number>>): { lines: DeckLine[]; unknown: string[] } {
   const byName = new Map<string, any[]>();
@@ -142,6 +149,13 @@ export function parseDeckList(text: string, owned: Record<number, Record<string,
       if (!list.includes(c)) byName.set(k, [...list, c]);
     }
   }
+  // Card numbers (One Piece: "OP01-016", shared by its parallels), unless a name is spelled the same.
+  for (const c of CARDS) {
+    if (!c.code) continue;
+    const k = norm(c.code);
+    const list = byName.get(k) || [];
+    if (!list.length || list[0].code === c.code) byName.set(k, [...list, c]);
+  }
   const pick = (cs: any[]) =>
     cs.find((c) => tot(owned[c.id]) > 0) || cs.find((c) => c.variant === 'regular') || cs.slice().sort((a, b) => (a.trend ?? Infinity) - (b.trend ?? Infinity))[0];
   const lines = new Map<any, number>();
@@ -149,7 +163,7 @@ export function parseDeckList(text: string, owned: Record<number, Record<string,
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || /^(\/\/|#)/.test(line)) continue;
-    const m = /^(\d+)\s*x?\s+(.+)$/i.exec(line);
+    const m = /^(\d+)\s*x?\s+(.+)$/i.exec(line) || /^(\d+)x([A-Z]+\d*-\d+)$/i.exec(line);
     const n = m ? +m[1] : 1;
     const name = norm((m ? m[2] : line).replace(/\s+[-–—]\s+/g, ' '));
     const cs = byName.get(name);
@@ -163,5 +177,5 @@ export function parseDeckList(text: string, owned: Record<number, Record<string,
   return { lines: [...lines].map(([card, n]) => ({ card, n })), unknown };
 }
 
-/** The deck as a list to paste elsewhere: "4 Ariel - On Human Legs". */
-export const deckText = (lines: DeckLine[]) => lines.map((l) => `${l.n} ${l.card.names.EN.replace(' – ', ' - ')}`).join('\n');
+/** The deck as a list to paste elsewhere: "4 Ariel - On Human Legs", or as the department writes a line. */
+export const deckText = (lines: DeckLine[], line?: (l: DeckLine) => string) => lines.map(line ?? ((l) => `${l.n} ${l.card.names.EN.replace(' – ', ' - ')}`)).join('\n');

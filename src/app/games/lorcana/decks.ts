@@ -156,6 +156,7 @@ function generate(o: GenerateOptions): DeckLine[] {
 }
 
 export const rules: DeckRules = {
+  currentFormatLabel: 'Core',
   size: 60,
   maxCopies: 4,
   maxTypes: 2,

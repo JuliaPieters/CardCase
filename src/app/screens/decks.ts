@@ -74,8 +74,8 @@ import { Card } from '../shared/card';
             </div>
           </div>
           <label class="flex items-center gap-2 font-bold text-[14px]"><input type="checkbox" [checked]="ownedOnly()" (change)="ownedOnly.set(!ownedOnly())" /> Alleen kaarten die ik heb</label>
-          @if (!rules()?.formats) {
-            <label class="flex items-center gap-2 font-bold text-[14px]"><input type="checkbox" [checked]="core()" (change)="core.set(!core())" /> Alleen kaarten uit het huidige formaat (Core)</label>
+          @if (!rules()?.formats && rules()?.currentFormatLabel) {
+            <label class="flex items-center gap-2 font-bold text-[14px]"><input type="checkbox" [checked]="core()" (change)="core.set(!core())" /> Alleen kaarten uit het huidige formaat ({{ rules()?.currentFormatLabel }})</label>
           }
           <button (click)="generate()" [disabled]="!types().length" class="self-start btn bg-red text-cream disabled:opacity-50"><span class="icon text-[19px]">auto_awesome</span>Maak deck</button>
         </div>
@@ -128,6 +128,7 @@ export class DecksScreen {
   protected readonly style = signal('midrange');
   protected readonly ownedOnly = signal(false);
   protected readonly core = signal(true);
+  protected readonly commanderLabel = computed(() => this.rules()?.commanderLabel || 'commander');
   protected readonly format = signal('');
   /** What the colour categories are called ("Inkkleuren", "Kleuren"). */
   protected readonly typeLabel = computed(() => (this.catalog.game() === 'lorcana' ? 'Inkkleuren' : 'Kleuren'));
@@ -186,7 +187,7 @@ export class DecksScreen {
     this.store.newDeck(name, lines, 'generated', { format, commander: lines.commander?.id ?? null });
     const n = lines.reduce((a, l) => a + l.n, 0);
     const size = rules.sizeFor?.(format) ?? rules.size;
-    if (rules.hasCommander?.(format) && !lines.commander) this.store.toast('Geen commander gevonden in precies deze kleuren · kies er zelf een');
+    if (rules.hasCommander?.(format) && !lines.commander) this.store.toast(`Geen ${this.commanderLabel()} gevonden in precies deze kleuren · kies er zelf een`);
     else if (n < size) this.store.toast(`${n} kaarten: met alleen je eigen kaarten lukt een volledig deck nog niet`);
   }
 }
@@ -259,7 +260,7 @@ export class DecksScreen {
                   <span class="w-7 h-7 flex-none rounded-full border-2 border-line flex items-center justify-center font-pixel text-[13px]" [style.background]="l.color">{{ l.cost }}</span>
                   <button (click)="store.openDetail(l.key, null)" class="flex-1 min-w-0 text-left font-bold text-[14px] truncate">{{ l.name }}</button>
                   @if (l.canCommand || l.isCommander) {
-                    <button (click)="setCommander(l.key)" [title]="l.isCommander ? 'De commander' : 'Maak commander'" class="icon text-[20px] flex-none" [class.text-red]="l.isCommander" [class.opacity-40]="!l.isCommander">crown</button>
+                    <button (click)="setCommander(l.key)" [title]="l.isCommander ? 'De ' + commanderLabel() : 'Maak ' + commanderLabel()" class="icon text-[20px] flex-none" [class.text-red]="l.isCommander" [class.opacity-40]="!l.isCommander">crown</button>
                   }
                   @if (l.short) {
                     <span class="text-[12px] font-extrabold text-red" title="Zoveel heb je nog niet">mist {{ l.short }}</span>
@@ -367,6 +368,7 @@ export class DeckScreen {
   protected readonly q = signal('');
   /** The deck as card pictures instead of a list. */
   protected readonly grid = signal(false);
+  protected readonly commanderLabel = computed(() => this.catalog.config?.decks?.commanderLabel || 'commander');
 
   protected readonly model = computed(() => {
     const st = this.store.state;
@@ -445,7 +447,7 @@ export class DeckScreen {
   protected copy() {
     const deck = (this.store.state.decks || []).find((x: Deck) => x.id === this.store.state.deckId);
     if (!deck) return;
-    navigator.clipboard?.writeText(deckText(linesOf(deck))).then(
+    navigator.clipboard?.writeText(deckText(linesOf(deck), this.catalog.config?.decks?.listLine)).then(
       () => this.store.toast('Decklijst gekopieerd'),
       () => this.store.toast('Kopiëren lukte niet'),
     );
