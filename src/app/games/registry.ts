@@ -11,7 +11,7 @@ export const GAMES: readonly GameInfo[] = [
   { game: 'pokemon', name: 'Pokémon', enabled: true, logos: logos('pokemon') },
   { game: 'lorcana', name: 'Disney Lorcana', enabled: true, logos: logos('lorcana') },
   { game: 'magic', name: 'Magic: The Gathering', enabled: true, logos: logos('magic') },
-  { game: 'one-piece', name: 'One Piece', enabled: false, logos: logos('one-piece') },
+  { game: 'one-piece', name: 'One Piece', enabled: true, logos: logos('one-piece') },
 ];
 
 export const isGame = (x: unknown): x is Game => GAMES.some((g) => g.game === x);

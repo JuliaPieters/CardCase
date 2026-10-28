@@ -11,7 +11,7 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 | 4a · Lorcana | `lorcana` | 🟡 Alles gebouwd: catalogus, prijzen (ook in de catalogus), thema, filters, recepten, kaartpagina, foil, waardegeschiedenis, scanner (boekpagina, snel scannen, tips), decoratie, delen. Nog testen: camera, mobiel, echt account. |
 | → merge `lorcana` naar `main` | | ✅ 27-10-2026 |
 | 4b · Magic | `magic` | 🟡 Catalogus (Scryfall, 97.781 prints), prijzen, thema, filters, recepten, kaartpagina, decks met formaten en Commander. Nog: scanner testen, telefoonformaat nalopen. |
-| 4c · One Piece | `one-piece` | ⏳ |
+| 4c · One Piece | `one-piece` | 🟡 Catalogus (Punk Records, 5.340 kaarten EN/JA met parallels en herdrukken), Cardmarket-prijzen, thema, filters, recepten, kaartpagina, scanner op kaartnummer. Nog: decks, decoratie, scanner testen, telefoonformaat. |
 
 ## Open punten Lorcana
 
@@ -41,3 +41,8 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 - Foil per taal in de collectie, waardegeschiedenis per dag, snel scannen, tips bij mislukte scans, Lorcana-decoratie, delen per afdeling. Alle Lorcana-schermen in de browser doorgelopen (desktop, als gast).
 - Decks voor Lorcana (bouwen, inlezen, controle, speelstijl, genereren, sparen). Op telefoonformaat nagelopen. Gemerged naar `main`.
 - Magic: The Gathering op branch `magic`: catalogus uit Scryfall (`npm run sync-magic`, 4,7 MB gecomprimeerd), decks per formaat (Standard t/m Vintage, Pauper, Commander).
+
+### 2026-10-28
+- One Piece op branch `one-piece`: catalogus uit Punk Records (de officiële kaartlijsten, Engels en Japans) via `npm run sync-one-piece`. Parallels (`_p1`) en herdrukken (`_r1`, bv. uit PRB-01) zijn eigen kaarten.
+- Prijzen uit de Cardmarket price guide (idGame 18). Cardmarket noemt de prints niet bij naam; per uitgave worden ze op productvolgorde gekoppeld, de gewone print aan het goedkoopste product. Welke uitgaven Japans zijn, staat in de sealed producten ("(Non-English)", "(Asia Region Legal)"). 947 kaarten zonder prijs, vooral promo's.
+- De officiële plaatjes mogen niet op een andere site getoond worden (Cross-Origin-Resource-Policy), dus ze lopen via images.weserv.nl. Engelse plaatjes hebben het watermerk "SAMPLE" van Bandai; een bron zonder watermerk is er niet.

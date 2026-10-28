@@ -175,6 +175,56 @@ body.cc-dark {
   --logo-case-shadow: #07081a;
 }
 
+/*
+ * One Piece: a pirate's sea chart. Navy for the accent and the casing, parchment for the pages, gold as the second
+ * accent and ship's-timber brown for lines and text. Dark: the sea at night.
+ */
+[data-game='one-piece'] body {
+  --bg: #efe3c4;
+  --surface: #f7efd9;
+  --soft: #e4d4ad;
+  --ink: #3a2618;
+  --muted: #7a6249;
+  --line: #3a2618;
+  --red: #1f3a5f;
+  --on-accent: #f7efd9;
+  --highlight: #d4a63a;
+  --page: #f5ead0;
+  --pocket: #e6d6b0;
+  --display: #f7efd9;
+  --display-edge: #d4a63a;
+  --display-muted: #8a5a2b;
+  --display-text: #3a2618;
+  --device: #1f3a5f;
+  --device-raised: #2a4a74;
+  --device-shell: #142a47;
+  --device-backdrop: #0b1a2e;
+  --device-text: #f7efd9;
+  --device-muted: #c7d1de;
+  --coal: #3a2618;
+  --paper: #f7efd9;
+  --logo-case: #1f3a5f;
+  --logo-background: #f7efd9;
+  --logo-shadow: #1a1c22;
+  --logo-case-shadow: #d4a63a;
+}
+[data-game='one-piece'] body.cc-dark {
+  --bg: #0f2036;
+  --surface: #142a47;
+  --soft: #1c3658;
+  --ink: #f2e8cf;
+  --muted: #b7b29f;
+  --line: #060f1c;
+  --page: #18304f;
+  --pocket: #11253d;
+  --display: #1c3658;
+  --display-text: #f2e8cf;
+  --display-muted: #d4a63a;
+  --logo-case: #d4a63a;
+  --logo-background: #142a47;
+  --logo-case-shadow: #060f1c;
+}
+
 /* inline: utilities reference the body-level tokens directly, so departments and dark mode swap them. */
 @theme inline {
   --color-bg: var(--bg);
@@ -770,4 +820,58 @@ body.cc-dark {
     padding-top: 16px;
     padding-bottom: 16px;
   }
+}
+
+/* One Piece decorations: a compass for the lens, a rope of gold dots for the grille, a sea chart with faint latitude
+   lines behind the home page, progress as a gold course line, and a parchment frame around the scanner. */
+[data-game='one-piece'] .cc-lens {
+  background:
+    conic-gradient(from 45deg, #d4a63a 0 25%, #f7efd9 0 50%, #d4a63a 0 75%, #f7efd9 0),
+    radial-gradient(circle, #f7efd9 0 60%, #8a5a2b 61%);
+  position: relative;
+}
+[data-game='one-piece'] .cc-lens::after {
+  content: '';
+  position: absolute;
+  inset: 18%;
+  background: #1f3a5f;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+}
+[data-game='one-piece'] .cc-grille {
+  background: radial-gradient(circle, var(--highlight) 0 2px, transparent 2.5px) 0 50% / 10px 10px repeat-x;
+}
+[data-game='one-piece'] .cc-home-bg {
+  background:
+    radial-gradient(30% 36% at 85% 18%, color-mix(in srgb, var(--highlight) 16%, transparent), transparent 70%),
+    radial-gradient(36% 40% at 12% 80%, color-mix(in srgb, var(--red) 10%, transparent), transparent 70%);
+  background-size: 140% 140%;
+}
+[data-game='one-piece'] .cc-home-bg::before {
+  background-image:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink) 60%, transparent) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--ink) 60%, transparent) 0 1px, transparent 1px 64px);
+  background-size: auto;
+  opacity: 0.06;
+}
+[data-game='one-piece'] .cc-home-bg i {
+  width: calc(var(--w, 72px) * 0.3);
+  border: 0;
+  border-radius: 0;
+  aspect-ratio: 1;
+  background: var(--highlight);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  opacity: 0.35;
+}
+[data-game='one-piece'] .cc-progress-fill {
+  background: linear-gradient(90deg, var(--red), var(--highlight));
+  border-radius: 2px;
+}
+[data-game='one-piece'] .cc-scan-guide::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border: 3px solid var(--highlight);
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #8a5a2b 60%, transparent);
+  pointer-events: none;
 }

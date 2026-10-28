@@ -15,6 +15,7 @@
     "sync-hashes": "node --no-warnings scripts/sync-hashes.mjs",
     "sync-lorcana": "node scripts/sync-lorcana.mjs",
     "sync-magic": "node scripts/sync-magic.mjs",
+    "sync-one-piece": "node scripts/sync-one-piece.mjs",
     "icons": "node scripts/make-icons.mjs"
   },
   "private": true,
