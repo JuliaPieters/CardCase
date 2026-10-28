@@ -41,5 +41,5 @@ export interface GameInfo {
   name: string;
   /** Ready to use; a department under construction stays out of onboarding and the switcher. */
   enabled: boolean;
-  logos: { mascot: string; favicon: string; favicon32: string; appleTouch: string };
+  logos: { mascot: string; favicon: string; favicon32: string };
 }

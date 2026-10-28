@@ -1356,9 +1356,9 @@ function sharp(cv) {
 }
 
 /** The parts of the state that are saved (core/persist): a change in one of them is saved. */
-const savedParts = st => [st.owned, st.added, st.binders, st.decks, st.dark, st.games, st.otherGames, st.summary, st.history];
+const savedParts = st => [st.owned, st.added, st.binders, st.decks, st.dark, st.appIcon, st.games, st.otherGames, st.summary, st.history];
 /** A user's data (core/persist UserData) as state. */
-const userParts = u => ({ owned: u.owned, added: u.added, binders: u.binders, decks: u.decks || [], dark: u.dark, games: u.games, otherGames: u.otherGames, summary: u.summary, history: u.history || {} });
+const userParts = u => ({ owned: u.owned, added: u.added, binders: u.binders, decks: u.decks || [], dark: u.dark, appIcon: u.appIcon, games: u.games, otherGames: u.otherGames, summary: u.summary, history: u.history || {} });
 
 /** Stories (franchises) of the catalog's cards with their number of cards, most first; empty for games without them. */
 let storyCache = { n: -1, first: null, list: [] };

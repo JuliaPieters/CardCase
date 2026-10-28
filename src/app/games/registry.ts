@@ -4,7 +4,6 @@ const logos = (dir: string) => ({
   mascot: `logos/${dir}/mascotte.svg`,
   favicon: `logos/${dir}/favicon.svg`,
   favicon32: `logos/${dir}/favicon-32.png`,
-  appleTouch: `logos/${dir}/apple-touch-180.png`,
 });
 
 /** All departments, in the order they are offered. */

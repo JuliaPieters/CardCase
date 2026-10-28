@@ -1,49 +1,88 @@
 #!/usr/bin/env node
-// Renders the home-screen app icons in public/icons/ from public/icons/app-icon.png: a 512px square with a red
-// rounded border (14px wide, ~113px corner radius) around a dark face, and white outside the corners.
+// Renders the home-screen app icons, one set per department that has artwork in design/app-icons/<game>/app-icon.png, into
+// public/icons/<game>/. The artwork is a 512px square in the style of the CardCase robot: a coloured rounded border
+// (~14px wide, ~113px corner radius; the face is cut out a little inside that) around a dark face, white outside the corners. Border and face colours are read
+// from the artwork itself.
 //  - icon-*.png (Android launchers, desktop install): the artwork as drawn, corners made transparent.
-//  - apple-touch-icon.png: corners filled red, so iOS's own rounding leaves the red border running all round.
+//  - apple-touch-icon.png: corners filled with the border colour, so iOS's own rounding leaves the border all round.
 //  - maskable-512.png: the face only on its dark background, shrunk into the central safe zone that Android's
 //    circle and squircle masks keep.
+//  - manifest.webmanifest: the app manifest with that department's icons; the app points <link rel="manifest"> at the
+//    one picked as app icon (games/chrome.ts). public/manifest.webmanifest is the Pokémon one, the default.
+// A new icon also goes in APP_ICONS in src/app/games/chrome.ts, so it can be picked.
 // It also packs public/icons/favicon.png into public/favicon.ico, for browsers that ask for /favicon.ico regardless.
-// The original logo artwork lives in design/.
 //
 // Usage: npm run icons
 
-import { writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 
-const DIR = new URL('../public/icons/', import.meta.url).pathname;
+const ROOT = new URL('../', import.meta.url).pathname;
+const PUBLIC = ROOT + 'public/';
+const GAMES = ['pokemon', 'lorcana', 'magic', 'one-piece'];
 const S = 512;
-const RED = '#E3350D';
-const DARK = '#1A1C22';
+
+const manifest = (iconDir) => ({
+  name: 'CardCase',
+  short_name: 'CardCase',
+  description: 'Verzamel, plan en deel je ruilkaarten.',
+  lang: 'nl',
+  start_url: '/',
+  scope: '/',
+  display: 'standalone',
+  orientation: 'portrait',
+  background_color: '#f7f3e8',
+  theme_color: '#e3350d',
+  icons: [
+    { src: iconDir + 'icon-192.png', sizes: '192x192', type: 'image/png' },
+    { src: iconDir + 'icon-512.png', sizes: '512x512', type: 'image/png' },
+    { src: iconDir + 'maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+  ],
+});
 
 const rounded = (inset, r) =>
   Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}">
     <rect x="${inset}" y="${inset}" width="${S - 2 * inset}" height="${S - 2 * inset}" rx="${r}" fill="#fff"/></svg>`);
-const clip = (inset, r) => sharp(DIR + 'app-icon.png').resize(S, S).composite([{ input: rounded(inset, r), blend: 'dest-in' }]).png().toBuffer();
 const square = (color) => sharp({ create: { width: S, height: S, channels: 4, background: color } });
 
-const art = await clip(0, 113);
-const face = await clip(14, 100);
-const onRed = await square(RED).composite([{ input: art }]).png().toBuffer();
-const shrunkFace = await sharp(face).resize(Math.round(S * 0.86)).toBuffer();
-const maskable = await square(DARK).composite([{ input: shrunkFace, gravity: 'center' }]).png().toBuffer();
+/** The colour at (x, y) of a raw RGBA buffer of S×S. */
+const pick = (raw, x, y) => {
+  const i = (y * S + x) * 4;
+  return { r: raw[i], g: raw[i + 1], b: raw[i + 2], alpha: 1 };
+};
 
-const icons = [
-  ['icon-192.png', art, 192],
-  ['icon-512.png', art, 512],
-  ['apple-touch-icon.png', onRed, 180],
-  ['maskable-512.png', maskable, 512],
-];
-for (const [name, img, size] of icons) {
-  await sharp(img).resize(size, size).png().toFile(DIR + name);
-  console.log('wrote public/icons/' + name);
+for (const game of GAMES) {
+  const src = `${ROOT}design/app-icons/${game}/app-icon.png`;
+  if (!existsSync(src)) continue;
+  const dir = `${PUBLIC}icons/${game}/`;
+  await mkdir(dir, { recursive: true });
+  const base = sharp(src).resize(S, S).ensureAlpha();
+  const raw = await base.clone().raw().toBuffer();
+  const border = pick(raw, 5, S / 2);
+  const dark = pick(raw, 30, S / 2);
+  const clip = (inset, r) => base.clone().composite([{ input: rounded(inset, r), blend: 'dest-in' }]).png().toBuffer();
+  const art = await clip(0, 113);
+  const face = await clip(18, 96);
+  const filled = await square(border).composite([{ input: art }]).png().toBuffer();
+  const shrunkFace = await sharp(face).resize(Math.round(S * 0.86)).toBuffer();
+  const maskable = await square(dark).composite([{ input: shrunkFace, gravity: 'center' }]).png().toBuffer();
+  const icons = [
+    ['icon-192.png', art, 192],
+    ['icon-512.png', art, 512],
+    ['apple-touch-icon.png', filled, 180],
+    ['maskable-512.png', maskable, 512],
+  ];
+  for (const [name, img, size] of icons) await sharp(img).resize(size, size).png().toFile(dir + name);
+  await writeFile(dir + 'manifest.webmanifest', JSON.stringify(manifest(''), null, 2) + '\n');
+  console.log(`wrote public/icons/${game}/`);
 }
+await writeFile(PUBLIC + 'manifest.webmanifest', JSON.stringify(manifest('icons/pokemon/'), null, 2) + '\n');
+console.log('wrote public/manifest.webmanifest');
 
 // An .ico may hold PNG images as-is: a 6-byte header, a 16-byte entry per image, then the PNG data.
 const sizes = [16, 32, 48];
-const pngs = await Promise.all(sizes.map((n) => sharp(DIR + 'favicon.png').resize(n, n).png().toBuffer()));
+const pngs = await Promise.all(sizes.map((n) => sharp(PUBLIC + 'icons/favicon.png').resize(n, n).png().toBuffer()));
 const header = Buffer.alloc(6 + 16 * sizes.length);
 header.writeUInt16LE(1, 2);
 header.writeUInt16LE(sizes.length, 4);
@@ -58,5 +97,5 @@ sizes.forEach((n, i) => {
   header.writeUInt32LE(offset, e + 12);
   offset += pngs[i].length;
 });
-await writeFile(new URL('../public/favicon.ico', import.meta.url), Buffer.concat([header, ...pngs]));
+await writeFile(PUBLIC + 'favicon.ico', Buffer.concat([header, ...pngs]));
 console.log('wrote public/favicon.ico');

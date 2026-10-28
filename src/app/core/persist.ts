@@ -30,6 +30,8 @@ export interface UserData {
   /** Decks of the active department, cards by catalog index (see core/decks). */
   decks: any[];
   dark: boolean;
+  /** The home-screen icon picked in the overview (a department's), or none: the icon follows the department. */
+  appIcon?: string;
   /** Departments the user collects, in their order; empty until they chose (onboarding). */
   games: string[];
   /** The saved form of every department except the active one. */
@@ -54,7 +56,7 @@ export interface GameSummary {
   value: number;
 }
 
-/** JSON-safe form: { v: 2, games, lastGame, dark, data: {game: SavedGame}, summary, history, savedAt, by? }. */
+/** JSON-safe form: { v: 2, games, lastGame, dark, appIcon?, data: {game: SavedGame}, summary, history, savedAt, by? }. */
 export type SavedUser = Record<string, any>;
 
 const zeros = () => Object.fromEntries(LANGS.map((l) => [l, 0]));
@@ -75,7 +77,7 @@ export function serializeUser(st: UserData): SavedUser {
   const games = [...(st.games || [])];
   if (!games.includes(GAME) && Object.keys(mine.owned).length) games.push(GAME);
   // JSON round trip drops `undefined`, which Firestore rejects.
-  return JSON.parse(JSON.stringify({ v: 2, games, lastGame: GAME, dark: !!st.dark, data, summary, history: st.history || {}, savedAt: Date.now() }));
+  return JSON.parse(JSON.stringify({ v: 2, games, lastGame: GAME, dark: !!st.dark, appIcon: st.appIcon, data, summary, history: st.history || {}, savedAt: Date.now() }));
 }
 
 function serializeGame(st: UserData): SavedGame {
@@ -189,7 +191,7 @@ export function deserializeUser(raw: SavedUser | null): UserData | null {
   // Departments with cards in them count as chosen, also when the list itself is missing or empty.
   const games = [...(u.games || [])];
   for (const [g, d] of Object.entries(u.data || {})) if (!games.includes(g) && Object.keys((d as SavedGame).owned || {}).length) games.push(g);
-  return { owned, added, binders: binders.length ? binders : [firstBinder()], decks, dark: !!u.dark, games, otherGames, summary: u.summary || {}, history: u.history || {} };
+  return { owned, added, binders: binders.length ? binders : [firstBinder()], decks, dark: !!u.dark, appIcon: u.appIcon, games, otherGames, summary: u.summary || {}, history: u.history || {} };
 }
 
 /** The Pokémon part of a saved user in version 1, for app versions from before departments. */

@@ -131,7 +131,8 @@ In de aanlevering heten de mappen `piraat`, `tovenaar` en `sprookje`. In de code
   - Pokémon: retrogroen `#9BBC0F`
   - Lorcana: inktblauw `#233A7A` met een gouden schaduw op een lichte achtergrond
 - **Schaduw:** hard en verschoven, zonder blur: 4px bij het headerlogo, 8px bij grote logo's.
-- **Favicon:** de actieve afdeling zet `link[rel=icon]` (SVG en 32px PNG) en `apple-touch-icon` op haar eigen bestanden. De PWA-iconen in het manifest blijven het algemene Cardcase-icoon, omdat een manifest niet per route kan wisselen.
+- **Favicon:** de actieve afdeling zet `link[rel=icon]` (SVG en 32px PNG) op haar eigen bestanden.
+- **App-icoon:** los van de afdeling; standaard de CardCase-robot (Pokémon). In je account (accountpaneel) kies je er een, dat zet `apple-touch-icon` en het manifest op `icons/<game>/`. Bronbestanden in `design/app-icons/<game>/app-icon.png`, gerenderd door `npm run icons`; een nieuw icoon ook in `APP_ICONS` (games/chrome.ts) zetten.
 - **Mascotte:** wordt gebruikt in de afdelingswisselaar (icoon), op de onboarding, bij lege staten en op de tegels van "Mijn Cardcase". Silhouet, pixelgezicht, ringen en omlijning zijn overal gelijk; alleen outfit, accessoires en kleuren verschillen.
 
 ### Aangeleverde kleurtokens

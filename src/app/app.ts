@@ -29,6 +29,7 @@ import { Sheets } from './screens/sheets';
 import { AuthPanel } from './screens/auth-panel';
 import { AuthService } from './core/auth';
 import { AppUpdate } from './core/app-update';
+import { applyAppIcon } from './games/chrome';
 
 @Component({
   selector: 'app-root',
@@ -91,6 +92,7 @@ export class App {
     this.store.init();
     if (inject(CatalogService).sourceKind() === 'mock') this.store.toast('TCGdex niet bereikbaar · voorbeelddata geladen');
     effect(() => document.body.classList.toggle('cc-dark', !!this.store.state.dark));
+    effect(() => applyAppIcon(this.store.state.appIcon));
     effect(() => {
       this.store.scrollTick();
       const el = this.main()?.nativeElement;

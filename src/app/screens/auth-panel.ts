@@ -4,6 +4,7 @@ import { FriendsService, USERNAME } from '../core/friends';
 import { lastAccount } from '../core/persist';
 import { CardcaseStore } from '../core/store';
 import { Leds } from '../shared/bits';
+import { AppIconPicker } from '../shared/app-icon-picker';
 import { Logo } from '../shared/logo';
 
 type Mode = 'login' | 'register' | 'reset' | 'account' | 'profile';
@@ -17,7 +18,7 @@ const GUEST_KEY = 'cc-guest';
 @Component({
   selector: 'cc-auth-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Leds, Logo],
+  imports: [Leds, Logo, AppIconPicker],
   template: `
     @let gate = welcome();
     @let mode = needsProfile() ? 'profile' : store.state.authPanel || (gate ? 'login' : null);
@@ -117,6 +118,7 @@ const GUEST_KEY = 'cc-guest';
                   <span class="icon text-[18px]">{{ syncIcon() }}</span>{{ syncText() }}
                 </div>
               </div>
+              <cc-app-icon-picker />
               <button (click)="setMode('profile')" class="btn justify-center"><span class="icon text-[19px]">badge</span>Naam wijzigen</button>
               <button (click)="logout()" [disabled]="busy()" class="btn justify-center"><span class="icon text-[19px]">logout</span>Uitloggen</button>
             } @else {
