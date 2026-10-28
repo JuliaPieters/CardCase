@@ -145,7 +145,7 @@ export function matchRows(
   const add = (r: Row, c: any, qty: number) => {
     const name = get(r, 'name');
     // Language: the column, or Japanese for Collectr's "Pokemon Japan"; one the card exists in.
-    const want = LANGS[key(get(r, 'lang'))] || (/japan|\(jp\)/.test(plain(get(r, 'game') + ' ' + name)) ? 'JA' : null);
+    const want = LANGS[key(get(r, 'lang'))] || (/\(jp\)|japan|\bjp\b/.test(plain(name + ' ' + get(r, 'game') + ' ' + get(r, 'setName'))) ? 'JA' : null);
     const lang = want && c.avail.includes(want) ? want : c.avail.includes('EN') && !want ? 'EN' : c.avail[0];
     res.hits.push({ id: c.id, lang, ver: versionOf(get(r, 'finish') + ' ' + name, versions(c), game), qty });
     const sn = plain(get(r, 'setName'));
@@ -166,12 +166,18 @@ export function matchRows(
     const name = get(r, 'name');
     const num = normNum(get(r, 'number'));
     const setName = get(r, 'setName');
+    // A Japanese card (Collectr: "Pokemon Japan", "Squirtle (JP)", "… Promo JP") only matches a Japanese one, also when
+    // an English card has the same name and number.
+    const japanese = /\(jp\)|japan|\bjp\b/.test(plain(name + ' ' + get(r, 'game') + ' ' + setName)) || LANGS[key(get(r, 'lang'))] === 'JA';
     let c = byScryfall.get(get(r, 'scryfallId').toLowerCase()) ?? (get(r, 'setCode') && num ? bySetNum.get(plain(get(r, 'setCode')) + '|' + num) : null);
     if (!c && name) {
-      const named = byName.get(normName(name)) || [];
+      const named = (byName.get(normName(name)) || []).filter((x) => !japanese || x.avail.includes('JA'));
       const w = words(setName + ' ' + get(r, 'setCode'));
       const score = (x: any) => [...words(x.setName + ' ' + x.set)].filter((y) => w.has(y)).length;
-      let cand = num ? named.filter((x) => normNum(x.localId ?? x.num) === num) : named;
+      // Same number, and in a set of the size the number says ("090/080"), when both are known.
+      const total = normNum(get(r, 'number').split('/')[1] || '');
+      const sized = (x: any) => !/^\d+$/.test(total) || !x.total || String(x.total) === total;
+      let cand = num ? named.filter((x) => normNum(x.localId ?? x.num) === num && sized(x)) : named;
       // Numbered differently in the other app: the card of that name in that set, if the set name says which.
       if (!cand.length && num) cand = named.filter((x) => score(x) > 0);
       if (cand.length > 1 && w.size) cand = [...cand].sort((a, b) => score(b) - score(a));
@@ -180,7 +186,6 @@ export function matchRows(
     // Named in English while the card is Japanese ("Mega Absol" · Mega Brave · 038/063): the card with that number in a
     // set of that size, showing that Pokémon. A trainer card only when one card has that number and set size.
     if (!c && num) {
-      const japanese = /\(jp\)|japan/.test(plain(name + ' ' + get(r, 'game') + ' ' + setName)) || LANGS[key(get(r, 'lang'))] === 'JA';
       const total = normNum(get(r, 'number').split('/')[1] || '');
       let pool = (byNum.get(num) || []).filter((x) => !total || !/^\d+$/.test(total) || !x.total || String(x.total) === total);
       if (japanese) pool = pool.filter((x) => x.avail.includes('JA'));
