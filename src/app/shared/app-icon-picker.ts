@@ -34,7 +34,7 @@ import type { Game } from '../games/types';
         }
       </div>
       <p class="m-0 text-[12px] font-bold text-muted text-pretty">
-        Geldt bij het installeren. Al geïnstalleerd? Verwijder de app en voeg hem opnieuw toe.
+        Geldt bij het installeren. Al geïnstalleerd? Verwijder de app en voeg hem opnieuw toe; je collectie blijft bewaard in je account.
       </p>
     </div>
   `,
