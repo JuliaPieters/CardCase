@@ -43,6 +43,26 @@ describe('import', () => {
     expect(r.other).toEqual({ lorcana: 2, magic: 1 });
   });
 
+  it('takes Collectr’s set code and Japanese rarities as signs of a Japanese card', () => {
+    const card = (id: number, set: string, setName: string, localId: string, names: any, avail: string[], total: number) => ({ id, set, setName, localId, num: +localId, names, avail, total, sp: 25 });
+    const cards = [
+      card(0, '30th', '30th Celebration', '023', { EN: 'Pikachu' }, ['EN'], 113),
+      card(1, 'JA-M6a', '30th CELEBRATION', '036', { JA: 'ピカチュウ' }, ['JA'], 103),
+      card(2, 'me01', 'Mega Evolution', '001', { EN: 'Bulbasaur' }, ['EN'], 132),
+      card(3, 'JA-SV11B', 'ブラックボルト', '088', { JA: 'ジャノビー' }, ['JA'], 174),
+      card(4, 'sv10.5b', 'Black Bolt', '088', { EN: 'Servine' }, ['EN'], 86),
+    ];
+    const csv = 'Category,Set,Product Name,Card Number,Rarity,Quantity\n' +
+      'Pokemon,M6a: 30th Celebration,Pikachu,036/103,,1\n' +
+      'Pokemon,Mega Brave,Bulbasaur,064/063,Art Rare,1\n' +
+      'Pokemon,Black Bolt,Servine,088/086,Art Rare,1';
+    const sp = (c: any) => ({ 0: 'Pikachu', 1: 'Pikachu', 2: 'Bulbasaur', 3: 'Servine', 4: 'Servine' } as any)[c.id];
+    const r = matchRows(parseFile(csv), cards, 'pokemon', () => [], sp);
+    expect(r.hits.map((h) => [h.id, h.lang])).toEqual([[1, 'JA'], [3, 'JA']]);
+    // Not "a Bulbasaur in a set with Mega in its name": there is no Japanese one numbered 064 here.
+    expect(r.missing.map((m) => m.name)).toEqual(['Bulbasaur']);
+  });
+
   it('finds the Pokémon version a row names', () => {
     const vers = [{ key: '', label: 'Holo' }, { key: 'holo_shadowless', label: '' }, { key: 'holo_shadowless_1st_edition', label: '' }];
     expect(versionOf('1st Edition Holofoil', vers, 'pokemon')).toBe('holo_shadowless_1st_edition');

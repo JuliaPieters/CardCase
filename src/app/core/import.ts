@@ -19,6 +19,7 @@ const COLUMNS: Record<string, string[]> = {
   lang: ['language', 'lang', 'taal'],
   finish: ['foil', 'finish', 'printing', 'variance', 'variant', 'version', 'treatment'],
   scryfallId: ['scryfallid'],
+  rarity: ['rarity'],
   game: ['category', 'game', 'tcg', 'productline'],
 };
 
@@ -165,11 +166,18 @@ export function matchRows(
     }
     const name = get(r, 'name');
     const num = normNum(get(r, 'number'));
-    const setName = get(r, 'setName');
-    // A Japanese card (Collectr: "Pokemon Japan", "Squirtle (JP)", "… Promo JP") only matches a Japanese one, also when
-    // an English card has the same name and number.
-    const japanese = /\(jp\)|japan|\bjp\b/.test(plain(name + ' ' + get(r, 'game') + ' ' + setName)) || LANGS[key(get(r, 'lang'))] === 'JA';
-    let c = byScryfall.get(get(r, 'scryfallId').toLowerCase()) ?? (get(r, 'setCode') && num ? bySetNum.get(plain(get(r, 'setCode')) + '|' + num) : null);
+    // Collectr puts the set's code before its name: "M6a: 30th Celebration", "SV08: Surging Sparks".
+    const prefix = /^([a-z0-9.-]+):\s*/i.exec(get(r, 'setName'))?.[1] || '';
+    const setName = get(r, 'setName').replace(/^[a-z0-9.-]+:\s*/i, '');
+    // A Japanese card only matches a Japanese one, also when an English card has the same name and number. Collectr
+    // marks them with "(JP)" now and then, "Pokemon Japan", "… Promo JP", or a rarity only Japanese sets have.
+    const japanese =
+      /\(jp\)|japan|\bjp\b/.test(plain(name + ' ' + get(r, 'game') + ' ' + setName)) ||
+      /\b(art rare|super rare|character rare|character super rare)\b/.test(plain(get(r, 'rarity'))) ||
+      LANGS[key(get(r, 'lang'))] === 'JA';
+    const code = get(r, 'setCode') || prefix;
+    const byCode = (cd: string) => (japanese ? ['ja-' + plain(cd), plain(cd)] : [plain(cd), 'ja-' + plain(cd)]).map((k) => bySetNum.get(k + '|' + num)).find(Boolean);
+    let c = byScryfall.get(get(r, 'scryfallId').toLowerCase()) ?? (code && num ? byCode(code) : null);
     if (!c && name) {
       const named = (byName.get(normName(name)) || []).filter((x) => !japanese || x.avail.includes('JA'));
       const w = words(setName + ' ' + get(r, 'setCode'));
@@ -178,8 +186,8 @@ export function matchRows(
       const total = normNum(get(r, 'number').split('/')[1] || '');
       const sized = (x: any) => !/^\d+$/.test(total) || !x.total || String(x.total) === total;
       let cand = num ? named.filter((x) => normNum(x.localId ?? x.num) === num && sized(x)) : named;
-      // Numbered differently in the other app: the card of that name in that set, if the set name says which.
-      if (!cand.length && num) cand = named.filter((x) => score(x) > 0);
+      // Numbered differently in the other app: the card of that name in the set of exactly that name.
+      if (!cand.length && num && setName) cand = named.filter((x) => normName(x.setName) === normName(setName));
       if (cand.length > 1 && w.size) cand = [...cand].sort((a, b) => score(b) - score(a));
       c = cand[0];
     }
@@ -187,11 +195,16 @@ export function matchRows(
     // set of that size, showing that Pokémon. A trainer card only when one card has that number and set size.
     if (!c && num) {
       const total = normNum(get(r, 'number').split('/')[1] || '');
-      let pool = (byNum.get(num) || []).filter((x) => !total || !/^\d+$/.test(total) || !x.total || String(x.total) === total);
-      if (japanese) pool = pool.filter((x) => x.avail.includes('JA'));
+      const all = (byNum.get(num) || []).filter((x) => !japanese || x.avail.includes('JA'));
+      const numeric = /^\d+$/.test(total);
+      const pool = all.filter((x) => !numeric || !x.total || String(x.total) === total);
       const n = normName(name).replace(/^(mega|dark|light|shining|radiant|alolan|galarian|hisuian|paldean) /, '').replace(/ (ex|gx|v|vmax|vstar|lv x|break|prime|star)$/, '');
-      const same = pool.filter((x) => { const sp = species(x); return sp && normName(sp) === n; });
-      const cand = same.length ? same : pool.filter((x) => !species(x));
+      const shows = (x: any) => { const sp = species(x); return !!sp && normName(sp) === n; };
+      let same = pool.filter(shows);
+      // Japanese sets are sometimes counted differently (Black Bolt: 086 printed, 174 in the database).
+      if (!same.length && japanese) same = all.filter(shows);
+      // A trainer or energy card: only when it is the one card with that number in a set of exactly that size.
+      const cand = same.length ? same : numeric ? all.filter((x) => !species(x) && String(x.total) === total) : [];
       if (same.length || cand.length === 1) {
         const w = words(setName);
         const score = (x: any) => [...words(x.setName + ' ' + x.set)].filter((y) => w.has(y)).length;
