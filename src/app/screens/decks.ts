@@ -269,10 +269,36 @@ export class DecksScreen {
                     <span class="w-6 text-center font-pixel text-[14px]">{{ l.n }}</span>
                     <button (click)="store.deckAdd(d.id, l.key, 1)" class="w-9 h-8 border-0 bg-transparent font-black">+</button>
                   </div>
+                  @if (d.sideMax) {
+                    <button (click)="store.deckMove(d.id, l.key, true)" title="Eén naar de sideboard" class="icon text-[20px] text-muted flex-none">move_down</button>
+                  }
                 </div>
               }
               }
             </div>
+
+            @if (d.sideMax) {
+              <div class="panel p-4 flex flex-col gap-2">
+                <div class="flex items-baseline justify-between gap-3">
+                  <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">Sideboard</h2>
+                  <span class="text-[13px] font-extrabold text-muted">{{ d.sideN }} / {{ d.sideMax }}{{ d.sideMax === 1 ? ' · alleen een companion' : '' }}</span>
+                </div>
+                @for (l of d.side; track l.key) {
+                  <div class="flex items-center gap-3 py-[5px] border-t-2 border-dashed border-soft">
+                    <button (click)="store.openDetail(l.key, null)" class="w-9 flex-none aspect-[63/88]" [title]="l.name"><cc-card [card]="l.cv" /></button>
+                    <span class="flex-1 min-w-0 font-bold text-[14px] truncate">{{ l.name }}</span>
+                    <div class="flex items-center border-2 border-line rounded-[9px] overflow-hidden bg-bg">
+                      <button (click)="store.sideAdd(d.id, l.key, -1)" class="w-9 h-8 border-0 bg-transparent font-black">−</button>
+                      <span class="w-6 text-center font-pixel text-[14px]">{{ l.n }}</span>
+                      <button (click)="store.sideAdd(d.id, l.key, 1)" class="w-9 h-8 border-0 bg-transparent font-black">+</button>
+                    </div>
+                    <button (click)="store.deckMove(d.id, l.key, false)" title="Eén terug naar het deck" class="icon text-[20px] text-muted flex-none">move_up</button>
+                  </div>
+                } @empty {
+                  <div class="text-[13px] font-bold text-muted">Verplaats kaarten hierheen met <span class="icon text-[16px] align-middle">move_down</span> in de lijst.</div>
+                }
+              </div>
+            }
 
             <div class="panel p-4 flex flex-col gap-3">
               <h2 class="m-0 font-pixel font-semibold text-[18px] leading-none">Kaart toevoegen</h2>
@@ -307,7 +333,7 @@ export class DecksScreen {
                   </div>
                 }
               </div>
-              <div class="text-[11px] font-extrabold text-muted text-center -mt-1">kosten in inkt</div>
+              <div class="text-[11px] font-extrabold text-muted text-center -mt-1">{{ d.curveLabel }}</div>
               @for (f of d.analysis.facts; track f.label) {
                 <div class="flex justify-between gap-3 text-[13px] border-t-2 border-dashed border-soft pt-2">
                   <span class="font-extrabold text-muted">{{ f.label }}</span><span class="font-bold text-right">{{ f.value }}</span>
@@ -348,11 +374,15 @@ export class DeckScreen {
     const deck: Deck | undefined = (st.decks || []).find((x: Deck) => x.id === st.deckId);
     if (!deck || !rules) return null;
     const lines = linesOf(deck);
-    const needs = deckNeeds(lines, rules.nameOf, st.owned);
+    const needs = deckNeeds([...lines, ...linesOf(deck, true)], rules.nameOf, st.owned);
     const short = new Map(needs.missing.map((m) => [m.card.id, m.n]));
     const a = rules.analyze(lines, deck);
     const mx = Math.max(...a.curve, 1);
     const withCommander = !!rules.hasCommander?.(deck.format);
+    const commander = deck.commander != null ? CARDS[deck.commander] : null;
+    const format = deck.format || rules.formats?.[0][0] || '';
+    const sideMax = rules.sideboardFor?.(format) || 0;
+    const side = linesOf(deck, true);
     return {
       id: deck.id,
       name: deck.name,
@@ -360,9 +390,13 @@ export class DeckScreen {
       target: rules.sizeFor?.(deck.format) ?? rules.size,
       problems: rules.problems(lines, deck),
       formats: rules.formats || null,
-      format: deck.format || rules.formats?.[0][0] || '',
+      format,
       withCommander,
-      lines: lines.map((l) => ({ key: l.card.id, n: l.n, name: l.card.names.EN, cost: l.card.cost ?? (l.card.cmc != null ? Math.floor(l.card.cmc) : '–'), color: TYPES[l.card.type]?.[1], short: short.get(l.card.id) || 0, cv: this.store.cv(l.card, LANGS[0], !tot(st.owned[l.card.id])), isCommander: deck.commander === l.card.id, canCommand: withCommander && !!rules.canCommand?.(l.card) })),
+      lines: lines.map((l) => ({ key: l.card.id, n: l.n, name: l.card.names.EN, cost: l.card.cost ?? (l.card.cmc != null ? Math.floor(l.card.cmc) : '–'), color: TYPES[l.card.type]?.[1], short: short.get(l.card.id) || 0, cv: this.store.cv(l.card, LANGS[0], !tot(st.owned[l.card.id])), isCommander: deck.commander === l.card.id || deck.partner === l.card.id, canCommand: withCommander && (!!rules.canCommand?.(l.card) || (!!commander && !!rules.canPartner?.(commander, l.card))) })),
+      sideMax,
+      curveLabel: rules.curveLabel,
+      side: side.map((l) => ({ key: l.card.id, n: l.n, name: l.card.names.EN, cv: this.store.cv(l.card, LANGS[0], !tot(st.owned[l.card.id])) })),
+      sideN: side.reduce((a, l) => a + l.n, 0),
       analysis: a,
       curve: a.curve.map((n, i) => ({ cost: i === 6 ? '7+' : String(i + 1), n, h: Math.round((n / mx) * 100) })),
       have: needs.have,
@@ -386,9 +420,21 @@ export class DeckScreen {
     if (d) this.store.updDeck(d.id, (x: Deck) => ({ ...x, format }));
   }
 
+  /**
+   * The crown: the first card becomes the commander; a card that can team up with it becomes the second (Partner,
+   * Background…); tapping a commander again takes it off.
+   */
   protected setCommander(cardId: number) {
     const d = this.model();
-    if (d) this.store.updDeck(d.id, (x: Deck) => ({ ...x, commander: x.commander === cardId ? null : cardId }));
+    const rules = this.catalog.config?.decks;
+    if (!d || !rules) return;
+    this.store.updDeck(d.id, (x: Deck) => {
+      if (x.commander === cardId) return { ...x, commander: x.partner ?? null, partner: null };
+      if (x.partner === cardId) return { ...x, partner: null };
+      const cmd = x.commander != null ? CARDS[x.commander] : null;
+      if (cmd && rules.canPartner?.(cmd, CARDS[cardId])) return { ...x, partner: cardId };
+      return { ...x, commander: cardId, partner: null };
+    });
   }
 
   protected rename(name: string) {

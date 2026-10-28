@@ -18,6 +18,10 @@ export interface Deck {
   format?: string;
   /** The commander (catalog index), in a format that has one. */
   commander?: number | null;
+  /** A second commander, when the two can team up (Magic: Partner, Background…). */
+  partner?: number | null;
+  /** Sideboard: cards by catalog index → copies (formats that have one). */
+  side?: Record<number, number>;
 }
 
 export interface DeckLine {
@@ -62,6 +66,12 @@ export interface DeckRules {
   hasCommander?(format?: string): boolean;
   /** Whether a card can lead the deck as its commander. */
   canCommand?(card: any): boolean;
+  /** Whether a card can be the second commander next to `commander`. */
+  canPartner?(commander: any, card: any): boolean;
+  /** What the cost under the curve is called ("kosten in inkt", "mana value"). */
+  curveLabel: string;
+  /** Most sideboard cards in a format (0: none). */
+  sideboardFor?(format?: string): number;
   /** The name copies are counted by (all printings of a card share it). */
   nameOf(card: any): string;
   /** What makes the deck not legal yet, as sentences; empty when it is. */
@@ -75,8 +85,8 @@ export interface DeckRules {
   generate(opts: GenerateOptions): DeckLine[] & { commander?: any };
 }
 
-export const linesOf = (deck: Deck): DeckLine[] =>
-  Object.entries(deck.cards)
+export const linesOf = (deck: Deck, side = false): DeckLine[] =>
+  Object.entries((side ? deck.side : deck.cards) || {})
     .map(([id, n]) => ({ card: CARDS[+id], n }))
     .filter((l) => l.card && l.n > 0)
     .sort((a, b) => (a.card.cost ?? 0) - (b.card.cost ?? 0) || a.card.names.EN.localeCompare(b.card.names.EN));

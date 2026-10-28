@@ -75,4 +75,12 @@ describe('Lorcana decks', () => {
     ]);
     expect(unknown).toEqual(['1 Mickey - Unknown']);
   });
+
+  it('flags cards that left Core, but not in Infinity', () => {
+    const lines = rules.generate({ types: ['amber'], ownedOnly: false, currentFormat: false, style: 'midrange', owned: () => 0, format: 'infinity' });
+    lines[0].card.core = false;
+    const d = (format: string) => ({ id: 'd', name: '', cards: {}, created: 0, format });
+    expect(rules.problems(lines, d('core')).some((x) => x.includes('Niet meer in Core'))).toBe(true);
+    expect(rules.problems(lines, d('infinity'))).toEqual([]);
+  });
 });

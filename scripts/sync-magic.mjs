@@ -6,12 +6,14 @@
 // strings (names, type lines, artists) in a table.
 //
 //   { v, generated, source, strings: [...], sets: [{ code, name, type, released }],
-//     cards: [[id (Scryfall id as base64url), name, set, number, rarity, colours, identity, cmc, type, eur, eurFoil, legal, finish, flags, artist, rank, manaCost, keywords]] }
+//     cards: [[id (Scryfall id as base64url), name, set, number, rarity, colours, identity, cmc, type, eur, eurFoil, legal, finish, flags, artist, rank, manaCost, keywords, restricted, maxCopies, partnerWith]] }
 //   - name, type, artist, manaCost: index in strings; keywords: indexes in strings
 //   - set: index in sets; rarity: c/u/r/m/s/b (special, bonus)
 //   - colours, identity: bit mask W=1 U=2 B=4 R=8 G=16
 //   - legal: bit mask in FORMATS order; finish: 1 regular, 2 foil, 4 etched
-//   - flags: 1 promo, 2 full art, 4 borderless, 8 extended art, 16 showcase, 32 basic land, 64 any number allowed in a deck
+//   - flags: 1 promo, 2 full art, 4 borderless, 8 extended art, 16 showcase, 32 basic land, 64 any number allowed in a deck,
+//     128 "can be your commander" (in its text)
+//   - restricted: bit mask in FORMATS order (at most one copy, Vintage); maxCopies: "up to seven cards named …", else 0
 //   - rank: EDHREC popularity (lower is more played), 0 when unknown
 import { createReadStream, existsSync } from 'node:fs';
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
@@ -26,6 +28,7 @@ const OUT = new URL('../public/catalogs/magic.json', import.meta.url);
 const CACHE = new URL('./cache/magic/', import.meta.url);
 export const FORMATS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper', 'commander'];
 const COLOURS = { W: 1, U: 2, B: 4, R: 8, G: 16 };
+const NUMBERS = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
 const RARITY = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 // Not cards for a deck or a binder of playable cards.
 const SKIP_SET_TYPES = new Set(['token', 'memorabilia', 'minigame', 'alchemy']);
@@ -79,7 +82,12 @@ for await (const line of createInterface({ input: createReadStream(file) })) {
     (fe.includes('extendedart') ? 8 : 0) |
     (fe.includes('showcase') ? 16 : 0) |
     (/^Basic( Snow)? Land/.test(typeLine) ? 32 : 0) |
-    (/A deck can have any number of cards named/.test(text) ? 64 : 0);
+    (/A deck can have any number of cards named/.test(text) ? 64 : 0) |
+    (/can be your commander/.test(text) ? 128 : 0);
+  // "A deck can have up to seven cards named Seven Dwarves."
+  const upTo = /A deck can have up to (\w+) cards named/.exec(text)?.[1];
+  const maxCopies = upTo ? (NUMBERS[upTo.toLowerCase()] ?? (parseInt(upTo, 10) || 0)) : 0;
+  const restricted = FORMATS.reduce((m, f, i) => m | (c.legalities?.[f] === 'restricted' ? 1 << i : 0), 0);
   cards.push([
     // The Scryfall id (for the image) as 22 characters of base64url instead of 36.
     Buffer.from(c.id.replace(/-/g, ''), 'hex').toString('base64url'),
@@ -100,6 +108,10 @@ for await (const line of createInterface({ input: createReadStream(file) })) {
     c.edhrec_rank || 0,
     s(c.mana_cost ?? face.mana_cost),
     (c.keywords || []).map(s),
+    restricted,
+    maxCopies,
+    // "Partner with Pir, Imaginative Rascal": the one card it may lead with.
+    s(/Partner with ([^\n(]+?)\s*(?:\(|\n|$)/.exec(text)?.[1]?.trim()),
   ]);
 }
 // Sets newest first in the file is not needed: the app sorts. Cards in set and number order help compression.

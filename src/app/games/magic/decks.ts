@@ -1,5 +1,7 @@
 import { CARDS, TYPES } from '../../core/data';
-import type { Deck, DeckAnalysis, DeckLine, DeckRules, GenerateOptions } from '../../core/decks';
+import { type Deck, type DeckAnalysis, type DeckLine, type DeckRules, type GenerateOptions, linesOf } from '../../core/decks';
+
+const linesOfSide = (deck: Deck) => linesOf(deck, true);
 
 /**
  * Magic's deck rules per format. Constructed formats: at least 60 cards, at most 4 of a card except basic lands (and
@@ -27,33 +29,75 @@ const copies = (lines: DeckLine[], f: (c: any) => boolean) => lines.reduce((a, l
 const colourName = (k: string) => TYPES[k]?.[0] || k;
 const unlimited = (c: any) => c.basicLand || c.anyNumber;
 
+/** How many copies of a card a deck may have in a format. */
+function limitOf(c: any, format: string): number {
+  if (c.basicLand || c.anyNumber) return Infinity;
+  if (c.maxCopies) return c.maxCopies;
+  if (c.restricted?.[format] || isCommanderFormat(format)) return 1;
+  return 4;
+}
+
+const kw = (c: any, k: string) => (c.keywords || []).some((x: string) => x.toLowerCase() === k.toLowerCase());
+const isBackground = (c: any) => /\bBackground\b/.test(c.typeLine);
+const canCommand = (c: any) => (/Legendary/.test(c.typeLine) && /Creature/.test(c.typeLine) && !isBackground(c)) || !!c.commanderText;
+
+/**
+ * Two commanders that may lead together: both with Partner, two that name each other (Partner with), both Friends
+ * forever, one that can choose a Background with a Background, or the Doctor with his companion.
+ */
+function canPartner(a: any, b: any): boolean {
+  if (!a || !b || a === b) return false;
+  // Plain Partner (not "Partner with …", which names its one partner).
+  if (kw(a, 'Partner') && kw(b, 'Partner') && !a.partnerWith && !b.partnerWith) return true;
+  if (a.partnerWith === nameOf(b) && b.partnerWith === nameOf(a)) return true;
+  if (kw(a, 'Friends forever') && kw(b, 'Friends forever')) return true;
+  if ((kw(a, 'Choose a background') && isBackground(b)) || (kw(b, 'Choose a background') && isBackground(a))) return true;
+  const doctor = (x: any) => /Time Lord Doctor/.test(x.typeLine);
+  if ((kw(a, "Doctor's companion") && doctor(b)) || (kw(b, "Doctor's companion") && doctor(a))) return true;
+  return false;
+}
+
 function problems(lines: DeckLine[], deck?: Deck): string[] {
   const out: string[] = [];
   const format = deck?.format || 'standard';
   const total = lines.reduce((a, l) => a + l.n, 0);
+  const side = deck ? linesOfSide(deck) : [];
+  const sideN = side.reduce((a, l) => a + l.n, 0);
   const commander = deck?.commander != null ? CARDS[deck.commander] : null;
+  const partner = deck?.partner != null ? CARDS[deck.partner] : null;
   if (isCommanderFormat(format)) {
-    if (total !== 100) out.push(`${total} kaarten: een Commander-deck heeft er precies 100, met de commander erbij.`);
+    if (total !== 100) out.push(`${total} kaarten: een Commander-deck heeft er precies 100, met de commander${partner ? 's' : ''} erbij.`);
     if (!commander) out.push('Kies een commander: tik op het kroontje bij een legendary creature.');
-    else if (!canCommand(commander)) out.push(`${nameOf(commander)} kan geen commander zijn: dat moet een legendary creature zijn.`);
-  } else if (total < 60) out.push(`Nog ${60 - total} kaarten nodig: een deck heeft er minimaal 60.`);
-  const limit = isCommanderFormat(format) ? 1 : 4;
+    else if (!canCommand(commander)) out.push(`${nameOf(commander)} kan geen commander zijn: dat moet een legendary creature zijn, of een kaart die zegt dat hij je commander kan zijn.`);
+    if (partner && !canPartner(commander, partner)) out.push(`${nameOf(commander)} en ${nameOf(partner)} kunnen niet samen commander zijn (dat kan met Partner, Friends forever, een Background of de Doctor's companion).`);
+    // Outside the 100 a Commander deck can only have its companion.
+    const extra = side.filter((l) => !kw(l.card, 'Companion'));
+    if (sideN > 1 || extra.length) out.push('Een Commander-deck heeft geen sideboard; alleen één companion mag erbuiten.');
+  } else {
+    if (total < 60) out.push(`Nog ${60 - total} kaarten nodig: een deck heeft er minimaal 60.`);
+    if (sideN > 15) out.push(`${sideN} kaarten in de sideboard: maximaal 15.`);
+  }
+  // Copies count over the deck and the sideboard together.
   const byName = new Map<string, { n: number; card: any }>();
-  for (const l of lines) {
+  for (const l of [...lines, ...side]) {
     const x = byName.get(nameOf(l.card)) || { n: 0, card: l.card };
     byName.set(nameOf(l.card), { n: x.n + l.n, card: l.card });
   }
-  for (const [name, { n, card }] of byName) if (n > limit && !unlimited(card)) out.push(`${n}× ${name}: maximaal ${limit} in ${formatName(format)}.`);
-  const illegal = lines.filter((l) => !l.card.legal?.[format]).map((l) => nameOf(l.card));
+  for (const [name, { n, card }] of byName) {
+    const limit = limitOf(card, format);
+    if (n > limit) out.push(`${n}× ${name}: maximaal ${limit}${card.restricted?.[format] ? ' (restricted)' : ''} in ${formatName(format)}.`);
+  }
+  const illegal = [...lines, ...side].filter((l) => !l.card.legal?.[format]).map((l) => nameOf(l.card));
   if (illegal.length) out.push(`Niet legaal in ${formatName(format)}: ${illegal.slice(0, 3).join(', ')}${illegal.length > 3 ? ` en ${illegal.length - 3} meer` : ''}.`);
   if (commander) {
-    const outside = lines.filter((l) => l.card.identity.some((c: string) => !commander.identity.includes(c))).map((l) => nameOf(l.card));
-    if (outside.length) out.push(`Buiten de kleuren van ${nameOf(commander)}: ${outside.slice(0, 3).join(', ')}${outside.length > 3 ? ` en ${outside.length - 3} meer` : ''}.`);
+    const identity = new Set([...commander.identity, ...(partner?.identity || [])]);
+    const outside = [...lines, ...side].filter((l) => l.card.identity.some((c: string) => !identity.has(c))).map((l) => nameOf(l.card));
+    if (outside.length) out.push(`Buiten de kleuren van de commander: ${outside.slice(0, 3).join(', ')}${outside.length > 3 ? ` en ${outside.length - 3} meer` : ''}.`);
   }
+  const companion = side.find((l) => kw(l.card, 'Companion'));
+  if (companion && !out.length) out.push(`Let op: de voorwaarde van companion ${nameOf(companion.card)} controleert Cardcase niet; kijk die zelf na.`);
   return out;
 }
-
-const canCommand = (c: any) => /Legendary/.test(c.typeLine) && (/Creature/.test(c.typeLine) || /can be your commander/i.test(c.typeLine));
 
 function analyze(lines: DeckLine[], deck?: Deck): DeckAnalysis {
   const total = lines.reduce((a, l) => a + l.n, 0) || 1;
@@ -125,7 +169,7 @@ function generate(o: GenerateOptions): DeckLine[] & { commander?: any } {
     const prev = byName.get(nameOf(c));
     if (!prev || (prev.variant !== 'regular' && c.variant === 'regular') || (prev.variant === c.variant && (c.trend ?? Infinity) < (prev.trend ?? Infinity))) byName.set(nameOf(c), c);
   }
-  const maxOf = (c: any) => (o.ownedOnly ? Math.min(commanderFormat ? 1 : 4, o.owned(c)) : commanderFormat ? 1 : 4);
+  const maxOf = (c: any) => Math.min(limitOf(c, format), commanderFormat ? 1 : 4, o.ownedOnly ? o.owned(c) : 4);
   const taken = new Map<any, number>();
   const take = (c: any, n: number) => {
     const k = Math.min(n, maxOf(c) - (taken.get(c) || 0));
@@ -146,7 +190,7 @@ function generate(o: GenerateOptions): DeckLine[] & { commander?: any } {
   const spells = [...byName.values()].filter((c) => !isLand(c) && c !== commander).sort((a, b) => quality(b) - quality(a));
   const spellTarget = sizeAll - landN;
   const creatureTarget = Math.round(((CREATURES[o.style] ?? CREATURES['midrange']) / 36) * spellTarget);
-  const per = commanderFormat ? 1 : 4;
+  const per = 4;
   let spellN = 0;
   const curve = CURVE[o.style] || CURVE['midrange'];
   // Creatures and other spells, each along the curve.
@@ -195,8 +239,11 @@ export const rules: DeckRules = {
   maxTypes: 5,
   formats: FORMATS,
   sizeFor: (f) => (isCommanderFormat(f) ? 100 : 60),
+  curveLabel: 'mana value',
   hasCommander: isCommanderFormat,
   canCommand,
+  canPartner,
+  sideboardFor: (f) => (isCommanderFormat(f) ? 1 : 15),
   nameOf,
   problems,
   analyze,

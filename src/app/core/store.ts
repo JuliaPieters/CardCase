@@ -353,6 +353,10 @@ export class CardcaseStore {
   updDeck(id, f) { this.setState(s => ({ decks: (s.decks || []).map(d => d.id === id ? f({ ...d, cards: { ...d.cards } }) : d) })); }
   /** One more or fewer copy of a card in a deck (none: off the list). */
   deckAdd(id, cardId, delta) { this.updDeck(id, d => { const n = Math.max(0, (d.cards[cardId] || 0) + delta); if (n) d.cards[cardId] = n; else delete d.cards[cardId]; return d; }); }
+  /** One copy from the main deck to the sideboard, or back. */
+  deckMove(id, cardId, toSide) { this.updDeck(id, d => { const from = toSide ? 'cards' : 'side', to = toSide ? 'side' : 'cards'; d.side = { ...(d.side || {}) }; d.cards = { ...d.cards }; if (!(d[from][cardId] > 0)) return d; d[from][cardId]--; if (!d[from][cardId]) delete d[from][cardId]; d[to][cardId] = (d[to][cardId] || 0) + 1; return d; }); }
+  /** One more or fewer copy in the sideboard. */
+  sideAdd(id, cardId, delta) { this.updDeck(id, d => { d.side = { ...(d.side || {}) }; const n = Math.max(0, (d.side[cardId] || 0) + delta); if (n) d.side[cardId] = n; else delete d.side[cardId]; return d; }); }
   deleteDeck(id) { this.setState(s => ({ decks: (s.decks || []).filter(d => d.id !== id) })); this.go('decks'); this.toast('Deck verwijderd'); }
   /** Opens another department (it loads its own catalog, so the app starts again there), adding it to yours. */
   switchGame(game) {

@@ -1,5 +1,5 @@
 import { CARDS, TYPES } from '../../core/data';
-import type { DeckAnalysis, DeckLine, DeckRules, GenerateOptions } from '../../core/decks';
+import type { Deck, DeckAnalysis, DeckLine, DeckRules, GenerateOptions } from '../../core/decks';
 
 /**
  * Lorcana's deck rules: at least 60 cards, at most 4 copies of a card (by its full name, all printings together), one
@@ -12,8 +12,13 @@ const inksOf = (lines: DeckLine[]) => [...new Set(lines.flatMap((l) => l.card.in
 const inkName = (i: string) => TYPES[i]?.[0] || i;
 const copies = (lines: DeckLine[], f: (c: any) => boolean) => lines.reduce((a, l) => a + (f(l.card) ? l.n : 0), 0);
 
-function problems(lines: DeckLine[]): string[] {
+function problems(lines: DeckLine[], deck?: Deck): string[] {
   const out: string[] = [];
+  // Core rotates: older sets leave it. Infinity allows every card.
+  if ((deck?.format || 'core') === 'core') {
+    const old = lines.filter((l) => !l.card.core).map((l) => nameOf(l.card));
+    if (old.length) out.push(`Niet meer in Core: ${old.slice(0, 3).join(', ')}${old.length > 3 ? ` en ${old.length - 3} meer` : ''}. Kies Infinity, of vervang ze.`);
+  }
   const total = lines.reduce((a, l) => a + l.n, 0);
   if (total < 60) out.push(`Nog ${60 - total} kaarten nodig: een deck heeft er minimaal 60.`);
   const byName = new Map<string, number>();
@@ -104,7 +109,7 @@ function generate(o: GenerateOptions): DeckLine[] {
   const byName = new Map<string, any>();
   for (const c of CARDS) {
     if (!c.inks.length || c.inks.some((i: string) => !o.types.includes(i))) continue;
-    if (o.currentFormat && !c.core) continue;
+    if ((o.format ? o.format === 'core' : o.currentFormat) && !c.core) continue;
     const prev = byName.get(nameOf(c));
     const better = !prev || (prev.variant !== 'regular' && c.variant === 'regular') || (prev.variant === c.variant && (c.trend ?? Infinity) < (prev.trend ?? Infinity));
     if (better) byName.set(nameOf(c), c);
@@ -154,6 +159,12 @@ export const rules: DeckRules = {
   size: 60,
   maxCopies: 4,
   maxTypes: 2,
+  formats: [
+    ['core', 'Core'],
+    ['infinity', 'Infinity'],
+  ],
+  sizeFor: () => 60,
+  curveLabel: 'kosten in inkt',
   nameOf,
   problems,
   analyze,

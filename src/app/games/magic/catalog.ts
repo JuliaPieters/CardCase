@@ -27,7 +27,7 @@ export function buildCatalog(raw: any, langs: string[]) {
   const sets = raw.sets.map((x: any) => ({ code: x.code, name: x.name, n: 0, year: x.released ? +x.released.slice(0, 4) : 0, released: x.released, kind: x.type, avail: langs }));
   const groups = new Map<string, number>();
   const cards = raw.cards.map((t: any[]) => {
-    const [b64, nameI, setI, num, rar, colourMask, identityMask, cmc, typeI, eur, eurFoil, legal, finish, flags, artistI, rank, costI, kws] = t;
+    const [b64, nameI, setI, num, rar, colourMask, identityMask, cmc, typeI, eur, eurFoil, legal, finish, flags, artistI, rank, costI, kws, restricted, maxCopies, partnerI] = t;
     const set = sets[setI];
     set.n++;
     const id = uuid(b64);
@@ -72,8 +72,16 @@ export function buildCatalog(raw: any, langs: string[]) {
       cmc,
       manaCost: str(costI) || '',
       legal: Object.fromEntries(FORMATS.map((f, i) => [f, !!(legal & (1 << i))])),
+      /** Formats where it is restricted: at most one copy (Vintage). */
+      restricted: Object.fromEntries(FORMATS.map((f, i) => [f, !!((restricted || 0) & (1 << i))])),
       basicLand: !!(flags & 32),
       anyNumber: !!(flags & 64),
+      /** "A deck can have up to seven cards named …": its own maximum (0: the format's). */
+      maxCopies: maxCopies || 0,
+      /** Its text says it can be your commander (some planeswalkers). */
+      commanderText: !!(flags & 128),
+      /** "Partner with …": the name of the one card it may lead with. */
+      partnerWith: partnerI != null && partnerI >= 0 ? str(partnerI) : null,
       keywords: (kws || []).map(str),
       rank: rank || null,
       foilTypes: [finish & 1 ? 'None' : null, finish & 2 ? 'Foil' : null, finish & 4 ? 'Etched' : null].filter(Boolean),
