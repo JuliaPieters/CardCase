@@ -611,8 +611,12 @@ export class CardcaseStore {
     const spHit = new Set<number>(); for (let d = 1; d <= 1025; d++) { const n = SP[d]?.name; if (n && (n.EN.toLowerCase().includes(ql) || n.DE.toLowerCase().includes(ql))) spHit.add(d); }
     // Some Japanese and many Chinese cards have no dex number: match those on the Pokémon's name in that script.
     const spNative = spHit.size > 30 ? [] : [...new Set([...spHit].flatMap(d => [SP[d].name.JA, SP[d].name.ZH]).filter(n => n && !/^[\x00-\x7f]*$/.test(n)))];
+    // Several words ("tiana warm and happy", "happy tiana"): each one somewhere in the name (with its version), the
+    // name on the card, the film or series, the set or the number.
+    const words = ql.split(/[^\p{L}\p{N}/]+/u).filter(Boolean);
+    const allWords = c => { const t = [c.numStr, c.setName, c.story, c.alias, ...langs.filter(l => c.avail.includes(l)).map(l => c.names[l])].filter(Boolean).join(' ').toLowerCase(); return words.every(w => t.includes(w)); };
     // Also the film or series a card is from (Lorcana).
-    return c => c.numStr.includes(ql) || (c.story && c.story.toLowerCase().includes(ql)) || (c.alias && c.alias.toLowerCase().includes(ql)) || spHit.has(c.sp) || (c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n))) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql));
+    return c => c.numStr.includes(ql) || (c.story && c.story.toLowerCase().includes(ql)) || (c.alias && c.alias.toLowerCase().includes(ql)) || spHit.has(c.sp) || (c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n))) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql)) || (words.length > 1 && allWords(c));
   }
   /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
   deleteBinder(id) {
