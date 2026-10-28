@@ -12,6 +12,7 @@ Wordt bijgewerkt na elke stap uit [implementatieplan.md](implementatieplan.md).
 | → merge `lorcana` naar `main` | | ✅ 27-10-2026 |
 | 4b · Magic | `magic` | 🟡 Catalogus (Scryfall, 97.781 prints), prijzen, thema, filters, recepten, kaartpagina, decks met formaten en Commander. Nog: scanner testen, telefoonformaat nalopen. |
 | 4c · One Piece | `one-piece` | 🟡 Catalogus (Punk Records, 5.340 kaarten EN/JA met parallels en herdrukken), Cardmarket-prijzen, thema, filters, recepten, kaartpagina, decks (leider + 50), decoratie, Collectr-import op kaartnummer, scanner op kaartnummer. Telefoonformaat nagelopen. Nog: scanner met camera testen. |
+| → merge `one-piece` naar `main` | | ✅ 28-10-2026 |
 
 ## Open punten Lorcana
 
