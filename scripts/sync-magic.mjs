@@ -7,7 +7,7 @@
 // strings (names, type lines, artists) in a table.
 //
 //   { v, generated, source, strings: [...], sets: [{ code, name, type, released }],
-//     cards: [[id (Scryfall id as base64url), name, set, number, rarity, colours, identity, cmc, type, eur, eurFoil, legal, finish, flags, artist, rank, manaCost, keywords, restricted, maxCopies, partnerWith, langs]] }
+//     cards: [[id (Scryfall id as base64url), name, set, number, rarity, colours, identity, cmc, type, eur, eurFoil, legal, finish, flags, artist, rank, manaCost, keywords, restricted, maxCopies, partnerWith, langs, flavorName]] }
 //   - name, type, artist, manaCost: index in strings; keywords: indexes in strings
 //   - set: index in sets; rarity: c/u/r/m/s/b (special, bonus)
 //   - colours, identity: bit mask W=1 U=2 B=4 R=8 G=16
@@ -17,6 +17,7 @@
 //   - restricted: bit mask in FORMATS order (at most one copy, Vintage); maxCopies: "up to seven cards named …", else 0
 //   - rank: EDHREC popularity (lower is more played), 0 when unknown
 //   - langs: bit mask in LANGS order of the other languages the print came out in (English always)
+//   - flavorName: index in strings of the name printed on the card when that differs (Avatar's "The Boy in the Iceberg" is Dark Depths)
 import { createReadStream, existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
@@ -57,9 +58,29 @@ async function printLanguages() {
   const cached = new URL(`langs-${all.updated_at.replace(/\D/g, '').slice(0, 12)}.json`, CACHE);
   if (existsSync(cached)) return new Map(Object.entries(JSON.parse(await readFile(cached, 'utf8'))));
   console.log(`[magic] talen per kaart ophalen uit All Cards van ${all.updated_at} (${Math.round(all.compressed_size / 1e6)} MB)`);
-  const res = await fetch(all.jsonl_download_uri, { headers: UA });
+  // The download sometimes breaks off: try again, and in the end keep the languages of the previous version.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await downloadLanguages(all.jsonl_download_uri, cached);
+    } catch (err) {
+      const prev = (await readdir(CACHE)).filter((f) => f.startsWith('langs-')).sort().pop();
+      if (attempt < 3) console.log(`[magic] download afgebroken (${err.message}), opnieuw…`);
+      else if (prev) {
+        console.log(`[magic] download lukt niet (${err.message}): de talen van ${prev} gebruikt`);
+        return new Map(Object.entries(JSON.parse(await readFile(new URL(prev, CACHE), 'utf8'))));
+      } else throw err;
+    }
+  }
+}
+
+async function downloadLanguages(url, cached) {
+  const res = await fetch(url, { headers: UA });
   const map = new Map();
-  const lines = createInterface({ input: Readable.fromWeb(res.body).pipe(createGunzip()) });
+  const src = Readable.fromWeb(res.body);
+  const gz = createGunzip();
+  // A broken-off download ends the loop below with an error instead of crashing the script.
+  src.on('error', (err) => gz.destroy(err));
+  const lines = createInterface({ input: src.pipe(gz) });
   for await (const line of lines) {
     // Only a few fields are needed: a regex is much faster than parsing ~2 GB of JSON.
     const lang = /"lang":"([a-z]+)"/.exec(line)?.[1];
@@ -146,6 +167,7 @@ for await (const line of createInterface({ input: createReadStream(file) })) {
     // "Partner with Pir, Imaginative Rascal": the one card it may lead with.
     s(/Partner with ([^\n(]+?)\s*(?:\(|\n|$)/.exec(text)?.[1]?.trim()),
     printLangs.get(c.set + '/' + c.collector_number) || 0,
+    s(c.flavor_name ?? face.flavor_name),
   ]);
 }
 // Sets newest first in the file is not needed: the app sorts. Cards in set and number order help compression.

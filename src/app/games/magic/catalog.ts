@@ -27,7 +27,7 @@ export function buildCatalog(raw: any, langs: string[]) {
   const sets = raw.sets.map((x: any) => ({ code: x.code, name: x.name, n: 0, year: x.released ? +x.released.slice(0, 4) : 0, released: x.released, kind: x.type, avail: [] as string[] }));
   const groups = new Map<string, number>();
   const cards = raw.cards.map((t: any[]) => {
-    const [b64, nameI, setI, num, rar, colourMask, identityMask, cmc, typeI, eur, eurFoil, legal, finish, flags, artistI, rank, costI, kws, restricted, maxCopies, partnerI, langMask] = t;
+    const [b64, nameI, setI, num, rar, colourMask, identityMask, cmc, typeI, eur, eurFoil, legal, finish, flags, artistI, rank, costI, kws, restricted, maxCopies, partnerI, langMask, flavorI] = t;
     const set = sets[setI];
     set.n++;
     const id = uuid(b64);
@@ -85,6 +85,8 @@ export function buildCatalog(raw: any, langs: string[]) {
       commanderText: !!(flags & 128),
       /** "Partner with …": the name of the one card it may lead with. */
       partnerWith: partnerI != null && partnerI >= 0 ? str(partnerI) : null,
+      /** The name printed on the card when it differs (Universes Beyond: "The Boy in the Iceberg" is Dark Depths), also found by search. */
+      alias: flavorI != null && flavorI >= 0 ? str(flavorI) : null,
       keywords: (kws || []).map(str),
       rank: rank || null,
       foilTypes: [finish & 1 ? 'None' : null, finish & 2 ? 'Foil' : null, finish & 4 ? 'Etched' : null].filter(Boolean),

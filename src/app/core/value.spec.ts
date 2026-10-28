@@ -30,3 +30,11 @@ describe('other versions (Pokémon)', () => {
     expect(ownedValue(card, o)).toBe(1 + 8 + 1);
   });
 });
+
+describe('price of a card with only today’s price', () => {
+  it('is that price on every day, not NaN (a Magic card before Scryfall’s prices arrive)', () => {
+    const card = { trend: 3, avg30: null };
+    expect(ownedValue(card, { EN: 2 })).toBe(6);
+    expect(ownedValue(card, { EN: 2 }, 7)).toBe(6);
+  });
+});

@@ -190,7 +190,8 @@ export class CardcaseStore {
     });
     // Today's value of this department in the history (the value charts), once the collection is known.
     effect(() => {
-      const st = this.state; const v = this.vals().totalValue; if (CATALOG_MOCK || !this.syncReadySig() || v == null) return;
+      const st = this.state; const v = this.vals().totalValue; // Not a number (a price missing): recording it would never match and run again and again.
+      if (CATALOG_MOCK || !this.syncReadySig() || !Number.isFinite(v)) return;
       const day = dayKey(0); const rounded = Math.round(v * 100) / 100;
       if (st.history?.[day]?.[GAME] === rounded) return;
       untracked(() => this.setState(s => ({ history: trimHistory({ ...(s.history || {}), [day]: { ...(s.history?.[day] || {}), [GAME]: rounded } }) })));
@@ -594,7 +595,7 @@ export class CardcaseStore {
   }
   /**
    * Whether a card matches a search (lowercase) in the given languages: its name or number, or the English or German
-   * name of its Pokémon, so "squirtle" also finds ゼニガメ without a Japanese keyboard.
+   * name of its Pokémon, so "squirtle" also finds ゼニガメ without a Japanese keyboard, or the name printed on it (Magic).
    */
   searchMatch(ql, langs) {
     if (!ql) return () => true;
@@ -602,7 +603,7 @@ export class CardcaseStore {
     // Some Japanese and many Chinese cards have no dex number: match those on the Pokémon's name in that script.
     const spNative = spHit.size > 30 ? [] : [...new Set([...spHit].flatMap(d => [SP[d].name.JA, SP[d].name.ZH]).filter(n => n && !/^[\x00-\x7f]*$/.test(n)))];
     // Also the film or series a card is from (Lorcana).
-    return c => c.numStr.includes(ql) || (c.story && c.story.toLowerCase().includes(ql)) || spHit.has(c.sp) || (c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n))) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql));
+    return c => c.numStr.includes(ql) || (c.story && c.story.toLowerCase().includes(ql)) || (c.alias && c.alias.toLowerCase().includes(ql)) || spHit.has(c.sp) || (c.sp > 1025 && spNative.some(n => c.names.JA.includes(n) || c.names.ZH.includes(n))) || langs.some(l => c.avail.includes(l) && c.names[l].toLowerCase().includes(ql));
   }
   /** Deletes a binder (the cards stay in the collection). The last one is replaced by an empty binder. */
   deleteBinder(id) {
@@ -935,7 +936,7 @@ export class CardcaseStore {
       goManual: () => this.go('create'), rcBackTiles: () => this.setState({ rcStep: 0 }), rcTitle: tile[1], rcCover: tile[4],
       rcSteps: steps.map((k, i) => ({ key: k, label: (i + 1) + ' · ' + STEPT[k][0].toUpperCase(), ...chip(i + 1 === step), select: () => this.setState({ rcStep: i + 1 }) })),
       rcStepLabel: 'STAP ' + step + ' / ' + steps.length, rcQ: STEPT[cur][1],
-      qRegion: cur === 'region', qLangs: cur === 'langs', qPer: cur === 'per', qPref: cur === 'pref', qSet: cur === 'set', qOrder: cur === 'order', qSpecies: cur === 'species', qIllus: cur === 'illus', qPtype: cur === 'ptype', qPages: cur === 'pages',
+      qRegion: cur === 'region', qLangs: cur === 'langs', qPer: cur === 'per', qPref: cur === 'pref', qSet: cur === 'set', qOrder: cur === 'order', qExtra: cur === 'extra', qSpecies: cur === 'species', qIllus: cur === 'illus', qPtype: cur === 'ptype', qPages: cur === 'pages',
       regionChips: REGIONS.map(([k, l, a, z]) => ({ key: k, label: l, sub: '#' + pad(a) + '–#' + pad(z), ...chip(!r.custom && r.region === k), select: () => setR({ region: k, custom: false, from: a, to: z }) })).concat([{ key: 'custom', label: 'Eigen bereik', sub: '#' + pad(r.from) + '–#' + pad(r.to), ...chip(r.custom), select: () => setR({ custom: true }) }]),
       // Languages: any, or one or more; the first chosen is the language the cards are shown in.
       rcLangChips: [{ key: 'any', label: 'Maakt niet uit', sub: 'ALLE TALEN', ...chip(!(r.langs || []).length), select: () => setR({ langs: [], lang: 'EN' }) }].concat(LANGS.map(l => { const ls = r.langs || []; const on = ls.includes(l); return { key: l, label: LNAME[l], sub: l, ...chip(on), select: () => { const next = on ? ls.filter(x => x !== l) : [...ls, l]; setR({ langs: next, lang: next[0] || 'EN' }); } }; })),
@@ -943,6 +944,8 @@ export class CardcaseStore {
       onRcFrom: e => setR({ from: Math.max(1, Math.min(1025, parseInt(e.target.value, 10) || 1)) }), onRcTo: e => setR({ to: Math.max(1, Math.min(1025, parseInt(e.target.value, 10) || 1)) }),
       toggleForms: () => setR({ forms: !r.forms }), formsTrack: r.forms ? 'var(--display)' : 'var(--soft)', formsKnob: r.forms ? '22px' : '2px',
       perOpts: [['one', 'Eén', 'Eén kaart per Pokémon, zoals een dex.', 'looks_one'], ['all', 'Alle versies', 'Elke kaart van elke Pokémon naast elkaar.', 'layers']].map(([k, l, d, icon]) => ({ key: k, label: l, desc: d, icon, ...choice(r.per === k), select: () => setR({ per: k }) })),
+      // Master set: every print of the set, or only the regular cards (no borderless, showcase, full art, illustration rares…).
+      extraOpts: [[true, 'Alles, ook speciale versies', 'Elke kaart van de set, ook borderless, showcase, full art en illustration rares.', 'auto_awesome'], [false, 'Alleen de gewone kaarten', 'Elke kaart één keer, zonder de speciale versies die vaak een duurdere variant van een gewone kaart zijn.', 'style']].map(([k, l, d, icon]) => ({ key: String(k), label: l, desc: d, icon, ...choice((r.special !== false) === k), select: () => setR({ special: k }) })),
       prefOpts: PREFS.map(([k, l, d, icon]) => ({ key: k, label: l, desc: d, icon, ...choice(r.pref === k), select: () => setR({ pref: k }) })),
       rcPrefIsSet: r.pref === 'set', rcPrefSet: r.prefSet, pickPrefSet: code => setR({ prefSet: code }),
       rcSet: r.set, pickRcSet: code => setR({ set: code }),

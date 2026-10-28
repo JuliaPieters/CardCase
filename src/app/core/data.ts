@@ -343,6 +343,8 @@ export const priceAt = (c, d) => {
     for (let i = 1; i < pts.length; i++) if (d <= pts[i][0]) { const [d0, p0] = pts[i - 1], [d1, p1] = pts[i]; return p0 + (p1 - p0) * (d - d0) / (d1 - d0); }
     return c.avg30;
   }
+  // A real card with only today's price (Magic until Scryfall's arrives): that one. The curve is for mock cards.
+  if (c.drift == null) return c.trend;
   return Math.max(0.02, c.trend * (1 - c.drift * Math.pow(d / 30, 0.6) + 0.05 * (Math.sin(d * 0.45 + c.id) - Math.sin(c.id))));
 };
 export const priceInfo = c => { const s = Array.from({ length: 30 }, (_, i) => priceAt(c, 29 - i)); const avg = n => s.slice(-n).reduce((a, b) => a + b, 0) / n; const p7 = priceAt(c, 7); return { trend: c.trend, low: c.low ?? Math.round(c.trend * 78) / 100, avg7: c.avg7 ?? avg(7), avg30: c.avg30 ?? avg(30), chg: p7 ? (c.trend - p7) / p7 * 100 : 0, series: s }; };
@@ -385,7 +387,7 @@ export const RECIPES: [string, string, string, string, string, string][] = [];
 export const RSTEPS: Record<string, string[]> = {};
 export const PREFS: [string, string, string, string][] = [];
 export const NOUN = { one: 'kaart', many: 'kaarten' };
-const BASE_STEPT = { region: ['Regio', 'Welke regio?'], per: ['Kaarten per ...', 'Hoeveel kaarten per ...?'], pref: ['Voorkeursversie', 'Welke versie heeft je voorkeur?'], set: ['Set', 'Welke set?'], order: ['Volgorde', 'In welke volgorde?'], species: ['...', 'Welke ...?'], illus: ['Illustrator', 'Welke illustrator?'], story: ['Verhaal', 'Uit welk verhaal?'], ptype: ['Type', 'Welk type?'], pages: ["Pagina's", "Hoeveel pagina's?"], langs: ['Taal', 'In welke talen?'] };
+const BASE_STEPT = { extra: ['Versies', 'Ook de speciale versies?'], region: ['Regio', 'Welke regio?'], per: ['Kaarten per ...', 'Hoeveel kaarten per ...?'], pref: ['Voorkeursversie', 'Welke versie heeft je voorkeur?'], set: ['Set', 'Welke set?'], order: ['Volgorde', 'In welke volgorde?'], species: ['...', 'Welke ...?'], illus: ['Illustrator', 'Welke illustrator?'], story: ['Verhaal', 'Uit welk verhaal?'], ptype: ['Type', 'Welk type?'], pages: ["Pagina's", "Hoeveel pagina's?"], langs: ['Taal', 'In welke talen?'] };
 export const STEPT: Record<string, string[]> = {};
 export const DEFRECIPE: any = { type: 'dex', region: 'kanto', custom: false, from: 1, to: 151, forms: true, per: 'one', pref: 'owned', prefSet: 'ART', lang: 'EN', langs: [], fmt: 9, sort: 'dex', buffer: 0, name: '', sp: 25, illus: 'Aiko Mori', ptype: 'fire', set: 'EMB', order: 'oldest', pages: 4 };
 Object.assign(PIX, {
@@ -431,7 +433,7 @@ export function recipeItems(r, owned) {
   } else if (r.type === 'illus') { const cs = CARDS.filter(c => c.illus === r.illus && inLang(c)); if (r.per === 'one') items = one(Array.from(new Set(cs.map(c => c.sp))), c => c.illus === r.illus); else items = cs.map(c => ({ sp: c.sp, card: c })); }
   else if (r.type === 'story') { const cs = CARDS.filter(c => c.story === r.story && inLang(c)); if (r.per === 'one') items = one(Array.from(new Set(cs.map(c => c.sp))), c => c.story === r.story); else items = cs.map(c => ({ sp: c.sp, card: c })); }
   else if (r.type === 'fullart') items = CARDS.filter(c => c.variant === 'fullart' && inLang(c)).map(c => ({ sp: c.sp, card: c }));
-  else if (r.type === 'master') items = (BYSET[r.set] || []).filter(c => r.special !== false || c.variant !== 'fullart').map(c => ({ sp: c.sp, card: c }));
+  else if (r.type === 'master') items = (BYSET[r.set] || []).filter(c => r.special !== false || (c.variant !== 'fullart' && c.variant !== 'illus')).map(c => ({ sp: c.sp, card: c }));
   else if (r.type === 'single') items = cardsOf(r.sp).map(c => ({ sp: c.sp, card: c }));
   const so = r.sort;
   if (r.type === 'master') items.sort((a, b) => r.order === 'type' ? (a.card.type.localeCompare(b.card.type) || a.card.num - b.card.num) : r.order === 'value' ? b.card.trend - a.card.trend : a.card.num - b.card.num);

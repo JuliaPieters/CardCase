@@ -77,6 +77,7 @@ export const config: GameConfig = {
   versions: (c) => (!c.foilOnly && c.foilTypes.length > 1 ? FOIL_VERSIONS : []),
   cardNumber: (c) => c.set.toUpperCase() + ' ' + c.numStr,
   cardFacts: (c) => [
+    ...(c.alias ? [{ label: 'Naam op de kaart', value: c.alias }] : []),
     { label: 'Manakosten', value: c.manaCost || '–' },
     { label: 'Mana value', value: String(c.cmc) },
     { label: 'Type', value: c.typeLine },

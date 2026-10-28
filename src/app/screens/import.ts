@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { CARDS, GAME } from '../core/data';
+import { CARDS, GAME, SP } from '../core/data';
 import { type ImportResult, matchRows, parseFile } from '../core/import';
 import { CardcaseStore } from '../core/store';
 import { gameInfo } from '../games/registry';
@@ -106,10 +106,12 @@ export class ImportSheet {
       const rows = parseFile(await file.text());
       if (!rows.length) throw new Error('Er staan geen kaarten in dit bestand.');
       const vers = (c: any) => this.store.vers(c);
+      // Pokémon: the English name of the species, to find Japanese cards that the other app names in English.
+      const species = (c: any) => (GAME === 'pokemon' && c.sp <= 1025 ? SP[c.sp]?.name?.EN ?? null : null);
       // Match once to know the cards, fetch their prices (for Pokémon also which versions they have), then match again.
-      const first = matchRows(rows, CARDS, GAME as Game, vers);
+      const first = matchRows(rows, CARDS, GAME as Game, vers, species);
       await this.store.pricesFor([...new Set(first.hits.map((h) => h.id))]);
-      this.result.set(matchRows(rows, CARDS, GAME as Game, vers));
+      this.result.set(matchRows(rows, CARDS, GAME as Game, vers, species));
     } catch (err: any) {
       this.error.set(err?.message?.startsWith('Er ') ? err.message : 'Dit bestand kon ik niet lezen. Is het een CSV- of JSON-export?');
     } finally {

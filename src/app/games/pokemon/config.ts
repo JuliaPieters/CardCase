@@ -114,7 +114,7 @@ export const config: GameConfig = {
   ],
   recipeSteps: {
     dex: ['region', 'langs', 'per', 'pref'],
-    master: ['set', 'order'],
+    master: ['set', 'extra', 'order'],
     single: ['species', 'langs', 'order'],
     illus: ['illus', 'langs', 'per', 'pref'],
     type: ['ptype', 'langs', 'per', 'pref'],

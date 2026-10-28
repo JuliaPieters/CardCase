@@ -37,8 +37,9 @@ const key = (s: string) => plain(s).replace(/[^a-z0-9]/g, '');
 /** A card name to compare: no accents, punctuation or dashes ("Elsa – Snow Queen" = "Elsa - Snow Queen"). */
 export const normName = (s: string) =>
   plain(s)
-    .replace(/\s+-\s+[a-z]*\d+[a-z]*\/[a-z]*\d+[a-z]*$/, '') // TCGplayer's "Charizard ex - 199/165"
     .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+    .trim()
+    .replace(/\s+-\s+[a-z-]*\d+[a-z]*(\/[a-z0-9-]+)?$/, '') // TCGplayer's "Charizard ex - 199/165", "Chespin - 058"
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 /** A card number to compare: the part before "/", no leading zeros ("025/165" = "25"). */
@@ -112,7 +113,14 @@ export interface ImportResult {
  * Matches rows to cards. `versions(card)` lists a card's versions (games/config.ts) to find the one a row names
  * ("Reverse Holofoil", "foil"); a Pokémon card whose versions aren't known yet gets the key they would have.
  */
-export function matchRows(rows: Row[], cards: any[], game: Game, versions: (c: any) => { key: string; label: string }[]): ImportResult {
+export function matchRows(
+  rows: Row[],
+  cards: any[],
+  game: Game,
+  versions: (c: any) => { key: string; label: string }[],
+  /** English name of what a card shows (Pokémon: its species), for cards named in another script (Japanese). */
+  species: (c: any) => string | null = () => null,
+): ImportResult {
   const col = columns(rows);
   const get = (r: Row, f: string) => (col[f] ? r[col[f]!] || '' : '');
   const byName = new Map<string, any[]>();
@@ -124,7 +132,29 @@ export function matchRows(rows: Row[], cards: any[], game: Game, versions: (c: a
     bySetNum.set(plain(c.set) + '|' + normNum(c.localId ?? c.num), c);
     if (c.scryfallId) byScryfall.set(c.scryfallId, c);
   }
+  // By number, for the fallback below.
+  const byNum = new Map<string, any[]>();
+  for (const c of cards) {
+    const k = normNum(c.localId ?? c.num);
+    byNum.set(k, [...(byNum.get(k) || []), c]);
+  }
   const res: ImportResult = { hits: [], missing: [], other: {} };
+  // The sets the other app's set names turned out to be, from the rows found ("Mega Brave" → JA-M1L).
+  const learned = new Map<string, Map<string, number>>();
+  const later: Row[] = [];
+  const add = (r: Row, c: any, qty: number) => {
+    const name = get(r, 'name');
+    // Language: the column, or Japanese for Collectr's "Pokemon Japan"; one the card exists in.
+    const want = LANGS[key(get(r, 'lang'))] || (/japan|\(jp\)/.test(plain(get(r, 'game') + ' ' + name)) ? 'JA' : null);
+    const lang = want && c.avail.includes(want) ? want : c.avail.includes('EN') && !want ? 'EN' : c.avail[0];
+    res.hits.push({ id: c.id, lang, ver: versionOf(get(r, 'finish') + ' ' + name, versions(c), game), qty });
+    const sn = plain(get(r, 'setName'));
+    if (sn) {
+      const m = learned.get(sn) || new Map<string, number>();
+      m.set(c.set, (m.get(c.set) || 0) + 1);
+      learned.set(sn, m);
+    }
+  };
   for (const r of rows) {
     const g = rowGame(get(r, 'game')) ?? (col['scryfallId'] ? 'magic' : game);
     const qty = Math.max(0, parseInt(get(r, 'qty'), 10) || (col['qty'] ? 0 : 1));
@@ -147,14 +177,33 @@ export function matchRows(rows: Row[], cards: any[], game: Game, versions: (c: a
       if (cand.length > 1 && w.size) cand = [...cand].sort((a, b) => score(b) - score(a));
       c = cand[0];
     }
-    if (!c) {
-      res.missing.push({ name: name || '(geen naam)', set: setName || get(r, 'setCode'), number: get(r, 'number'), qty });
-      continue;
+    // Named in English while the card is Japanese ("Mega Absol" · Mega Brave · 038/063): the card with that number in a
+    // set of that size, showing that Pokémon. A trainer card only when one card has that number and set size.
+    if (!c && num) {
+      const japanese = /\(jp\)|japan/.test(plain(name + ' ' + get(r, 'game') + ' ' + setName)) || LANGS[key(get(r, 'lang'))] === 'JA';
+      const total = normNum(get(r, 'number').split('/')[1] || '');
+      let pool = (byNum.get(num) || []).filter((x) => !total || !/^\d+$/.test(total) || !x.total || String(x.total) === total);
+      if (japanese) pool = pool.filter((x) => x.avail.includes('JA'));
+      const n = normName(name).replace(/^(mega|dark|light|shining|radiant|alolan|galarian|hisuian|paldean) /, '').replace(/ (ex|gx|v|vmax|vstar|lv x|break|prime|star)$/, '');
+      const same = pool.filter((x) => { const sp = species(x); return sp && normName(sp) === n; });
+      const cand = same.length ? same : pool.filter((x) => !species(x));
+      if (same.length || cand.length === 1) {
+        const w = words(setName);
+        const score = (x: any) => [...words(x.setName + ' ' + x.set)].filter((y) => w.has(y)).length;
+        c = [...cand].sort((a, b) => score(b) - score(a))[0];
+      }
     }
-    // Language: the column, or Japanese for Collectr's "Pokemon Japan"; one the card exists in.
-    const want = LANGS[key(get(r, 'lang'))] || (key(get(r, 'game')).includes('japan') ? 'JA' : null);
-    const lang = want && c.avail.includes(want) ? want : c.avail.includes('EN') && !want ? 'EN' : c.avail[0];
-    res.hits.push({ id: c.id, lang, ver: versionOf(get(r, 'finish') + ' ' + name, versions(c), game), qty });
+    if (c) add(r, c, qty);
+    else later.push(r);
+  }
+  // Not found: the card with that number in the set other rows of that set name were found in (trainer cards of a
+  // Japanese set named in English).
+  for (const r of later) {
+    const qty = Math.max(0, parseInt(get(r, 'qty'), 10) || (col['qty'] ? 0 : 1));
+    const votes = [...(learned.get(plain(get(r, 'setName'))) || new Map()).entries()].sort((a, b) => b[1] - a[1]);
+    const c = votes.length ? bySetNum.get(plain(votes[0][0]) + '|' + normNum(get(r, 'number'))) : null;
+    if (c) add(r, c, qty);
+    else res.missing.push({ name: get(r, 'name') || '(geen naam)', set: get(r, 'setName') || get(r, 'setCode'), number: get(r, 'number'), qty });
   }
   return res;
 }

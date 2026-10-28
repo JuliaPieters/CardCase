@@ -149,6 +149,13 @@ import { Pix } from '../shared/bits';
                     }
                   </div>
                 }
+                @if (s.qExtra) {
+                  <div class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-[10px]">
+                    @for (k of s.extraOpts; track k.key) {
+                      <ng-container *ngTemplateOutlet="choice; context: { $implicit: k }" />
+                    }
+                  </div>
+                }
                 @if (s.qPref) {
                   <div class="flex flex-col gap-[10px]">
                     <div class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-[10px]">
