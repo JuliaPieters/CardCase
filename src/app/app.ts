@@ -22,6 +22,7 @@ import { CropScreen } from './screens/crop';
 import { PrintScreen } from './screens/print';
 import { FriendsScreen } from './screens/friends';
 import { ShareSheet } from './screens/share';
+import { ImportSheet } from './screens/import';
 import { ScanOverlay } from './screens/scan';
 import { ViewerOverlay } from './screens/viewer';
 import { PageScanOverlay } from './screens/page-scan';
@@ -58,6 +59,7 @@ import { applyAppIcon } from './games/chrome';
     PrintScreen,
     FriendsScreen,
     ShareSheet,
+    ImportSheet,
     ScanOverlay,
     ViewerOverlay,
     PageScanOverlay,

@@ -127,7 +127,7 @@ export class CardcaseStore {
     create: { name: 'Nieuwe binder', cover: '#3E6FB0', fmt: 9, kind: 'set', sets: SETS.filter(s => !s.cat).slice(0, 2).map(s => s.code), sort: 'set', newPage: true, buffer: 1, types: Object.keys(TYPES).slice(0, 2), langs: [], rars: [], minVal: 0, ownedOnly: true, group: 'none', freePages: 4 },
     shiftMode: 'buffer', job: null, done: {}, tip: false, showPrice: false, fSort: '', valRange: 'month',
     rc: Object.assign({}, DEFRECIPE), rcStep: 0, rcMore: false, rcText: '', rcSpQ: '', verSheet: null, delAsk: null, sideTab: 'need', needSort: 'binder', newSheet: false, searchLimit: 60, collLimit: 60, sameLimit: 20,
-    foreign: null, foreignBack: null, shareB: null, friendId: null,
+    foreign: null, foreignBack: null, shareB: null, importOpen: false, importUndo: null, friendId: null,
     edMode: 'cards', decoTab: 'images', toolTab: 'cards', edMenu: false, decoSize: '2x2', decoSel: null, decoPage: 0, decoOver: null, crop: null, share: false, paper: 'A4', bleed: true, stkText: '', bgBoth: false, uploads: [], ps: { binderId: u.binders[0].id, pages: [0, 1], i: 0, phase: 'align', done: 0 }, psRes: {}, fixes: {}, fix: null,
   }; }
   seq = 0; pd: any = null; dragPayload: any = null; tt: any; ft: any; t1: any;
@@ -428,6 +428,22 @@ export class CardcaseStore {
   setOwn(id, l, delta) { this.setState(s => { const o = s.owned[id]; const n = Math.max(0, (o[l] || 0) + delta); const vs = Object.fromEntries(verKeys(o).map(k => [k, { ...o[k], [l]: Math.min(o[k][l] || 0, n) }])); return { owned: { ...s.owned, [id]: { ...o, [l]: n, ...vs } }, added: delta > 0 ? { ...s.added, [id]: Date.now() } : s.added }; }); }
   /** One more or fewer copy of version `k` (foil, reverse holo…) in language `l`: the total changes with it, the plain copies stay. */
   addVer(id, l, k, delta) { this.setState(s => { const o = s.owned[id]; const f = Math.max(0, verOf(o, l, k) + delta); const d = f - verOf(o, l, k); return { owned: { ...s.owned, [id]: { ...o, [l]: (o[l] || 0) + d, [k]: { ...(o[k] || {}), [l]: f } } }, added: d > 0 ? { ...s.added, [id]: Date.now() } : s.added }; }); }
+  /** Adds the copies of an imported collection (core/import.ts); the collection as it was is kept to undo it. */
+  applyImport(hits: { id: number; lang: string; ver: string; qty: number }[]) {
+    this.setState(s => {
+      const owned = { ...s.owned }; const added = { ...s.added }; const now = Date.now();
+      for (const h of hits) {
+        const o = { ...owned[h.id] }; const before = h.ver ? verOf(o, h.lang, h.ver) : 0;
+        o[h.lang] = (o[h.lang] || 0) + h.qty;
+        if (h.ver) o[h.ver] = { ...(o[h.ver] || {}), [h.lang]: before + h.qty };
+        owned[h.id] = o; added[h.id] = now;
+      }
+      return { owned, added, importUndo: { owned: s.owned, added: s.added } };
+    });
+  }
+  undoImport() { const u = this.state.importUndo; if (u) this.setState({ owned: u.owned, added: u.added, importUndo: null }); }
+  /** Prices (and with them the versions of Pokémon cards) for these cards, fetched now when missing. */
+  pricesFor(ids: number[]) { return this.catalog.ensurePrices(ids); }
   /** The versions of a card (games/config.ts), the plain one first; empty when it has only one. */
   vers(c): { key: string; label: string }[] { return (c && this.catalog.config?.versions?.(c)) || []; }
 

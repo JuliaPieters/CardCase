@@ -76,9 +76,9 @@ export class CatalogService {
     return '';
   }
 
-  /** Makes sure the given cards (by catalog index) have a fresh price; fetches the missing ones in the background. */
-  ensurePrices(ids: Iterable<number>) {
-    if (this.sourceKind() !== 'catalog' || !this.source) return;
+  /** Makes sure the given cards (by catalog index) have a fresh price; fetches the missing ones in the background (done when it resolves). */
+  ensurePrices(ids: Iterable<number>): Promise<void> {
+    if (this.sourceKind() !== 'catalog' || !this.source) return Promise.resolve();
     const now = Date.now();
     const todo = [];
     for (const id of ids) {
@@ -89,7 +89,7 @@ export class CatalogService {
       this.inFlight.add(c.key);
       todo.push(c);
     }
-    if (todo.length) void this.fetchPrices(this.source, todo);
+    return todo.length ? this.fetchPrices(this.source, todo) : Promise.resolve();
   }
 
   private async fetchPrices(source: CardSource, cards: any[]) {

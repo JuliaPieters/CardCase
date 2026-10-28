@@ -15,7 +15,10 @@ import { Switch } from '../shared/bits';
       <div class="flex items-baseline gap-3 flex-wrap">
         <h1 class="m-0 font-pixel font-semibold text-[30px] leading-[1.1]">Collectie</h1>
         <span class="font-extrabold text-muted">{{ s.collCount }}</span>
-        <button (click)="s.goValue()" class="tap ml-auto flex items-center gap-[6px] bg-transparent border-0 text-red font-black text-[14px]">
+        <button (click)="store.setState({ importOpen: true })" class="tap ml-auto flex items-center gap-[6px] bg-transparent border-0 text-ink font-black text-[14px]">
+          <span class="icon text-[19px]">upload_file</span>Importeren
+        </button>
+        <button (click)="s.goValue()" class="tap flex items-center gap-[6px] bg-transparent border-0 text-red font-black text-[14px]">
           <span class="icon text-[19px]">payments</span>Collectiewaarde →
         </button>
       </div>
