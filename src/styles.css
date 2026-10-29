@@ -34,6 +34,7 @@ html {
  *   --device, --device-raised, --device-shell, --device-backdrop, --device-text, --device-muted   the casing around it
  *   --coal                        dark outlines on light parts      --paper             light surfaces on the casing
  *   --page, --pocket              binder page and pockets           --logo-card, --logo-case   the two words of the logo
+ *   --selected, --on-selected     a chosen chip or option (Pokémon: the LCD green; where the screen is paper: gold)
  *   --font-display-family         titles, labels and numbers
  */
 body {
@@ -66,6 +67,8 @@ body {
   --logo-shadow: #0b0c10;
   --logo-case-shadow: #0b0c10;
   --font-display-family: 'Pixelify Sans';
+  --selected: var(--display);
+  --on-selected: var(--display-text);
 }
 body.cc-dark {
   --bg: #1a1c22;
@@ -83,6 +86,8 @@ body.cc-dark {
  * (a book page with a gold edge), gold as the second accent. Dark: deep ink blue.
  */
 [data-game='lorcana'] body {
+  --selected: var(--highlight);
+  --on-selected: #172757;
   --bg: #f6f1e4;
   --surface: #fffdf7;
   --soft: #ece4cf;
@@ -180,6 +185,8 @@ body.cc-dark {
  * accent and ship's-timber brown for lines and text. Dark: the sea at night.
  */
 [data-game='one-piece'] body {
+  --selected: var(--highlight);
+  --on-selected: #3a2618;
   --bg: #efe3c4;
   --surface: #f7efd9;
   --soft: #e4d4ad;
@@ -658,14 +665,19 @@ body.cc-dark {
   opacity: 0.08;
 }
 /* The floating card outlines become small gold stars. */
+/* The floating card outlines become hexagons, the ink-cost symbol of Lorcana cards: gold and ink blue in turn. */
 [data-game='lorcana'] .cc-home-bg i {
-  width: calc(var(--w, 72px) * 0.32);
+  width: calc(var(--w, 72px) * 0.45);
   border: 0;
   border-radius: 0;
-  aspect-ratio: 1;
+  aspect-ratio: 1 / 1.1;
   background: var(--highlight);
-  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   opacity: 0.35;
+}
+[data-game='lorcana'] .cc-home-bg i:nth-child(even) {
+  background: var(--red);
+  opacity: 0.18;
 }
 [data-game='lorcana'] .cc-progress-fill {
   position: relative;
@@ -853,14 +865,22 @@ body.cc-dark {
   background-size: auto;
   opacity: 0.06;
 }
+/* The floating card outlines become ships' wheels (gold) and anchors (navy), in turn. */
 [data-game='one-piece'] .cc-home-bg i {
-  width: calc(var(--w, 72px) * 0.3);
+  width: calc(var(--w, 72px) * 0.6);
   border: 0;
   border-radius: 0;
   aspect-ratio: 1;
   background: var(--highlight);
-  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
-  opacity: 0.35;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%23000' stroke-linecap='round' fill='none'%3E%3Ccircle cx='50' cy='50' r='28' stroke-width='8'/%3E%3Cpath d='M50 4V96M4 50H96M17 17L83 83M83 17L17 83' stroke-width='7'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='11'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%23000' stroke-linecap='round' fill='none'%3E%3Ccircle cx='50' cy='50' r='28' stroke-width='8'/%3E%3Cpath d='M50 4V96M4 50H96M17 17L83 83M83 17L17 83' stroke-width='7'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='11'/%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 0.4;
+}
+[data-game='one-piece'] .cc-home-bg i:nth-child(even) {
+  background: var(--red);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%23000' stroke-width='8' stroke-linecap='round' fill='none'%3E%3Ccircle cx='50' cy='15' r='9'/%3E%3Cpath d='M50 24V92M30 38H70M14 60C18 82 34 92 50 92S82 82 86 60'/%3E%3C/g%3E%3Cpath d='M6 64L14 52L22 64ZM78 64L86 52L94 64Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%23000' stroke-width='8' stroke-linecap='round' fill='none'%3E%3Ccircle cx='50' cy='15' r='9'/%3E%3Cpath d='M50 24V92M30 38H70M14 60C18 82 34 92 50 92S82 82 86 60'/%3E%3C/g%3E%3Cpath d='M6 64L14 52L22 64ZM78 64L86 52L94 64Z'/%3E%3C/svg%3E");
+  opacity: 0.2;
 }
 [data-game='one-piece'] .cc-progress-fill {
   background: linear-gradient(90deg, var(--red), var(--highlight));

@@ -59,7 +59,7 @@ import { Card } from '../shared/card';
             <span class="text-[13px] font-extrabold text-muted">{{ typeLabel() }} (1{{ (rules()?.maxTypes || 2) > 1 ? ' tot ' + rules()?.maxTypes : '' }})</span>
             <div class="flex flex-wrap gap-2">
               @for (t of typeChips(); track t.key) {
-                <button (click)="toggleType(t.key)" class="chip !py-[5px] !pl-[5px] !pr-[10px]" [style.background]="t.on ? 'var(--display)' : 'var(--surface)'" [style.color]="t.on ? 'var(--display-text)' : 'var(--ink)'">
+                <button (click)="toggleType(t.key)" class="chip !py-[5px] !pl-[5px] !pr-[10px]" [style.background]="t.on ? 'var(--selected)' : 'var(--surface)'" [style.color]="t.on ? 'var(--on-selected)' : 'var(--ink)'">
                   <span class="w-4 h-4 rounded-full border-2 border-line" [style.background]="t.color"></span>{{ t.label }}
                 </button>
               }

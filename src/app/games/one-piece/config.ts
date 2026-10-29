@@ -71,7 +71,6 @@ export const config: GameConfig = {
   filters: [
     { key: 'colour', label: 'Alle kleuren', first: true, options: () => Object.entries(config.types).filter(([k]) => k !== 'none').map(([k, v]) => [k, v[0]]), match: (c, v) => c.colours.includes(v) },
     { key: 'cardType', label: 'Alle kaartsoorten', first: true, options: () => Object.entries(CARD_TYPES), match: (c, v) => c.cardType === v },
-    { key: 'cost', label: 'Alle kosten', options: () => Array.from({ length: 11 }, (_, i) => [String(i), 'Kosten ' + i] as [string, string]), match: (c, v) => c.cost === +v },
     { key: 'kind', label: 'Alle types', options: () => [...new Set(CARDS.flatMap((c) => c.subtypes || []))].sort().map((x) => [x, x]), match: (c, v) => (c.subtypes || []).includes(v) },
     { key: 'print', label: 'Alle prints', options: () => [['regular', 'Gewone print'], ['parallel', 'Parallel'], ['reprint', 'Herdruk']], match: (c, v) => (v === 'parallel' ? !!c.parallel : v === 'reprint' ? !!c.reprint : !c.parallel && !c.reprint) },
   ],
