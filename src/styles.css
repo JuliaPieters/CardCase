@@ -665,19 +665,24 @@ body.cc-dark {
   opacity: 0.08;
 }
 /* The floating card outlines become small gold stars. */
-/* The floating card outlines become hexagons, the ink-cost symbol of Lorcana cards: gold and ink blue in turn. */
+/* The floating card outlines become little crowns (gold) and drops of ink (ink blue), in turn: fairy tales and the
+   ink Lorcana's characters are summoned with. */
 [data-game='lorcana'] .cc-home-bg i {
-  width: calc(var(--w, 72px) * 0.45);
+  width: calc(var(--w, 72px) * 0.5);
   border: 0;
   border-radius: 0;
-  aspect-ratio: 1 / 1.1;
+  aspect-ratio: 1;
   background: var(--highlight);
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  opacity: 0.35;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M12 74L6 30L30 50L50 18L70 50L94 30L88 74Z'/%3E%3Crect x='12' y='80' width='76' height='10' rx='3'/%3E%3Ccircle cx='6' cy='26' r='6'/%3E%3Ccircle cx='50' cy='13' r='7'/%3E%3Ccircle cx='94' cy='26' r='6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M12 74L6 30L30 50L50 18L70 50L94 30L88 74Z'/%3E%3Crect x='12' y='80' width='76' height='10' rx='3'/%3E%3Ccircle cx='6' cy='26' r='6'/%3E%3Ccircle cx='50' cy='13' r='7'/%3E%3Ccircle cx='94' cy='26' r='6'/%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 0.4;
 }
 [data-game='lorcana'] .cc-home-bg i:nth-child(even) {
+  width: calc(var(--w, 72px) * 0.38);
   background: var(--red);
-  opacity: 0.18;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 4C50 4 18 44 18 64A32 32 0 0 0 82 64C82 44 50 4 50 4Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 4C50 4 18 44 18 64A32 32 0 0 0 82 64C82 44 50 4 50 4Z'/%3E%3C/svg%3E");
+  opacity: 0.2;
 }
 [data-game='lorcana'] .cc-progress-fill {
   position: relative;
